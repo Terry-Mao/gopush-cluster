@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	// Log Level
 	Emerg = 0
 	Alert = 1
 	Crit  = 2
@@ -44,13 +45,13 @@ var (
 */
 func New(file string, level int) (*Logger, error) {
 	if file != "" {
-		f, err := os.OpenFile(Conf.Log, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+		f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			return defaultLogger, err
 		}
 
-		logger := log.New(logFile, "", log.LstdFlags)
-		return &Logger{log: logger, file: logFile, level: level}, nil
+		logger := log.New(f, "", log.LstdFlags)
+		return &Logger{log: logger, file: f, level: level}, nil
 	}
 
 	return defaultLogger, nil
@@ -58,8 +59,8 @@ func New(file string, level int) (*Logger, error) {
 
 // Close closes the open log file.
 func (l *Logger) Close() error {
-	if l.logFile != nil {
-		return l.logFile.Close()
+	if l.file != nil {
+		return l.file.Close()
 	}
 
 	return nil
@@ -93,6 +94,7 @@ func (l *Logger) Log(level int, format string, args ...interface{}) {
 	}
 }
 
+// logCore handle the core log proc
 func (l *Logger) logCore(level int, format string, args ...interface{}) {
 	var (
 		file string
