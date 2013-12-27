@@ -1,4 +1,4 @@
 gopush-cluster
 ==============
 
-Golang push service cluster (comet) 
+Golang push service cluster (comet) test
