@@ -39,8 +39,15 @@ func main() {
 	}
 
 	Log.Info("gopush2 start")
-	if err = InitZookeeper(); err != nil {
+	if zk, err := InitZookeeper(); err != nil {
 		Log.Error("InitZookeeper() failed (%s)", err.Error())
+		os.Exit(-1)
+	} else {
+		defer func() {
+			if err = zk.Close(); err != nil {
+				Log.Error("zk.Close() failed (%s)", err.Error())
+			}
+		}()
 	}
 
 	// create channel

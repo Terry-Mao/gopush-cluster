@@ -56,8 +56,8 @@ func (zk *ZK) Create(path string, node string) error {
 	}
 
 	// create node path
-	Log.Debug("create zookeeper path:%s", fpath)
 	fpath := path + "/" + node
+	Log.Debug("create zookeeper path:%s", fpath)
 	_, err := zk.conn.Create(fpath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
 	if err != nil {
 		if zookeeper.IsError(err, zookeeper.ZNODEEXISTS) {
@@ -84,28 +84,32 @@ func (zk *ZK) Register(path string, node string, val string) error {
 	return nil
 }
 
+func (zk *ZK) Close() error {
+	return zk.conn.Close()
+}
+
 // InitZookeeper init the zk path and register node in zk
-func InitZookeeper() error {
+func InitZookeeper() (*ZK, error) {
 	// create a zk conn
 	zk, err := NewZookeeper(Conf.ZookeeperAddr, Conf.ZookeeperTimeout)
 	if err != nil {
 		Log.Error("NewZookeeper() failed (%s)", err.Error())
-		return err
+		return nil, err
 	}
 
 	// init zk path
 	Log.Info("init zookeeper root path and node path")
 	if err = zk.Create(Conf.ZookeeperPath, Conf.Node); err != nil {
 		Log.Error("zk.Create(\"%s\") failed (%s)", Conf.ZookeeperPath, err.Error())
-		return err
+		return nil, err
 	}
 
 	// register zk node
 	Log.Info("register %s:%s in zookeeper:%s", Conf.Node, Conf.DNS, Conf.ZookeeperPath)
 	if err = zk.Register(Conf.ZookeeperPath, Conf.Node, Conf.DNS); err != nil {
 		Log.Error("zk.Register(\"%s\", \"%s\") failed (%s)", Conf.ZookeeperPath, Conf.DNS, err.Error())
-		return err
+		return nil, err
 	}
 
-	return nil
+	return zk, nil
 }
