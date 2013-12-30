@@ -34,6 +34,19 @@ func NewKetama(node, vnode int) *Ketama {
 	return ketama
 }
 
+// New create a ketama consistent hashing struct use exist node slice
+func NewKetama2(node []string, vnode int) *Ketama {
+	ketama := &Ketama{}
+	ketama.node = len(node)
+	ketama.vnode = vnode
+	ketama.nodes = []uint{}
+	ketama.nodesMapping = map[uint]string{}
+
+	ketama.initCircle2(node)
+
+	return ketama
+}
+
 // init consistent hashing circle
 func (k *Ketama) initCircle() {
 	h := NewMurmur3C()
@@ -45,6 +58,23 @@ func (k *Ketama) initCircle() {
 			vpos := uint(h.Sum32())
 			k.nodes = append(k.nodes, vpos)
 			k.nodesMapping[vpos] = node
+			h.Reset()
+		}
+	}
+
+	sort.Sort(UIntSlice(k.nodes))
+}
+
+// init consistent hashing circle
+func (k *Ketama) initCircle2(node []string) {
+	h := NewMurmur3C()
+	for _, str := range node {
+		for i := 0; i < k.vnode; i++ {
+			vnode := fmt.Sprintf("%s#%d", str, i)
+			h.Write([]byte(vnode))
+			vpos := uint(h.Sum32())
+			k.nodes = append(k.nodes, vpos)
+			k.nodesMapping[vpos] = str
 			h.Reset()
 		}
 	}
