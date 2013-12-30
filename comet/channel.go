@@ -43,50 +43,58 @@ type Channel interface {
 	Close() error
 }
 
-type channelBucket struct {
-	data  map[string]Channel
+type ChannelBucket struct {
+	Data  map[string]Channel
 	mutex *sync.Mutex
 }
 
 type ChannelList struct {
-	channels []*channelBucket
+	Channels []*ChannelBucket
 }
 
 var (
 	UserChannel *ChannelList
 )
 
+func (c *ChannelBucket) Lock() {
+	c.mutex.Lock()
+}
+
+func (c *ChannelBucket) Unlock() {
+	c.mutex.Unlock()
+}
+
 func NewChannelList() *ChannelList {
-	l := &ChannelList{channels: []*channelBucket{}}
+	l := &ChannelList{Channels: []*ChannelBucket{}}
 	// split hashmap to many bucket
 	for i := 0; i < Conf.ChannelBucket; i++ {
-		c := &channelBucket{
-			data:  map[string]Channel{},
+		c := &ChannelBucket{
+			Data:  map[string]Channel{},
 			mutex: &sync.Mutex{},
 		}
 
-		l.channels = append(l.channels, c)
+		l.Channels = append(l.Channels, c)
 	}
 
 	return l
 }
 
 // bucket return a channelBucket use murmurhash3
-func (l *ChannelList) bucket(key string) *channelBucket {
+func (l *ChannelList) bucket(key string) *ChannelBucket {
 	h := hash.NewMurmur3C()
 	h.Write([]byte(key))
 	idx := uint(h.Sum32()) & uint(Conf.ChannelBucket-1)
-	return l.channels[idx]
+	return l.Channels[idx]
 }
 
 // New create a user channle
 func (l *ChannelList) New(key string) (Channel, error) {
 	// get a channel bucket
 	b := l.bucket(key)
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
+	b.Lock()
+	defer b.Unlock()
 
-	if c, ok := b.data[key]; ok {
+	if c, ok := b.Data[key]; ok {
 		// refresh the expire time
 		c.SetDeadline(time.Now().UnixNano() + Conf.ChannelExpireSec*Second)
 		return c, nil
@@ -100,7 +108,7 @@ func (l *ChannelList) New(key string) (Channel, error) {
 			return nil, ChannelTypeErr
 		}
 
-		b.data[key] = c
+		b.Data[key] = c
 		return c, nil
 	}
 }
@@ -109,17 +117,17 @@ func (l *ChannelList) New(key string) (Channel, error) {
 func (l *ChannelList) Get(key string) (Channel, error) {
 	// get a channel bucket
 	b := l.bucket(key)
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
+	b.Lock()
+	defer b.Unlock()
 
-	if c, ok := b.data[key]; !ok {
+	if c, ok := b.Data[key]; !ok {
 		Log.Warn("user_key:\"%s\" channle not exists", key)
 		return nil, ChannelNotExistErr
 	} else {
 		// check expired
 		if c.Timeout() {
 			Log.Warn("user_key:\"%s\" channle expired", key)
-			delete(b.data, key)
+			delete(b.Data, key)
 			if err := c.Close(); err != nil {
 				Log.Error("user_key:\"%s\" channel close failed (%s)", key, err.Error())
 				return nil, err

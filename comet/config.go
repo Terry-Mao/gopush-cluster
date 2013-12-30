@@ -20,6 +20,7 @@ func init() {
 }
 
 type Config struct {
+	Node                string `json:"node"`
 	DNS                 string `json:"dns"`
 	Addr                string `json:"addr"`
 	AdminAddr           string `json:"admin_addr"`
@@ -56,12 +57,13 @@ func NewConfig(file string) (*Config, error) {
 	}
 
 	cf := &Config{
+		Node:                "node1",
 		DNS:                 "localhost",
 		Addr:                "localhost",
 		AdminAddr:           "localhost",
 		ZookeeperAddr:       "localhost:2181",
 		ZookeeperTimeout:    28800,
-		ZookeeperPath:       "/gopush-cluster/node1",
+		ZookeeperPath:       "/gopush-cluster",
 		Log:                 "./gopush.log",
 		LogLevel:            0,
 		MaxProcs:            runtime.NumCPU(),

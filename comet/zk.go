@@ -1,9 +1,14 @@
 package main
 
 import (
+	"errors"
 	"launchpad.net/gozk/zookeeper"
 	"strings"
 	"time"
+)
+
+var (
+	NodeNameErr = errors.New("zookeeper node name must not contain \",\"")
 )
 
 type ZK struct {
@@ -33,22 +38,37 @@ func NewZookeeper(addr string, timeout int) (*ZK, error) {
 }
 
 // Create the persistence node in zookeeper
-func (zk *ZK) Create(path string) error {
+func (zk *ZK) Create(path string, node string) error {
+	// create zk root path
 	tpath := ""
 	for _, str := range strings.Split(path, "/")[1:] {
 		tpath += "/" + str
-		cpath, err := zk.conn.Create(tpath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
+		_, err := zk.conn.Create(tpath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
 		if err != nil {
 			if zookeeper.IsError(err, zookeeper.ZNODEEXISTS) {
-				Log.Warn("zk.Create(\"%s\") exists", cpath+str)
+				Log.Warn("zk.Create(\"%s\") exists", tpath)
 			} else {
-				Log.Error("zk.Create(\"%s\") failed (%s)", cpath+str, err.Error())
+				Log.Error("zk.Create(\"%s\") failed (%s)", tpath, err.Error())
 				return err
 			}
 		}
 
+		Log.Debug("create zookeeper path:\"%s\"", tpath)
 	}
 
+	// create node path
+	fpath := path + "/" + node
+	_, err := zk.conn.Create(fpath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
+	if err != nil {
+		if zookeeper.IsError(err, zookeeper.ZNODEEXISTS) {
+			Log.Warn("zk.Create(\"%s\") exists", fpath)
+		} else {
+			Log.Error("zk.Create(\"%s\") failed (%s)", fpath, err.Error())
+			return err
+		}
+	}
+
+	Log.Debug("create zookeeper path:\"%s\"", fpath)
 	return nil
 }
 
@@ -74,7 +94,7 @@ func InitZookeeper() error {
 	}
 
 	// init zk path
-	if err = zk.Create(Conf.ZookeeperPath); err != nil {
+	if err = zk.Create(Conf.ZookeeperPath, Conf.Node); err != nil {
 		Log.Error("zk.Create(\"%s\") failed (%s)", Conf.ZookeeperPath, err.Error())
 		return err
 	}

@@ -3,10 +3,12 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"github.com/Terry-Mao/gopush-cluster/hash"
 	"io/ioutil"
 	"net/http"
 	"net/http/pprof"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -27,6 +29,8 @@ const (
 	retAddToken = 4
 	// message push failed
 	retPushMsg = 5
+	// migrate failed
+	retMigrate = 6
 )
 
 const (
@@ -171,6 +175,83 @@ func PublishHandle(w http.ResponseWriter, r *http.Request) {
 		}
 
 		return
+	}
+
+	// ret response
+	if err = retWrite(w, "ok", retOK); err != nil {
+		Log.Error("retWrite() failed (%s)", err.Error())
+		return
+	}
+}
+
+// MigrateHandle close Channel when node add or remove
+func MigrateHandle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Method Not Allowed", 405)
+		return
+	}
+
+	// get params
+	params := r.URL.Query()
+	nodesStr := params.Get("nodes")
+	nodes := strings.Split(nodesStr, ",")
+	if len(nodes) == 0 {
+		if err := retWrite(w, "nodes param error", retParamErr); err != nil {
+			Log.Error("retWrite failed (%s)", err.Error())
+		}
+
+		return
+	}
+
+	vnodeStr := params.Get("vnode")
+	vnode, err := strconv.Atoi(vnodeStr)
+	if err != nil {
+		Log.Error("strconv.Atoi(\"%s\") failed (%s)", vnodeStr, err.Error())
+		if err = retWrite(w, "vnode param error", retParamErr); err != nil {
+			Log.Error("retWrite failed (%s)", err.Error())
+		}
+
+		return
+	}
+
+	// check current node in the nodes
+	has := false
+	for _, str := range nodes {
+		if str == Conf.Node {
+			has = true
+		}
+	}
+
+	if !has {
+		Log.Crit("make sure your migrate nodes right, there is no %s in nodes, this will cause all the node hit miss", Conf.Node)
+		if err = retWrite(w, "migrate nodes may be error", retMigrate); err != nil {
+			Log.Error("retWrite failed (%s)", err.Error())
+		}
+
+		return
+	}
+
+	channels := []Channel{}
+	// init ketama
+	ketama := hash.NewKetama2(nodes, vnode)
+	// get all the channel lock
+	for _, c := range UserChannel.Channels {
+		c.Lock()
+		for k, v := range c.Data {
+			if ketama.Node(k) != Conf.Node {
+				channels = append(channels, v)
+			}
+		}
+
+		c.Unlock()
+	}
+
+	// close all the migrate channels
+	for _, channel := range channels {
+		if err = channel.Close(); err != nil {
+			Log.Error("channel.Close() failed (%s)", err.Error())
+			continue
+		}
 	}
 
 	// ret response
