@@ -40,7 +40,7 @@ func main() {
 
 	Log.Info("gopush2 start")
 	// create channel
-	if channel = NewChannelList(); channel == nil {
+	if UserChannel = NewChannelList(); UserChannel == nil {
 		Log.Warn("NewChannelList() failed, can't create channellist")
 		os.Exit(-1)
 	}

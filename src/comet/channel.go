@@ -59,7 +59,7 @@ type ChannelList struct {
 }
 
 var (
-	channel *ChannelList
+	UserChannel *ChannelList
 )
 
 func NewChannelList() *ChannelList {
