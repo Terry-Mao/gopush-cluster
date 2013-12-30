@@ -88,9 +88,9 @@ func (l *Logger) Info(format string, args ...interface{}) {
 }
 
 // Warn use the argument level write data
-func (l *Logger) Warn(level int, format string, args ...interface{}) {
-	if l.level >= level {
-		l.logCore(level, format, args...)
+func (l *Logger) Warn(format string, args ...interface{}) {
+	if l.level >= Warn {
+		l.logCore(Warn, format, args...)
 	}
 }
 
