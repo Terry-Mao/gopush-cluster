@@ -67,6 +67,7 @@ func (c *ChannelBucket) Unlock() {
 func NewChannelList() *ChannelList {
 	l := &ChannelList{Channels: []*ChannelBucket{}}
 	// split hashmap to many bucket
+	Log.Debug("create %d ChannelBucket", Conf.ChannelBucket)
 	for i := 0; i < Conf.ChannelBucket; i++ {
 		c := &ChannelBucket{
 			Data:  map[string]Channel{},
@@ -84,6 +85,7 @@ func (l *ChannelList) bucket(key string) *ChannelBucket {
 	h := hash.NewMurmur3C()
 	h.Write([]byte(key))
 	idx := uint(h.Sum32()) & uint(Conf.ChannelBucket-1)
+	Log.Debug("user_key:\"%s\" hit channel bucket index:%d", key, idx)
 	return l.Channels[idx]
 }
 
@@ -96,9 +98,11 @@ func (l *ChannelList) New(key string) (Channel, error) {
 
 	if c, ok := b.Data[key]; ok {
 		// refresh the expire time
+		Log.Debug("user_key:\"%s\" refresh channel bucket expire time", key)
 		c.SetDeadline(time.Now().UnixNano() + Conf.ChannelExpireSec*Second)
 		return c, nil
 	} else {
+		Log.Debug("user_key:\"%s\" create a new channel", key)
 		if Conf.ChannelType == InnerChannelType {
 			c = NewInnerChannel()
 		} else if Conf.ChannelType == OuterChannelType {

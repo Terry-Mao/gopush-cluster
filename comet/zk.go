@@ -43,6 +43,7 @@ func (zk *ZK) Create(path string, node string) error {
 	tpath := ""
 	for _, str := range strings.Split(path, "/")[1:] {
 		tpath += "/" + str
+		Log.Debug("create zookeeper path:%s", tpath)
 		_, err := zk.conn.Create(tpath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
 		if err != nil {
 			if zookeeper.IsError(err, zookeeper.ZNODEEXISTS) {
@@ -52,11 +53,10 @@ func (zk *ZK) Create(path string, node string) error {
 				return err
 			}
 		}
-
-		Log.Debug("create zookeeper path:\"%s\"", tpath)
 	}
 
 	// create node path
+	Log.Debug("create zookeeper path:%s", fpath)
 	fpath := path + "/" + node
 	_, err := zk.conn.Create(fpath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
 	if err != nil {
@@ -68,19 +68,19 @@ func (zk *ZK) Create(path string, node string) error {
 		}
 	}
 
-	Log.Debug("create zookeeper path:\"%s\"", fpath)
 	return nil
 }
 
 // Register register a node in zookeeper, when comet exit the node will remove
-func (zk *ZK) Register(path string, val string) error {
-	cpath, err := zk.conn.Create(path+"/", val, zookeeper.EPHEMERAL|zookeeper.SEQUENCE, zookeeper.WorldACL(zookeeper.PERM_ALL))
+func (zk *ZK) Register(path string, node string, val string) error {
+	fpath := path + "/" + node + "/"
+	tpath, err := zk.conn.Create(fpath, val, zookeeper.EPHEMERAL|zookeeper.SEQUENCE, zookeeper.WorldACL(zookeeper.PERM_ALL))
 	if err != nil {
 		Log.Error("zk.Create(\"%s\", \"%s\", zookeeper.EPHEMERAL|zookeeper.SEQUENCE) failed (%s)", path, val, err.Error())
 		return err
 	}
 
-	Log.Debug("create a zookeeper path:\"%s\"", cpath)
+	Log.Debug("create a zookeeper node:%s", tpath)
 	return nil
 }
 
@@ -94,13 +94,15 @@ func InitZookeeper() error {
 	}
 
 	// init zk path
+	Log.Info("init zookeeper root path and node path")
 	if err = zk.Create(Conf.ZookeeperPath, Conf.Node); err != nil {
 		Log.Error("zk.Create(\"%s\") failed (%s)", Conf.ZookeeperPath, err.Error())
 		return err
 	}
 
 	// register zk node
-	if err = zk.Register(Conf.ZookeeperPath, Conf.DNS); err != nil {
+	Log.Info("register %s:%s in zookeeper:%s", Conf.Node, Conf.DNS, Conf.ZookeeperPath)
+	if err = zk.Register(Conf.ZookeeperPath, Conf.Node, Conf.DNS); err != nil {
 		Log.Error("zk.Register(\"%s\", \"%s\") failed (%s)", Conf.ZookeeperPath, Conf.DNS, err.Error())
 		return err
 	}

@@ -35,6 +35,7 @@ func (c *OuterChannel) newWriteBuf() *bytes.Buffer {
 		buf.Reset()
 		return buf
 	default:
+		Log.Debug("outer channel buffer empty")
 		return bytes.NewBuffer(make([]byte, Conf.WriteBufByte))
 	}
 }
@@ -44,6 +45,7 @@ func (c *OuterChannel) putWriteBuf(buf *bytes.Buffer) {
 	select {
 	case c.writeBuf <- buf:
 	default:
+		Log.Debug("outer channel buffer full")
 	}
 }
 
@@ -93,7 +95,7 @@ func (c *OuterChannel) AddConn(conn net.Conn, mid int64, key string) error {
 	// save the last push message id
 	c.conn[conn] = mid
 	c.mutex.Unlock()
-	Log.Info("user_key:\"%s\" add conn", key)
+	Log.Debug("user_key:\"%s\" add conn", key)
 	return nil
 }
 
@@ -102,7 +104,7 @@ func (c *OuterChannel) RemoveConn(conn net.Conn, mid int64, key string) error {
 	c.mutex.Lock()
 	delete(c.conn, conn)
 	c.mutex.Unlock()
-	Log.Error("user_key:\"%s\" remove conn", key)
+	Log.Debug("user_key:\"%s\" remove conn", key)
 	return nil
 }
 

@@ -49,8 +49,10 @@ func StartHttp() error {
 			return err
 		}
 
+		Log.Info("start listen addr:%s", Conf.Addr)
 		return server.Serve(&KeepAliveListener{Listener: l})
 	} else {
+		Log.Info("start listen addr:%s", Conf.Addr)
 		if err := http.ListenAndServe(Conf.Addr, nil); err != nil {
 			Log.Error("http.ListenAdServe(\"%s\") failed (%s)", Conf.Addr, err.Error())
 			return err
@@ -66,6 +68,11 @@ func SubscribeHandle(ws *websocket.Conn) {
 	params := ws.Request().URL.Query()
 	// get subscriber key
 	key := params.Get("key")
+	if key == "" {
+		Log.Warn("client:%s key param error", ws.Request().RemoteAddr)
+		return
+	}
+
 	// get lastest message id
 	midStr := params.Get("mid")
 	mid, err := strconv.ParseInt(midStr, 10, 64)
@@ -153,7 +160,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 				break
 			}
 
-			Log.Info("user_key:\"%s\" receive heartbeat", key)
+			Log.Debug("user_key:\"%s\" receive heartbeat", key)
 		} else {
 			Log.Warn("user_key:\"%s\" unknown heartbeat protocol", key)
 			break

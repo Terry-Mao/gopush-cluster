@@ -25,6 +25,7 @@ type TCPReadBuf struct {
 // NewTCPReadBuf get a mutiple instance chan stored the bufio.Reader obj
 func NewTCPReadBuf() *TCPReadBuf {
 	readBufInstance := make([]chan *bufio.Reader, 0, Conf.ReadBufInstance)
+	Log.Debug("create %d read buffer instance", Conf.ReadBufInstance)
 	for i := 0; i < Conf.ReadBufInstance; i++ {
 		readBufInstance = append(readBufInstance, make(chan *bufio.Reader, Conf.ReadBufNumPerInst))
 	}
@@ -39,6 +40,7 @@ func (b *TCPReadBuf) Get(conn io.Reader, idx int) *bufio.Reader {
 		rd.Reset(conn)
 		return rd
 	default:
+		Log.Debug("tcp read buffer empty")
 		return bufio.NewReaderSize(conn, Conf.ReadBufByte)
 	}
 }
@@ -49,6 +51,7 @@ func (b *TCPReadBuf) Put(buf *bufio.Reader, idx int) {
 	select {
 	case b.instance[idx] <- buf:
 	default:
+		Log.Debug("tcp read buffer full")
 	}
 }
 
@@ -60,6 +63,7 @@ func StartTCP() error {
 		return err
 	}
 
+	Log.Info("start listen addr:%s", addr)
 	l, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		Log.Error("net.ListenTCP(\"tcp4\", \"%s\") failed (%s)", Conf.Addr, err.Error())
@@ -78,6 +82,7 @@ func StartTCP() error {
 	// loop for accept conn
 	round := 0
 	for {
+		Log.Debug("start accept")
 		conn, err := l.AcceptTCP()
 		if err != nil {
 			Log.Error("listener.AcceptTCP() failed (%s)", err.Error())
@@ -116,15 +121,18 @@ func StartTCP() error {
 		if round == Conf.ReadBufInstance {
 			round = 0
 		}
+
+		Log.Debug("accept finished")
 	}
 
 	// nerve here
+	Log.Crit("touch a impossible place")
 	return nil
 }
 
 // hanleTCPConn handle a long live tcp connection
 func handleTCPConn(conn net.Conn, round int, rb *TCPReadBuf) {
-	Log.Info("handleTcpConn routine start")
+	Log.Debug("handleTcpConn routine start")
 	// parse protocol reference: http://redis.io/topics/protocol (use redis protocol)
 	rd := rb.Get(conn, round)
 	if args, err := parseCmd(rd); err == nil {
@@ -149,7 +157,7 @@ func handleTCPConn(conn net.Conn, round int, rb *TCPReadBuf) {
 		Log.Error("conn.Close() failed (%s)", err.Error())
 	}
 
-	Log.Info("handleTcpConn routine stop")
+	Log.Debug("handleTcpConn routine stop")
 	return
 }
 
@@ -163,6 +171,11 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 
 	// key, mid, heartbeat
 	key := args[0]
+	if key == "" {
+		Log.Warn("client:%s key param error", conn.RemoteAddr)
+		return
+	}
+
 	midStr := args[1]
 	mid, err := strconv.ParseInt(midStr, 10, 64)
 	if err != nil {
@@ -255,7 +268,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 				break
 			}
 
-			Log.Info("user_key:\"%s\" receive heartbeat (%s)", key, reply)
+			Log.Debug("user_key:\"%s\" receive heartbeat (%s)", key, reply)
 		} else {
 			Log.Warn("user_key:\"%s\" unknown heartbeat protocol (%s)", key, reply)
 			break

@@ -71,6 +71,7 @@ func StartAdminHttp() error {
 	adminServeMux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	adminServeMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	adminServeMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	Log.Info("start listen admin addr:%s", Conf.AdminAddr)
 	err := http.ListenAndServe(Conf.AdminAddr, adminServeMux)
 	if err != nil {
 		Log.Error("http.ListenAdServe(\"%s\") failed (%s)", Conf.AdminAddr, err.Error())
@@ -83,6 +84,7 @@ func StartAdminHttp() error {
 // ChannelHandle create a user channle with the key by http
 func ChannelHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
+		Log.Warn("client:%s's %s not allowed", r.RemoteAddr, r.Method)
 		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
@@ -91,6 +93,7 @@ func ChannelHandle(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 	key := params.Get("key")
 	if key == "" {
+		Log.Warn("client:%s key param error", r.RemoteAddr)
 		if err := retWrite(w, "key param error", retParamErr); err != nil {
 			Log.Error("retWrite failed (%s)", err.Error())
 		}
@@ -118,9 +121,10 @@ func ChannelHandle(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// PUblishHandle pub a message to a user with a key by http
+// PublishHandle pub a message to a user with a key by http
 func PublishHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
+		Log.Warn("client:%s's %s not allowed", r.RemoteAddr, r.Method)
 		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
@@ -128,6 +132,15 @@ func PublishHandle(w http.ResponseWriter, r *http.Request) {
 	// get params
 	params := r.URL.Query()
 	key := params.Get("key")
+	if key == "" {
+		Log.Warn("client:%s key param error", r.RemoteAddr)
+		if err := retWrite(w, "key param error", retParamErr); err != nil {
+			Log.Error("retWrite failed (%s)", err.Error())
+		}
+
+		return
+	}
+
 	expireStr := params.Get("expire")
 	expire, err := strconv.ParseInt(expireStr, 10, 64)
 	if err != nil {
@@ -140,6 +153,7 @@ func PublishHandle(w http.ResponseWriter, r *http.Request) {
 	midStr := params.Get("mid")
 	mid, err := strconv.ParseInt(midStr, 10, 64)
 	if err != nil {
+		Log.Warn("user_key:\"%s\" mid param error", key)
 		if err = retWrite(w, "mid param error", retParamErr); err != nil {
 			Log.Error("retWrite failed (%s)", err.Error())
 		}
@@ -150,6 +164,7 @@ func PublishHandle(w http.ResponseWriter, r *http.Request) {
 	// get message from http body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		Log.Error("user_key:\"%s\" ioutil.ReadAll(r.Body) failed (%s)", key, err.Error())
 		if err = retWrite(w, "read http body error", retInternalErr); err != nil {
 			Log.Error("retWrite() failed (%s)", err.Error())
 		}
@@ -160,7 +175,8 @@ func PublishHandle(w http.ResponseWriter, r *http.Request) {
 	// get a user channel
 	c, err := UserChannel.Get(key)
 	if err != nil {
-		if err = retWrite(w, "can't get a subscriber", retGetChannel); err != nil {
+		Log.Warn("user_key:\"%s\" can't get a channel (%s)", key, err.Error())
+		if err = retWrite(w, "can't get a channel", retGetChannel); err != nil {
 			Log.Error("retWrite() failed (%s)", err.Error())
 		}
 
@@ -187,6 +203,7 @@ func PublishHandle(w http.ResponseWriter, r *http.Request) {
 // MigrateHandle close Channel when node add or remove
 func MigrateHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
+		Log.Warn("client:%s's %s not allowed", r.RemoteAddr, r.Method)
 		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
@@ -196,6 +213,7 @@ func MigrateHandle(w http.ResponseWriter, r *http.Request) {
 	nodesStr := params.Get("nodes")
 	nodes := strings.Split(nodesStr, ",")
 	if len(nodes) == 0 {
+		Log.Warn("client:%s's nodes param error", r.RemoteAddr)
 		if err := retWrite(w, "nodes param error", retParamErr); err != nil {
 			Log.Error("retWrite failed (%s)", err.Error())
 		}
@@ -235,18 +253,23 @@ func MigrateHandle(w http.ResponseWriter, r *http.Request) {
 	// init ketama
 	ketama := hash.NewKetama2(nodes, vnode)
 	// get all the channel lock
-	for _, c := range UserChannel.Channels {
+	for i, c := range UserChannel.Channels {
+		Log.Info("migrate channel bucket:%d", i)
 		c.Lock()
 		for k, v := range c.Data {
-			if ketama.Node(k) != Conf.Node {
+			hn := ketama.Node(k)
+			if hn != Conf.Node {
 				channels = append(channels, v)
+				Log.Debug("migrate key:\"%s\" hit node:\"%s\"", k, hn)
 			}
 		}
 
 		c.Unlock()
+		Log.Info("migrate channel bucket:%d finished", i)
 	}
 
 	// close all the migrate channels
+	Log.Info("close all the migrate channels")
 	for _, channel := range channels {
 		if err = channel.Close(); err != nil {
 			Log.Error("channel.Close() failed (%s)", err.Error())
@@ -254,6 +277,7 @@ func MigrateHandle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	Log.Info("close all the migrate channels finished")
 	// ret response
 	if err = retWrite(w, "ok", retOK); err != nil {
 		Log.Error("retWrite() failed (%s)", err.Error())
