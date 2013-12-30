@@ -2,8 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"net"
 	"sync"
 	"time"

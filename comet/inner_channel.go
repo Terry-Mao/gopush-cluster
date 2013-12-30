@@ -136,7 +136,7 @@ func (c *InnerChannel) RemoveConn(conn net.Conn, mid int64, key string) error {
 	c.mutex.Lock()
 	delete(c.conn, conn)
 	c.mutex.Unlock()
-	LogError(LogLevelInfo, "user_key:\"%s\" remove conn", key)
+	Log.Error("user_key:\"%s\" remove conn", key)
 	return nil
 }
 

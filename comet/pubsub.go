@@ -57,7 +57,7 @@ func StartAdminHttp() error {
 	// publish
 	adminServeMux.HandleFunc("/pub", PublishHandle)
 	// stat
-	adminServeMux.HandleFunc("/stat", StatHandle)
+	//adminServeMux.HandleFunc("/stat", StatHandle)
 	// channel
 	if Conf.Auth == 1 {
 		adminServeMux.HandleFunc("/ch", ChannelHandle)
@@ -69,7 +69,7 @@ func StartAdminHttp() error {
 	adminServeMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	err := http.ListenAndServe(Conf.AdminAddr, adminServeMux)
 	if err != nil {
-		LogError(LogLevelErr, "http.ListenAdServe(\"%s\") failed (%s)", Conf.AdminAddr, err.Error())
+		Log.Error("http.ListenAdServe(\"%s\") failed (%s)", Conf.AdminAddr, err.Error())
 		return err
 	}
 
@@ -96,7 +96,7 @@ func ChannelHandle(w http.ResponseWriter, r *http.Request) {
 
 	Log.Info("user_key:\"%s\" add channel", key)
 	// create a new channel for the user
-	c, err := channel.New(key)
+	_, err := UserChannel.New(key)
 	if err != nil {
 		Log.Error("user_key:\"%s\" can't create channle", key)
 		if err = retWrite(w, "create channel failed", retCreateChannel); err != nil {

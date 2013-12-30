@@ -34,19 +34,19 @@ func main() {
 
 	defer Log.Close()
 	if Conf.Addr == Conf.AdminAddr {
-		Log.Warn("COnfigure \"AdminAdd\" = \"Addr\" is not allowed for security reason")
+		Log.Warn("Configure \"AdminAdd\" = \"Addr\" is not allowed for security reason")
 		os.Exit(-1)
 	}
 
 	Log.Info("gopush2 start")
-	// create channel
-	if UserChannel = NewChannelList(); UserChannel == nil {
-		Log.Warn("NewChannelList() failed, can't create channellist")
-		os.Exit(-1)
+	if err = InitZookeeper(); err != nil {
+		Log.Error("InitZookeeper() failed (%s)", err.Error())
 	}
 
+	// create channel
+	UserChannel = NewChannelList()
 	// start stats
-	StartStats()
+	//StartStats()
 	// start admin http
 	go func() {
 		if err := StartAdminHttp(); err != nil {
@@ -78,6 +78,6 @@ func main() {
 // recoverFunc log the stack when panic
 func recoverFunc() {
 	if err := recover(); err != nil {
-		Log.Error("Debug : \n%s (%s)", string(debug.Stack()), err.Error())
+		Log.Error("panic: (%s)", string(debug.Stack()))
 	}
 }

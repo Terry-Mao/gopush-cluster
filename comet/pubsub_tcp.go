@@ -191,10 +191,10 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 
 	Log.Info("client:\"%s\" subscribe to key = %s, mid = %d, heartbeat = %d", conn.RemoteAddr().String(), key, mid, heartbeat)
 	// fetch subscriber from the channel
-	c, err := channel.Get(key)
+	c, err := UserChannel.Get(key)
 	if err != nil {
 		if Conf.Auth == 0 {
-			c, err = channel.New(key)
+			c, err = UserChannel.New(key)
 			if err != nil {
 				Log.Error("user_key:\"%s\" can't create channle (%s)", key, err.Error())
 				return

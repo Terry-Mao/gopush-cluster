@@ -11,7 +11,7 @@ import (
 const (
 	Second           = int64(time.Second)
 	InnerChannelType = 1
-	RedisChannelType = 2
+	OuterChannelType = 2
 )
 
 var (
@@ -25,9 +25,9 @@ var (
 
 // The subscriber interface
 type Channel interface {
-	// SendMsg send messages which id greate than the request id to the subscriber.
+	// SendOfflineMsg send messages which id greate than the request id to the subscriber.
 	// net.Conn write failed will return errors.
-	SendOfflineMessage(conn net.Conn, mid int64, key string) error
+	SendOfflineMsg(conn net.Conn, mid int64, key string) error
 	// PushMsg push a message to the subscriber.
 	PushMsg(m *Message, key string) error
 	// AddConn add a connection for the subscriber.
@@ -68,13 +68,6 @@ func NewChannelList() *ChannelList {
 		l.channels = append(l.channels, c)
 	}
 
-	if Conf.ChannelType == 2 {
-		if err := InitRedisChannel(); err != nil {
-			Log.Error("init redis channle failed (%s)", err.Error())
-			return nil
-		}
-	}
-
 	return l
 }
 
@@ -100,10 +93,10 @@ func (l *ChannelList) New(key string) (Channel, error) {
 	} else {
 		if Conf.ChannelType == InnerChannelType {
 			c = NewInnerChannel()
-		} else if Conf.ChannelType == RedisChannelType {
-			c = NewRedisChannel()
+		} else if Conf.ChannelType == OuterChannelType {
+			c = NewOuterChannel()
 		} else {
-			Log.Error("user_key:\"%s\" unknown channel type : %d (0: inner_channel, 1: redis_channel)", key, Conf.ChannelType)
+			Log.Error("user_key:\"%s\" unknown channel type : %d (0: inner_channel, 1: outer_channel)", key, Conf.ChannelType)
 			return nil, ChannelTypeErr
 		}
 
