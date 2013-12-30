@@ -30,6 +30,7 @@ type Config struct {
 	Addr                string                  `json:"addr"`
 	AdminAddr           string                  `json:"admin_addr"`
 	Log                 string                  `json:"log"`
+	LogLevel            int                     `json:"log_level"`
 	MessageExpireSec    int64                   `json:"message_expire_sec"`
 	ChannelExpireSec    int64                   `json:"channel_expire_sec"`
 	MaxStoredMessage    int                     `json:"max_stored_message"`
@@ -47,7 +48,6 @@ type Config struct {
 	WriteBufNum         int                     `json:"write_buf_num"`
 	WriteBufByte        int                     `json:"write_buf_byte"`
 	Protocol            int                     `json:"protocol"`
-	LogLevel            int                     `json:"log_level"`
 	Debug               int                     `json:"debug"`
 }
 

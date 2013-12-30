@@ -5,48 +5,52 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
+    "github.com/Terry-Mao/gopush-cluster/log"
+)
+
+var (
+    Log *log.Logger
 )
 
 func main() {
 	var err error
 	defer recoverFunc()
-
 	// parse cmd-line arguments
 	flag.Parse()
 	// init config
 	Conf, err = NewConfig(ConfFile)
 	if err != nil {
-		LogError(LogLevelErr, "NewConfig(\"%s\") failed (%s)", ConfFile, err.Error())
+		log.DefaultLogger.Error("NewConfig(\"%s\") failed (%s)", ConfFile, err.Error())
 		os.Exit(-1)
 	}
 
 	// Set max routine
 	runtime.GOMAXPROCS(Conf.MaxProcs)
 	// init log
-	if err = NewLog(); err != nil {
-		LogError(LogLevelErr, "NewLog() failed (%s)", err.Error())
+	if Log, err = log.New(Conf.Log, Conf.LogLevel); err != nil {
+		log.DefaultLogger.Error("log.New(\"%s\", %d) failed (%s)", Conf.Log, Conf.LogLevel, err.Error())
 		os.Exit(-1)
 	}
 
-	defer CloseLog()
-	LogError(LogLevelInfo, "gopush2 start")
+	defer Log.Close()
+	if Conf.Addr == Conf.AdminAddr {
+		Log.Warn("COnfigure \"AdminAdd\" = \"Addr\" is not allowed for security reason")
+		os.Exit(-1)
+	}
+
+	Log.Info("gopush2 start")
 	// create channel
 	if channel = NewChannelList(); channel == nil {
-		LogError(LogLevelWarn, "NewChannelList() failed, can't create channellist")
+		Log.Warn("NewChannelList() failed, can't create channellist")
 		os.Exit(-1)
 	}
 
 	// start stats
 	StartStats()
-	if Conf.Addr == Conf.AdminAddr {
-		LogError(LogLevelWarn, "\"AdminAdd = Addr\" is not allowed for security reason")
-		os.Exit(-1)
-	}
-
 	// start admin http
 	go func() {
 		if err := StartAdminHttp(); err != nil {
-			LogError(LogLevelErr, "StartAdminHttp() failed (%s)", err.Error())
+			Log.Error("StartAdminHttp() failed (%s)", err.Error())
 			os.Exit(-1)
 		}
 	}()
@@ -54,23 +58,26 @@ func main() {
 	if Conf.Protocol == WebsocketProtocol {
 		// Start http push service
 		if err = StartHttp(); err != nil {
-			LogError(LogLevelErr, "StartHttp() failed (%s)", err.Error())
+			Log.Error("StartHttp() failed (%s)", err.Error())
 		}
 	} else if Conf.Protocol == TCPProtocol {
 		// Start http push service
 		if err = StartTCP(); err != nil {
-			LogError(LogLevelErr, "StartTCP() failed (%s)", err.Error())
+			Log.Error("StartTCP() failed (%s)", err.Error())
 		}
 	} else {
-		LogError(LogLevelWarn, "not support gopush2 protocol %d, (0: websocket, 1: tcp)", Conf.Protocol)
+		Log.Warn("unknown gopush-cluster protocol %d, (0: websocket, 1: tcp)", Conf.Protocol)
 		os.Exit(-1)
 	}
 
-	LogError(LogLevelInfo, "gopush2 stop")
+    // exit
+	Log.Info("gopush2 stop")
+    os.Exit(0)
 }
 
+// recoverFunc log the stack when panic
 func recoverFunc() {
 	if err := recover(); err != nil {
-		LogError(LogLevelErr, "Error : %v, Debug : \n%s", err, string(debug.Stack()))
+		Log.Error("Debug : \n%s (%s)", string(debug.Stack()), err.Error())
 	}
 }

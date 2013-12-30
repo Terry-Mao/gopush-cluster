@@ -33,7 +33,7 @@ type Logger struct {
 
 var (
 	defaultLogLevel = Error
-	defaultLogger   = &Logger{log: log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile), file: nil, level: defaultLogLevel}
+	DefaultLogger   = &Logger{log: log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile), file: nil, level: defaultLogLevel}
 	errLevels       = []string{"EMERG", "ALERT", "CRIT", "ERROR", "WARN", "NOTIC", "INFO", "DEBUG"}
 )
 
@@ -47,14 +47,14 @@ func New(file string, level int) (*Logger, error) {
 	if file != "" {
 		f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
-			return defaultLogger, err
+			return DefaultLogger, err
 		}
 
 		logger := log.New(f, "", log.LstdFlags)
 		return &Logger{log: logger, file: f, level: level}, nil
 	}
 
-	return defaultLogger, nil
+	return DefaultLogger, nil
 }
 
 // Close closes the open log file.
@@ -87,8 +87,15 @@ func (l *Logger) Info(format string, args ...interface{}) {
 	}
 }
 
-// Log use the argument level write data
-func (l *Logger) Log(level int, format string, args ...interface{}) {
+// Info use the Info log level write data
+func (l *Logger) Info(format string, args ...interface{}) {
+	if l.level >= Info {
+		l.logCore(Info, format, args...)
+	}
+}
+
+// Warn use the argument level write data
+func (l *Logger) Warn(level int, format string, args ...interface{}) {
 	if l.level >= level {
 		l.logCore(level, format, args...)
 	}
