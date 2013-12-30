@@ -25,22 +25,16 @@ var (
 
 // The subscriber interface
 type Channel interface {
-	// PushMsg push a message to the subscriber.
-	PushMsg(m *Message, key string) error
 	// SendMsg send messages which id greate than the request id to the subscriber.
 	// net.Conn write failed will return errors.
-	SendMsg(conn net.Conn, mid int64, key string) error
+	SendOfflineMessage(conn net.Conn, mid int64, key string) error
+	// PushMsg push a message to the subscriber.
+	PushMsg(m *Message, key string) error
 	// AddConn add a connection for the subscriber.
 	// Exceed the max number of subscribers per key will return errors.
 	AddConn(conn net.Conn, mid int64, key string) error
 	// RemoveConn remove a connection for the  subscriber.
 	RemoveConn(conn net.Conn, mid int64, key string) error
-	// Add a token for one subscriber
-	// The request token not equal the subscriber token will return errors.
-	AddToken(token string, key string) error
-	// Auth auth the access token.
-	// The request token not match the subscriber token will return errors.
-	AuthToken(token string, key string) error
 	// SetDeadline set the channel deadline unixnano
 	SetDeadline(d int64)
 	// Timeout
@@ -63,7 +57,7 @@ var (
 )
 
 func NewChannelList() *ChannelList {
-	l := &ChannelList{channels:[]*channelBucket{}}
+	l := &ChannelList{channels: []*channelBucket{}}
 	// split hashmap to many bucket
 	for i := 0; i < Conf.ChannelBucket; i++ {
 		c := &channelBucket{
@@ -134,7 +128,7 @@ func (l *ChannelList) Get(key string) (Channel, error) {
 			Log.Warn("user_key:\"%s\" channle expired", key)
 			delete(b.data, key)
 			if err := c.Close(); err != nil {
-                Log.Error("user_key:\"%s\" channel close failed (%s)", key, err.Error())
+				Log.Error("user_key:\"%s\" channel close failed (%s)", key, err.Error())
 				return nil, err
 			}
 

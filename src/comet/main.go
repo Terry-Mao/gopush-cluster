@@ -2,14 +2,14 @@ package main
 
 import (
 	"flag"
+	"github.com/Terry-Mao/gopush-cluster/log"
 	"os"
 	"runtime"
 	"runtime/debug"
-    "github.com/Terry-Mao/gopush-cluster/log"
 )
 
 var (
-    Log *log.Logger
+	Log *log.Logger
 )
 
 func main() {
@@ -70,9 +70,9 @@ func main() {
 		os.Exit(-1)
 	}
 
-    // exit
+	// exit
 	Log.Info("gopush2 stop")
-    os.Exit(0)
+	os.Exit(0)
 }
 
 // recoverFunc log the stack when panic

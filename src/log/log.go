@@ -94,6 +94,13 @@ func (l *Logger) Warn(format string, args ...interface{}) {
 	}
 }
 
+// Crit use the argument level write data
+func (l *Logger) Crit(format string, args ...interface{}) {
+	if l.level >= Crit {
+		l.logCore(Crit, format, args...)
+	}
+}
+
 // logCore handle the core log proc
 func (l *Logger) logCore(level int, format string, args ...interface{}) {
 	var (
