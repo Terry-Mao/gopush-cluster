@@ -26,7 +26,9 @@ func main() {
 	}
 
 	fmt.Println("send sub request")
-	if _, err := conn.Write([]byte(fmt.Sprintf("*4\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n$%d\r\n%d\r\n$%d\r\n10\r\n", len(cmd), cmd, len(key), key, len(strconv.Itoa(mid)), mid, len(strconv.Itoa(heartbeat)), heartbeat))); err != nil {
+    proto := []byte(fmt.Sprintf("*4\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n$%d\r\n%d\r\n$%d\r\n%d\r\n", len(cmd), cmd, len(key), key, len(strconv.Itoa(mid)), mid, len(strconv.Itoa(heartbeat)), heartbeat))
+    fmt.Println(string(proto))
+	if _, err := conn.Write(proto); err != nil {
 		panic(err)
 	}
 
