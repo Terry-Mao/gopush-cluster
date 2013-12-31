@@ -231,6 +231,8 @@ func StatHandle(w http.ResponseWriter, r *http.Request) {
 		res = MsgStat.Stat()
 	case "connection":
 		res = ConnStat.Stat()
+	default:
+		http.Error(w, "Not Found", 404)
 	}
 
 	if _, err := w.Write(res); err != nil {
