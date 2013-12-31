@@ -1,5 +1,6 @@
 <h3>Terry-Mao/gopush-cluster Comet 协议文档</h3>
-直接使用Redis的协议格式，方便解析和使用，参考"Redis 协议":redis_ref
+直接使用Redis的协议格式，方便解析和使用。
+"Redis 协议":redis_ref 
 
 <h3>请求</h3>
 格式参照上面提到的Redis协议来传递参数，参数列表：
