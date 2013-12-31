@@ -61,7 +61,7 @@ func StartAdminHttp() error {
 	// publish
 	adminServeMux.HandleFunc("/pub", PublishHandle)
 	// stat
-	//adminServeMux.HandleFunc("/stat", StatHandle)
+	adminServeMux.HandleFunc("/stat", StatHandle)
 	// channel
 	if Conf.Auth == 1 {
 		adminServeMux.HandleFunc("/ch", ChannelHandle)
@@ -190,9 +190,11 @@ func PublishHandle(w http.ResponseWriter, r *http.Request) {
 			Log.Error("retWrite() failed (%s)", err.Error())
 		}
 
+		MsgStat.IncrFailed()
 		return
 	}
 
+	MsgStat.IncrSucceed()
 	// ret response
 	if err = retWrite(w, "ok", retOK); err != nil {
 		Log.Error("retWrite() failed (%s)", err.Error())

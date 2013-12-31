@@ -175,6 +175,7 @@ func (c *OuterChannel) AddConn(conn net.Conn, mid int64, key string) error {
 	c.conn[conn] = mid
 	c.mutex.Unlock()
 	Log.Debug("user_key:\"%s\" add conn", key)
+	ConnStat.IncrAdd()
 	return nil
 }
 
@@ -184,6 +185,7 @@ func (c *OuterChannel) RemoveConn(conn net.Conn, mid int64, key string) error {
 	delete(c.conn, conn)
 	c.mutex.Unlock()
 	Log.Debug("user_key:\"%s\" remove conn", key)
+	ConnStat.IncrRemove()
 	return nil
 }
 

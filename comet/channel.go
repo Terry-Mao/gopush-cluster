@@ -56,14 +56,17 @@ var (
 	UserChannel *ChannelList
 )
 
+// Lock lock the bucket mutex
 func (c *ChannelBucket) Lock() {
 	c.mutex.Lock()
 }
 
+// Unlock unlock the bucket mutex
 func (c *ChannelBucket) Unlock() {
 	c.mutex.Unlock()
 }
 
+// NewChannelList create a new channel bucket set
 func NewChannelList() *ChannelList {
 	l := &ChannelList{Channels: []*ChannelBucket{}}
 	// split hashmap to many bucket
@@ -78,6 +81,16 @@ func NewChannelList() *ChannelList {
 	}
 
 	return l
+}
+
+// Count get the bucket total channel count
+func (l *ChannelList) Count() int {
+	c := 0
+	for i := 0; i < Conf.ChannelBucket; i++ {
+		c += len(l.Channels[i].Data)
+	}
+
+	return c
 }
 
 // bucket return a channelBucket use murmurhash3
@@ -100,6 +113,7 @@ func (l *ChannelList) New(key string) (Channel, error) {
 		// refresh the expire time
 		Log.Debug("user_key:\"%s\" refresh channel bucket expire time", key)
 		c.SetDeadline(time.Now().UnixNano() + Conf.ChannelExpireSec*Second)
+		ChStat.IncrAccess()
 		return c, nil
 	} else {
 		Log.Debug("user_key:\"%s\" create a new channel", key)
@@ -112,6 +126,7 @@ func (l *ChannelList) New(key string) (Channel, error) {
 			return nil, ChannelTypeErr
 		}
 
+		ChStat.IncrCreate()
 		b.Data[key] = c
 		return c, nil
 	}
@@ -137,9 +152,11 @@ func (l *ChannelList) Get(key string) (Channel, error) {
 				return nil, err
 			}
 
+			ChStat.IncrExpire()
 			return nil, ChannelExpiredErr
 		}
 
+		ChStat.IncrAccess()
 		return c, nil
 	}
 }

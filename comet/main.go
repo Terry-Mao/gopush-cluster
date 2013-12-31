@@ -39,6 +39,7 @@ func main() {
 	}
 
 	Log.Info("gopush2 start")
+	StartStats()
 	if zk, err := InitZookeeper(); err != nil {
 		Log.Error("InitZookeeper() failed (%s)", err.Error())
 		os.Exit(-1)
@@ -53,7 +54,7 @@ func main() {
 	// create channel
 	UserChannel = NewChannelList()
 	// start stats
-	//StartStats()
+	StartStats()
 	// start admin http
 	go func() {
 		if err := StartAdminHttp(); err != nil {
