@@ -9,7 +9,7 @@
 <pre>
 *参数个数 CR LF
 $第一个参数的字节数 CR LF
-参数数据 CRLF
+参数数据 CR LF
 ...
 $第N个参数的字节数字 CR LF
 参数数据 CR LF
