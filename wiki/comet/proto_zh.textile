@@ -2,7 +2,7 @@
 直接使用Redis的协议格式，方便解析和使用，参考 "Redis 协议":redis_ref 。
 
 <h3>流程图</h3>
- !https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/comet/proto_zh.bmp!
+ !http://raw.github.com/Terry-Mao/gopush-cluster/master/wiki/comet/proto_zh.png(comet protocol)!
 
 <h3>网络层</h3>
 协议命令总是以 \r\n(CRLF)结尾。
