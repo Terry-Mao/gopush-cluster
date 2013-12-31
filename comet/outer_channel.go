@@ -121,7 +121,7 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 	m.MsgID = c.snowflakeID()
 	Log.Debug("user_key:\"%s\" snowflakeID:%d", key, m.MsgID)
 	// message persistence
-	pd := m.PostString()
+	pd := m.PostString(key)
 	_, err := buf.WriteString(pd)
 	if err != nil {
 		Log.Error("buf.WriteString(\"%s\") failed (%s)", pd, err.Error())
