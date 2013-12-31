@@ -87,7 +87,7 @@ func (m *Message) Bytes(b *bytes.Buffer) ([]byte, error) {
 
 func (m *Message) PostString(key string) string {
 	d := url.Values{}
-	d.Set("msg_id", strconv.FormatInt(m.MsgID, 10))
+	d.Set("mid", strconv.FormatInt(m.MsgID, 10))
 	d.Set("expire", strconv.FormatInt(m.Expire, 10))
 	d.Set("msg", m.Msg)
 	d.Set("key", key)
