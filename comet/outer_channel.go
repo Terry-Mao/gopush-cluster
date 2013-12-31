@@ -2,9 +2,39 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"net"
+	"net/http"
 	"sync"
 	"time"
+)
+
+const (
+	snowflakeMachineID    = int64(0)
+	messageSetDialTimeout = 5
+	messageSetDeadline    = 3
+)
+
+var (
+	MessageSetErr = errors.New("Message set failed")
+	httpTransport = &http.Transport{
+		Dial: func(netw, addr string) (net.Conn, error) {
+			deadline := time.Now().Add(messageSetDialTimeout * time.Second)
+			c, err := net.DialTimeout(netw, addr, messageSetDeadline*time.Second)
+			if err != nil {
+				return nil, err
+			}
+
+			c.SetDeadline(deadline)
+			return c, nil
+		},
+
+		DisableKeepAlives: false,
+	}
+
+	httpClient = &http.Client{
+		Transport: httpTransport,
+	}
 )
 
 type OuterChannel struct {
@@ -16,6 +46,29 @@ type OuterChannel struct {
 	expire int64
 	// write buffer chan for message sent
 	writeBuf chan *bytes.Buffer
+	// snowflake lastSID
+	lastSID int64
+	// snowflake lastTtime
+	lastTime int64
+}
+
+// snlwflakeID generate a time-based id for message
+func (c *OuterChannel) snowflakeID() int64 {
+	sid := int64(0)
+	t := time.Now().UnixNano() / 1000000
+	if t == c.lastTime {
+		sid = c.lastSID + 1
+		//sid必须在[0,4095],如果不在此范围，则sleep 1 毫秒，进入下一个时间点。
+		if sid > 4095 || sid < 0 {
+			time.Sleep(1 * time.Millisecond)
+			t = time.Now().UnixNano() / 1000000
+			sid = 0
+		}
+	}
+
+	c.lastTime = t
+	c.lastSID = sid
+	return (t << 22) + sid<<10 + snowflakeMachineID
 }
 
 // New a user outer stored message channel
@@ -25,6 +78,8 @@ func NewOuterChannel() *OuterChannel {
 		conn:     map[net.Conn]int64{},
 		expire:   time.Now().UnixNano() + Conf.ChannelExpireSec*Second,
 		writeBuf: make(chan *bytes.Buffer, Conf.WriteBufNum),
+		lastSID:  0,
+		lastTime: 0,
 	}
 }
 
@@ -60,15 +115,39 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 	// fetch a write buf, return back after call end
 	buf := c.newWriteBuf()
 	defer c.putWriteBuf(buf)
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	// rewrite message id
+	m.MsgID = c.snowflakeID()
+	Log.Debug("user_key:\"%s\" snowflakeID:%d", key, m.MsgID)
+	// message persistence
+	pd := m.PostString()
+	_, err := buf.WriteString(pd)
+	if err != nil {
+		Log.Error("buf.WriteString(\"%s\") failed (%s)", pd, err.Error())
+	}
+
+	res, err := httpClient.Post(Conf.MessageSetURL, "text/plain", buf)
+	if err != nil {
+		Log.Error("user_key:\"%s\" message set failed, %s(%s)", key, Conf.MessageSetURL, err.Error())
+		return err
+	}
+
+	defer res.Body.Close()
+	// check ret code
+	if res.Header.Get("ret") != "0" {
+		Log.Error("user_key:\"%s\" message set failed %s(%s)", key, Conf.MessageSetURL, res.Header.Get("msg"))
+		return MessageSetErr
+	}
+
 	// send message to each conn when message id > conn last message id
+	buf.Reset()
 	b, err := m.Bytes(buf)
 	if err != nil {
 		Log.Error("message.Bytes(buf) failed (%s)", err.Error())
 		return err
 	}
-
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	// push message
 	for conn, mid := range c.conn {
 		// ignore message cause it's id less than mid
 		if mid >= m.MsgID {

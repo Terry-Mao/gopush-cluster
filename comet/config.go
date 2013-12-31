@@ -32,6 +32,7 @@ type Config struct {
 	MaxProcs            int    `json:"max_procs"`
 	TCPKeepAlive        int    `json:"tcp_keepalive"`
 	HeartbeatSec        int    `json:"heartbeat_sec"`
+	MessageSetURL       string `json:"message_set_url"`
 	MessageExpireSec    int64  `json:"message_expire_sec"`
 	ChannelExpireSec    int64  `json:"channel_expire_sec"`
 	MaxStoredMessage    int    `json:"max_stored_message"`
@@ -69,6 +70,7 @@ func NewConfig(file string) (*Config, error) {
 		MaxProcs:            runtime.NumCPU(),
 		TCPKeepAlive:        1,
 		HeartbeatSec:        30,
+		MessageSetURL:       "localhost",
 		MessageExpireSec:    10800,  // 3 hour
 		ChannelExpireSec:    604800, // 24 * 7 hour
 		MaxStoredMessage:    20,

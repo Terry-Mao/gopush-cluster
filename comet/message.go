@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -81,4 +83,12 @@ func (m *Message) Bytes(b *bytes.Buffer) ([]byte, error) {
 		// websocket
 		return byteJson, nil
 	}
+}
+
+func (m *Message) PostString() string {
+	d := url.Values{}
+	d.Set("msg_id", strconv.FormatInt(m.MsgID, 10))
+	d.Set("msg", m.Msg)
+	d.Set("expire", strconv.FormatInt(m.Expire, 10))
+	return d.Encode()
 }
