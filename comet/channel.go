@@ -140,6 +140,22 @@ func (l *ChannelList) Get(key string) (Channel, error) {
 	defer b.Unlock()
 
 	if c, ok := b.Data[key]; !ok {
+		if Conf.Auth == 0 {
+			c.SetDeadline(time.Now().UnixNano() + Conf.ChannelExpireSec*Second)
+			Log.Debug("user_key:\"%s\" create a new channel", key)
+			if Conf.ChannelType == InnerChannelType {
+				c = NewInnerChannel()
+			} else if Conf.ChannelType == OuterChannelType {
+				c = NewOuterChannel()
+			} else {
+				Log.Error("user_key:\"%s\" unknown channel type : %d (0: inner_channel, 1: outer_channel)", key, Conf.ChannelType)
+				return nil, ChannelTypeErr
+			}
+
+			ChStat.IncrCreate()
+			b.Data[key] = c
+		}
+
 		Log.Warn("user_key:\"%s\" channle not exists", key)
 		return nil, ChannelNotExistErr
 	} else {
@@ -156,6 +172,8 @@ func (l *ChannelList) Get(key string) (Channel, error) {
 			return nil, ChannelExpiredErr
 		}
 
+		Log.Debug("user_key:\"%s\" refresh channel bucket expire time", key)
+		c.SetDeadline(time.Now().UnixNano() + Conf.ChannelExpireSec*Second)
 		ChStat.IncrAccess()
 		return c, nil
 	}

@@ -24,6 +24,7 @@ type Config struct {
 	DNS                 string `json:"dns"`
 	Addr                string `json:"addr"`
 	AdminAddr           string `json:"admin_addr"`
+	PprofAddr           string `json:"pprof_addr"`
 	ZookeeperAddr       string `json:"zookeeper_addr"`
 	ZookeeperTimeout    int    `json:"zookeeper_timeout"`
 	ZookeeperPath       string `json:"zookeeper_path"`
@@ -60,8 +61,9 @@ func NewConfig(file string) (*Config, error) {
 	cf := &Config{
 		Node:                "node1",
 		DNS:                 "localhost",
-		Addr:                "localhost",
-		AdminAddr:           "localhost",
+		Addr:                "localhost:8080",
+		AdminAddr:           "localhost:8081",
+		PprofAddr:           "localhost:8082",
 		ZookeeperAddr:       "localhost:2181",
 		ZookeeperTimeout:    28800,
 		ZookeeperPath:       "/gopush-cluster",

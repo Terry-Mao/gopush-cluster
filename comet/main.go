@@ -57,8 +57,16 @@ func main() {
 	StartStats()
 	// start admin http
 	go func() {
-		if err := StartAdminHttp(); err != nil {
-			Log.Error("StartAdminHttp() failed (%s)", err.Error())
+		if err := StartPprofHttp(); err != nil {
+			Log.Error("StartPprofHttp() failed (%s)", err.Error())
+			os.Exit(-1)
+		}
+	}()
+
+	// start rpc
+	go func() {
+		if err := StartRPC(); err != nil {
+			Log.Error("StartRPC() failed (%s)", err.Error())
 			os.Exit(-1)
 		}
 	}()

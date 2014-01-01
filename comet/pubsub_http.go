@@ -104,16 +104,8 @@ func SubscribeHandle(ws *websocket.Conn) {
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key)
 	if err != nil {
-		if Conf.Auth == 0 {
-			c, err = UserChannel.New(key)
-			if err != nil {
-				Log.Error("user_key:\"%s\"can't create channle (%s)", key, err.Error())
-				return
-			}
-		} else {
-			Log.Error("user_key:\"%s\" can't get a channel (%s)", key, err.Error())
-			return
-		}
+		Log.Error("user_key:\"%s\" can't get a channel (%s)", key, err.Error())
+		return
 	}
 
 	// send first heartbeat to tell client service is ready for accept heartbeat
