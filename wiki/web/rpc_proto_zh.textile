@@ -1,0 +1,31 @@
+<h3>Terry-Mao/gopush-cluster Web RPC协议文档</h3>
+Web内部RPC接口文档，用于Message离线消息内部存储等。
+
+<h3>接口汇总</h3>
+(head). | 接口名 | 描述 | 访问方式 |
+| “MessageRPC.Save”:MessageRPC_Save | 存储Message | tcp RPC |
+
+<h3>公共返回码</h3>
+所有接口均返回整型int
+
+(head). | 错误码 | 描述 |
+| 0 | 成功 |
+| 1 | 参数错误 |
+| 65535 | 内部错误 |
+
+h3(#MessageRPC_Save). MessageRPC.Save
+ * 请求参数
+
+(head). | 参数 | 类型 | 描述 |
+| m | rpc.ChannelPubArgs | publish接口推送消息结构体 |
+<pre>
+package rpc
+
+// Channel Publish Args
+type ChannelPublishArgs struct {
+	MsgID  int64  // message id
+	Msg    string // message content
+	Expire int64  // message expire second
+	Key    string // subscriber key
+}
+</pre>
