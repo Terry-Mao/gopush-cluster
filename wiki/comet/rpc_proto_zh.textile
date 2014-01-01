@@ -18,36 +18,44 @@ Comet内部RPC接口文档，用于Channel的创建，关闭，推送消息以�
 h3(#ChannelRPC_New). ChannelRPC.New
  * 请求参数
 
- (head). | 参数 | 类型 | 描述 |
- | key | string | 用户key |
-
+(head). | 参数 | 类型 | 描述 |
+| key | string | 用户key |
  * 返回码
 
- (head). | 错误码 | 描述 |
- | 1 | 创建Channel失败 |
+(head). | 错误码 | 描述 |
+| 1 | 创建Channel失败 |
  
 h3(#ChannelRPC_Close). ChannelRPC.Close
  * 请求参数
 
- (head). | 参数 | 类型 | 描述 |
- | key | string | 用户key |
-
+(head). | 参数 | 类型 | 描述 |
+| key | string | 用户key |
  * 返回码
 
- (head). | 错误码 | 描述 |
- | 3 | 获取Channel失败 |
+(head). | 错误码 | 描述 |
+| 3 | 获取Channel失败 |
 
 h3(#ChannelRPC_Publish). ChannelRPC.Publish
  * 请求参数
 
- (head). | 参数 | 类型 | 描述 |
- | m | rpc.ChannelPubArgs | publish接口推送消息结构体 |
+(head). | 参数 | 类型 | 描述 |
+| m | rpc.ChannelPubArgs | publish接口推送消息结构体 |
+<pre>
+package rpc
 
+// Channel Publish Args
+type ChannelPublishArgs struct {
+	MsgID  int64  // message id
+	Msg    string // message content
+	Expire int64  // message expire second
+	Key    string // subscriber key
+}
+</pre>
  * 返回码
 
- (head). | 错误码 | 描述 |
- | 3 | 获取Channel失败 |
- | 4 | 推送消息失败 |
+(head). | 错误码 | 描述 |
+| 3 | 获取Channel失败 |
+| 4 | 推送消息失败 |
 
 [ChannelRPC_New]#ChannelRPC_New
 [ChannelRPC_Close]#ChannelRPC_Close
