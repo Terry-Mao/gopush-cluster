@@ -6,6 +6,7 @@ Comet内部RPC接口文档，用于Channel的创建，关闭，推送消息以�
 | "ChannelRPC.New":ChannelRPC_New | 创建用户Channel | tcp RPC |
 | "ChannelRPC.Close":ChannelRPC_Close | 关闭用户Channel | tcp RPC |
 | "ChannelRPC.Publish":ChannelRPC_Publish | 向Channel推送消息 | tcp RPC |
+| "ChannelRPC.Migrate":ChannelRPC_Migrate | 新增或删除节点调用迁移接口，关闭非本节点的Channel | tcp RPC |
 
 <h3>公共返回码</h3>
 所有接口均返回整型int
@@ -57,6 +58,26 @@ type ChannelPublishArgs struct {
 | 3 | 获取Channel失败 |
 | 4 | 推送消息失败 |
 
+h3(#ChannelRPC_Migrate). ChannelRPC.Migrate
+ * 请求参数
+
+(head). | 参数 | 类型 | 描述 |
+| m | rpc.ChannelMigrateArgs | migrate接口推送消息结构体 |
+<pre>
+package rpc
+
+// Channel Migrate Args
+type ChannelMigrateArgs struct {
+    Nodes []string // current comet nodes
+    Vnode int      // ketama virtual node number
+}
+</pre>
+ * 返回码
+
+(head). | 错误码 | 描述 |
+| 5 | 迁移失败 |
+
 [ChannelRPC_New]#channelrpcnew
 [ChannelRPC_Close]#channelrpcclose
 [ChannelRPC_Publish]#channelrpcpublish
+[ChannelRPC_Migrate]#channelrpcmigrate
