@@ -10,14 +10,19 @@ import (
 )
 
 var (
-	zk        *zookeeper.Conn
-	NodesHash *hash.Ketama
-	NodeInfo  = make(map[string]string)
+	// zookeeper connection
+	zk *zookeeper.Conn
+	// ketama algorithm
+	KetamaHash *hash.Ketama
+	// Store the first alive server of every node
+	// If there is no alive server under node, then the value will be "", but key is exist in map
+	NodeInfo = make(map[string]string)
 )
 
 var ErrNoNode = errors.New("zookeeper children is nil")
 
-func initZK() error {
+// InitZK initialize zookeeper connection
+func InitZK() error {
 	zkTmp, session, err := zookeeper.Dial(Conf.Zookeeper.Addr, time.Duration(Conf.Zookeeper.Timeout)*1e9)
 	if err != nil {
 		return err
@@ -40,22 +45,25 @@ func initZK() error {
 	return nil
 }
 
+// BeginWatchNode start watch all of nodes
 func BeginWatchNode() error {
 	nodes, err := getNodes(Conf.Zookeeper.RootPath)
 	if err != nil {
 		return err
 	}
 
-	NodesHash = hash.NewKetama2(nodes, 255)
+	KetamaHash = hash.NewKetama2(nodes, 255)
 	watchNodes(nodes)
 
 	return nil
 }
 
+// GetFirstServer get the first server under the node
 func GetFirstServer(node string) string {
 	return NodeInfo[node]
 }
 
+// getNodes get all of nodes under the path
 func getNodes(path string) ([]string, error) {
 	children, _, err := zk.Children(path)
 	if err != nil {
@@ -69,40 +77,56 @@ func getNodes(path string) ([]string, error) {
 	return children, nil
 }
 
+// getNodesW get all of nodes with watch under the path
+func getNodesW(path string) ([]string, <-chan zookeeper.Event, error) {
+	children, _, watch, err := zk.ChildrenW(path)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if children == nil {
+		return nil, nil, ErrNoNode
+	}
+
+	return children, watch, nil
+}
+
+// watchNodes watch all of nodes
 func watchNodes(nodes []string) {
 	for i := 0; i < len(nodes); i++ {
 		go watchFirstServer(nodes[i])
 	}
 }
 
+// watchNodes watch the first server under the node
+// the first server must be alive
 func watchFirstServer(node string) {
 	path := fmt.Sprintf("%s/%s", Conf.Zookeeper.RootPath, node)
 	for {
-		subNodes, err := getNodes(path)
+		subNodes, watch, err := getNodesW(path)
 		if err != nil {
 			Log.Error("watch node:%s error (%v)", node, err)
 			time.Sleep(10 * time.Second)
 			continue
 		}
 
-		if len(subNodes) == 0 {
-			Log.Warn("node:%s has no server", node)
-			time.Sleep(10 * time.Second)
-			continue
+		// If exist server then set it into NodeInfo
+		if len(subNodes) != 0 {
+			sort.Strings(subNodes)
+			data, _, err := zk.Get(fmt.Sprintf("%s/%s", path, subNodes[0]))
+			if err != nil {
+				Log.Error("watch node:%s error (%v)", node, err)
+				time.Sleep(10 * time.Second)
+				continue
+			}
+
+			NodeInfo[node] = data
+		} else {
+			NodeInfo[node] = ""
 		}
 
-		sort.Strings(subNodes)
-		data, _, watch, err := zk.GetW(fmt.Sprintf("%s/%s", path, subNodes[0]))
-		if err != nil {
-			Log.Error("watch node:%s error (%v)", node, err)
-			time.Sleep(10 * time.Second)
-			continue
-		}
-
-		NodeInfo[node] = data
 		Log.Info("begin to watch node:%s", node)
 		event := <-watch
-		NodeInfo[node] = ""
 		Log.Info("end to watch node:%s event:%v", node, event)
 	}
 }

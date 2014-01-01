@@ -11,7 +11,7 @@ var (
 	redisPool *redis.Pool
 )
 
-func initRedis() {
+func InitRedis() {
 	redisPool = &redis.Pool{
 		MaxIdle:     Conf.Redis.MaxIdle,
 		IdleTimeout: time.Duration(Conf.Redis.IdleTimeout) * time.Second,

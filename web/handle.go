@@ -10,10 +10,12 @@ import (
 	"time"
 )
 
+// Data struct as response of handle ServerGet
 type ServerGetData struct {
 	Server string `json:"server"`
 }
 
+// ServerGet handle for server get
 func ServerGet(rw http.ResponseWriter, r *http.Request) {
 	var (
 		ret    = InternalErr
@@ -34,18 +36,22 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 		io.WriteString(rw, string(date))
 	}()
 
+	// Get params
+	Log.Debug("request_url:%s", r.URL.String())
 	key := r.URL.Query().Get("key")
 	if key == "" {
 		ret = ParamErr
 		return
 	}
 
-	server := GetFirstServer(NodesHash.Node(key))
+	// Match a push-server with the value computed through ketama algorithm,
+	server := GetFirstServer(KetamaHash.Node(key))
 	if server == "" {
 		ret = NoNodeErr
 		return
 	}
 
+	// Fill the server infomation into response json
 	data := &ServerGetData{}
 	data.Server = server
 
@@ -64,12 +70,14 @@ type Message struct {
 	MsgID int64 `json:"mid"`
 }
 
+// MsgGet handle for msg get
 func MsgGet(rw http.ResponseWriter, r *http.Request) {
 	var (
 		ret    = InternalErr
 		result = make(map[string]interface{})
 	)
 
+	// Final ResponseWriter operation
 	defer func() {
 		result["ret"] = ret
 		result["msg"] = GetErrMsg(ret)
@@ -84,6 +92,8 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Method Not Allowed", 405)
 	}
 
+	// Get params
+	Log.Debug("request_url:%s", r.URL.String())
 	val := r.URL.Query()
 	key := val.Get("key")
 	mid := val.Get("mid")
@@ -98,6 +108,7 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get all of offline messages which larger than midI
 	msgs, err := GetMessages(key, midI)
 	if err != nil {
 		Log.Error("get messages error (%v)", err)
@@ -116,6 +127,7 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		msg  = &Message{}
 	)
 
+	// Checkout expired offline messages
 	for i := 0; i < numMsg; i++ {
 		if err := json.Unmarshal([]byte(msgs[i]), &msg); err != nil {
 			Log.Error("internal message:%s error (%v)", msgs[i], err)
@@ -123,7 +135,6 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// if message expired then ignore
 		if time.Now().UnixNano() > msg.Expire {
 			continue
 		}
@@ -141,6 +152,7 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// MsgSet handle for msg set
 func MsgSet(rw http.ResponseWriter, r *http.Request) {
 	var (
 		ret = InternalErr
@@ -150,6 +162,7 @@ func MsgSet(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Method Not Allowed", 405)
 	}
 
+	// Final ResponseWriter operation
 	defer func() {
 		rw.Header().Add("ret", strconv.Itoa(ret))
 		rw.Header().Add("msg", GetErrMsg(ret))
@@ -165,7 +178,7 @@ func MsgSet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Log.Debug("%s", string(body))
+	Log.Debug("request_url:%s. body:", r.URL.String(), string(body))
 	val, err := url.ParseQuery(string(body))
 	if err != nil {
 		ret = ParamErr

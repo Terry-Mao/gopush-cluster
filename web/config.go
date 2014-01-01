@@ -11,34 +11,36 @@ var (
 	ConfFile string
 )
 
-func initConfig() {
+// InitConfig initialize config file path
+func InitConfig() {
 	flag.StringVar(&ConfFile, "c", "./web.conf", " set web config file path")
-	flag.Parse()
 }
 
 type Config struct {
-	Addr         string
-	InternalAddr string
-	LogPath      string
-	Bucket       uint
+	Addr         string `json:"addr"`
+	InternalAddr string `json:"internal_addr"`
+	LogPath      string `json:"log_path"`
+	Bucket       uint   `json:"bucket"`
 	Zookeeper    struct {
-		Addr     string
-		Timeout  int
-		RootPath string
+		Addr     string `json:"addr"`
+		Timeout  int    `json:"timeout"`
+		RootPath string `json:"rootpath"`
 	}
 	Redis struct {
-		Addr        string
-		IdleTimeout int
-		MaxIdle     int
+		Addr        string `json:"addr"`
+		IdleTimeout int    `json:"idle_timeout"`
+		MaxIdle     int    `json:"max_idle"`
 	}
 }
 
+// InitConfig get a config
 func NewConfig(file string) (*Config, error) {
 	c, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
 
+	// Default config
 	cf := &Config{
 		Addr:         "127.0.0.1:8080",
 		InternalAddr: "127.0.0.1:8081",
@@ -52,6 +54,7 @@ func NewConfig(file string) (*Config, error) {
 	cf.Redis.IdleTimeout = 28800
 	cf.Redis.MaxIdle = 50
 
+	// Parse config file
 	if err := json.Unmarshal(c, cf); err != nil {
 		return nil, err
 	}
