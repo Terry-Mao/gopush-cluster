@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/log"
 	"net/http"
 	"os"
@@ -26,10 +25,9 @@ func main() {
 		Log.Error("NewConfig(\"ConfigPath\":%s) failed(%v)", ConfFile, err)
 		os.Exit(-1)
 	}
-	fmt.Println(Conf)
 
 	//Load log
-	Log, err = log.New(Conf.LogPath, log.Debug)
+	Log, err = log.New(Conf.LogPath, Conf.LogLevel)
 	if err != nil {
 		Log.Error("InitZK(\"LogPath\":%s) failed(%v)", Conf.LogPath, err)
 		os.Exit(-1)

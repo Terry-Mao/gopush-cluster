@@ -20,6 +20,7 @@ type Config struct {
 	Addr         string `json:"addr"`
 	InternalAddr string `json:"internal_addr"`
 	LogPath      string `json:"log_path"`
+	LogLevel     int    `json:"log_level"`
 	Bucket       uint   `json:"bucket"`
 	Zookeeper    struct {
 		Addr     string `json:"addr"`
@@ -45,6 +46,7 @@ func NewConfig(file string) (*Config, error) {
 		Addr:         "127.0.0.1:8080",
 		InternalAddr: "127.0.0.1:8081",
 		LogPath:      "./web.log",
+		LogLevel:     0,
 		Bucket:       16,
 	}
 	cf.Zookeeper.Addr = "10.20.216.122:2181"
