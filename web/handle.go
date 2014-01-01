@@ -45,7 +45,7 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Match a push-server with the value computed through ketama algorithm,
-	server := GetFirstServer(KetamaHash.Node(key))
+	server := GetFirstServer(CometHash.Node(key))
 	if server == "" {
 		ret = NoNodeErr
 		return

@@ -13,9 +13,9 @@ var (
 	// zookeeper connection
 	zk *zookeeper.Conn
 	// ketama algorithm
-	KetamaHash *hash.Ketama
+	CometHash *hash.Ketama
 	// Store the first alive server of every node
-	// If there is no alive server under node, then the value will be "", but key is exist in map
+	// If there is no alive server under node, the value will be "", but key is exist in map
 	NodeInfo = make(map[string]string)
 )
 
@@ -52,7 +52,7 @@ func BeginWatchNode() error {
 		return err
 	}
 
-	KetamaHash = hash.NewKetama2(nodes, 255)
+	CometHash = hash.NewKetama2(nodes, 255)
 	watchNodes(nodes)
 
 	return nil
@@ -67,6 +67,7 @@ func GetFirstServer(node string) string {
 func getNodes(path string) ([]string, error) {
 	children, _, err := zk.Children(path)
 	if err != nil {
+		Log.Error("zk.Children(%s) error", path)
 		return nil, err
 	}
 
@@ -81,6 +82,7 @@ func getNodes(path string) ([]string, error) {
 func getNodesW(path string) ([]string, <-chan zookeeper.Event, error) {
 	children, _, watch, err := zk.ChildrenW(path)
 	if err != nil {
+		Log.Error("zk.Children(%s) error", path)
 		return nil, nil, err
 	}
 
