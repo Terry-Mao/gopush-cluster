@@ -7,3 +7,9 @@ type ChannelPublishArgs struct {
 	Expire int64  // message expire second
 	Key    string // subscriber key
 }
+
+// Channel Migrate Args
+type ChannelMigrateArgs struct {
+	Nodes []string // current comet nodes
+	Vnode int      // ketama virtual node number
+}

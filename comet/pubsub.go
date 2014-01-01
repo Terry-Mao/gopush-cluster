@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	//"github.com/Terry-Mao/gopush-cluster/hash"
+	"github.com/Terry-Mao/gopush-cluster/hash"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"net/http"
@@ -180,42 +180,17 @@ func (c *ChannelRPC) Publish(m *myrpc.ChannelPublishArgs, ret *int) error {
 	return nil
 }
 
-/*
-// MigrateHandle close Channel when node add or remove
-func MigrateHandle(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		Log.Warn("client:%s's %s not allowed", r.RemoteAddr, r.Method)
-		http.Error(w, "Method Not Allowed", 405)
-		return
+// Publish expored a method for publishing a message for the channel
+func (c *ChannelRPC) Migrate(m *myrpc.ChannelMigrateArgs, ret *int) error {
+	if len(m.Nodes) == 0 {
+		Log.Warn("ChannelRPC Migrate param error")
+		*ret = retParamErr
+		return nil
 	}
 
-	// get params
-	params := r.URL.Query()
-	nodesStr := params.Get("nodes")
-	nodes := strings.Split(nodesStr, ",")
-	if len(nodes) == 0 {
-		Log.Warn("client:%s's nodes param error", r.RemoteAddr)
-		if err := retWrite(w, "nodes param error", retParamErr); err != nil {
-			Log.Error("retWrite failed (%s)", err.Error())
-		}
-
-		return
-	}
-
-	vnodeStr := params.Get("vnode")
-	vnode, err := strconv.Atoi(vnodeStr)
-	if err != nil {
-		Log.Error("strconv.Atoi(\"%s\") failed (%s)", vnodeStr, err.Error())
-		if err = retWrite(w, "vnode param error", retParamErr); err != nil {
-			Log.Error("retWrite failed (%s)", err.Error())
-		}
-
-		return
-	}
-
-	// check current node in the nodes
+	// find current node exists in new nodes
 	has := false
-	for _, str := range nodes {
+	for _, str := range m.Nodes {
 		if str == Conf.Node {
 			has = true
 		}
@@ -223,16 +198,13 @@ func MigrateHandle(w http.ResponseWriter, r *http.Request) {
 
 	if !has {
 		Log.Crit("make sure your migrate nodes right, there is no %s in nodes, this will cause all the node hit miss", Conf.Node)
-		if err = retWrite(w, "migrate nodes may be error", retMigrate); err != nil {
-			Log.Error("retWrite failed (%s)", err.Error())
-		}
-
-		return
+		*ret = retMigrateErr
+		return nil
 	}
 
-	channels := []Channel{}
 	// init ketama
-	ketama := hash.NewKetama2(nodes, vnode)
+	ketama := hash.NewKetama2(m.Nodes, m.Vnode)
+	channels := []Channel{}
 	// get all the channel lock
 	for i, c := range UserChannel.Channels {
 		Log.Info("migrate channel bucket:%d", i)
@@ -252,17 +224,13 @@ func MigrateHandle(w http.ResponseWriter, r *http.Request) {
 	// close all the migrate channels
 	Log.Info("close all the migrate channels")
 	for _, channel := range channels {
-		if err = channel.Close(); err != nil {
+		if err := channel.Close(); err != nil {
 			Log.Error("channel.Close() failed (%s)", err.Error())
 			continue
 		}
 	}
 
 	Log.Info("close all the migrate channels finished")
-	// ret response
-	if err = retWrite(w, "ok", retOK); err != nil {
-		Log.Error("retWrite() failed (%s)", err.Error())
-		return
-	}
+	*ret = retOK
+	return nil
 }
-*/
