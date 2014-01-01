@@ -3,19 +3,24 @@ Comet内部RPC接口文档，用于Channel的创建，关闭，推送消息以�
 
 <h3>接口汇总</h3>
 (head). | 接口名 | 描述 | 访问方式 |
-| (#ChannelRPC.New) ChannelRPC.New | 创建用户Channel | tcp RPC |
-| (#ChannelRPC.Close) ChannelRPC.Close | 关闭用户Channel | tcp RPC |
-| (#ChannelRPC.Publish) ChannelRPC.Publish | 向Channel推送消息 | tcp RPC |
+| "ChannelRPC.New":ChannelRPC_New | 创建用户Channel | tcp RPC |
+| "ChannelRPC.Close":ChannelRPC_Close | 关闭用户Channel | tcp RPC |
+| "ChannelRPC.Publish":ChannelRPC_Publish | 向Channel推送消息 | tcp RPC |
 
 <h3>公共返回码</h3>
 所有接口均返回整型int
+
 (head). | 错误码 | 描述 |
 | 0 | 成功 |
 | 65534 | 参数错误 |
 | 65535 | 内部错误 |
 
+h3(#ChannelRPC_New). ChannelRPC.New
 
-<h3>ChannelRPC.New</h3>
+h3(#ChannelRPC_Close). ChannelRPC.Close
 
+h3(#ChannelRPC_Publish). ChannelRPC.Publish
 
-[ChannelRPC.New]#ChannelRPC.New
+[ChannelRPC_New]#ChannelRPC_New
+[ChannelRPC_Close]#ChannelRPC_Close
+[ChannelRPC_Publish]#ChannelRPC_Publish
