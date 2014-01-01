@@ -17,7 +17,7 @@ func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	//Load config
+	// Load config
 	InitConfig()
 	flag.Parse()
 	Conf, err = NewConfig(ConfFile)
@@ -26,22 +26,23 @@ func main() {
 		os.Exit(-1)
 	}
 
-	//Load log
+	// Load log
 	Log, err = log.New(Conf.LogPath, Conf.LogLevel)
 	if err != nil {
-		Log.Error("InitZK(\"LogPath\":%s) failed(%v)", Conf.LogPath, err)
+		Log.Error("log.New(\"LogPath\":%s) failed(%v)", Conf.LogPath, err)
 		os.Exit(-1)
 	}
 
-	// Init zookeeper
+	// Initialize zookeeper
 	if err := InitZK(); err != nil {
 		Log.Error("InitZK() failed(%v)", err)
 		os.Exit(-1)
 	}
 
-	// Init redis
+	// Initialize redis
 	InitRedis()
 
+	// Begin watch all of nodes
 	if err := BeginWatchNode(); err != nil {
 		Log.Error("BeginWatchNode() failed(%v)", err)
 		os.Exit(-1)
@@ -52,11 +53,17 @@ func main() {
 
 	go func() {
 		// Start internal service
-		internalServeMux := http.NewServeMux()
+		/*internalServeMux := http.NewServeMux()
 		internalServeMux.HandleFunc("/msg/set", MsgSet)
 		err := http.ListenAndServe(Conf.InternalAddr, internalServeMux)
 		if err != nil {
 			Log.Error("http.ListenAndServe(%s) failed(%v)", Conf.InternalAddr, err)
+			os.Exit(-1)
+		}*/
+
+		// Start rpc
+		if err := StartRPC(); err != nil {
+			Log.Error("StartRPC() failed (%s)", err.Error())
 			os.Exit(-1)
 		}
 	}()

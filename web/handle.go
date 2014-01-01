@@ -3,9 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 )
@@ -26,6 +24,7 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Method Not Allowed", 405)
 	}
 
+	// Final ResponseWriter operation
 	defer func() {
 		result["ret"] = ret
 		result["msg"] = GetErrMsg(ret)
@@ -44,7 +43,7 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Match a push-server with the value computed through ketama algorithm,
+	// Match a push-server with the value computed through ketama algorithm
 	server := GetFirstServer(CometHash.Node(key))
 	if server == "" {
 		ret = NoNodeErr
@@ -148,70 +147,6 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	result["data"] = data
-	ret = OK
-	return
-}
-
-// MsgSet handle for msg set
-func MsgSet(rw http.ResponseWriter, r *http.Request) {
-	var (
-		ret = InternalErr
-	)
-
-	if r.Method != "POST" {
-		http.Error(rw, "Method Not Allowed", 405)
-	}
-
-	// Final ResponseWriter operation
-	defer func() {
-		rw.Header().Add("ret", strconv.Itoa(ret))
-		rw.Header().Add("msg", GetErrMsg(ret))
-
-		Log.Info("request:Set message, ret:%d", ret)
-
-		io.WriteString(rw, "")
-	}()
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		ret = InternalErr
-		return
-	}
-
-	Log.Debug("request_url:%s. body:", r.URL.String(), string(body))
-	val, err := url.ParseQuery(string(body))
-	if err != nil {
-		ret = ParamErr
-		return
-	}
-
-	key := val.Get("key")
-	msg := val.Get("msg")
-	if key == "" || msg == "" {
-		ret = ParamErr
-		return
-	}
-
-	expireI, err := strconv.ParseInt(val.Get("expire"), 10, 64)
-	if err != nil {
-		ret = ParamErr
-		return
-	}
-
-	midI, err := strconv.ParseInt(val.Get("mid"), 10, 64)
-	if err != nil {
-		ret = ParamErr
-		return
-	}
-
-	recordMsg := Message{Msg: msg, Expire: expireI, MsgID: midI}
-	message, _ := json.Marshal(recordMsg)
-	if err := SaveMessage(key, string(message), midI); err != nil {
-		Log.Error("save message error (%v)", err)
-		ret = InternalErr
-		return
-	}
-
 	ret = OK
 	return
 }

@@ -40,7 +40,7 @@ type Config struct {
 	Redis        map[string]*RedisConfig `json:"redis"`
 }
 
-// InitConfig get a config
+// NewConfig get a config
 func NewConfig(file string) (*Config, error) {
 	c, err := ioutil.ReadFile(file)
 	if err != nil {
