@@ -13,8 +13,10 @@ type MessageRPC struct {
 
 // StartRPC start accept rpc call
 func StartRPC() error {
-	r := &MessageRPC{}
-	rpc.Register(r)
+	msg := &MessageRPC{}
+	rpc.Register(msg)
+	ping := &WebRPC{}
+	rpc.Register(ping)
 	l, err := net.Listen("tcp", Conf.InternalAddr)
 	if err != nil {
 		Log.Error("net.Listen(\"tcp\", \"%s\") failed (%v)", Conf.InternalAddr, err)
@@ -32,6 +34,7 @@ func StartRPC() error {
 	return nil
 }
 
+// Store offline message interface
 func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 	if m == nil || m.Key == "" || m.Msg == "" {
 		*ret = ParamErr
@@ -47,6 +50,16 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 		return nil
 	}
 
+	*ret = OK
+	return nil
+}
+
+// RPC for web ping
+type WebRPC struct {
+}
+
+// Web Ping interface
+func (r *WebRPC) Ping(p int, ret *int) error {
 	*ret = OK
 	return nil
 }
