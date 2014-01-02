@@ -55,8 +55,8 @@ func StartRPC() error {
 		go func() {
 			for {
 				reply := 0
-				if err := RPCCli.Call("Web.Ping", 0, &reply); err != nil {
-					Log.Error("RPCCli.Call(\"Web.Ping\") failed (%s)", err.Error())
+				if err := RPCCli.Call("WebRPC.Ping", 0, &reply); err != nil {
+					Log.Error("RPCCli.Call(\"WebRPC.Ping\") failed (%s)", err.Error())
 					Log.Warn("RPC reconnect \"%s\"", Conf.RPCAddr)
 					rpcTmp, err := rpc.Dial("tcp", Conf.RPCAddr)
 					if err != nil {
