@@ -5,7 +5,6 @@ import (
 	"github.com/Terry-Mao/gopush-cluster/log"
 	"os"
 	"runtime"
-	"runtime/debug"
 )
 
 var (
@@ -14,7 +13,6 @@ var (
 
 func main() {
 	var err error
-	defer recoverFunc()
 	// parse cmd-line arguments
 	flag.Parse()
 	// init config
@@ -91,11 +89,4 @@ func main() {
 	// exit
 	Log.Info("gopush2 stop")
 	os.Exit(0)
-}
-
-// recoverFunc log the stack when panic
-func recoverFunc() {
-	if err := recover(); err != nil {
-		Log.Error("panic: (%s)", string(debug.Stack()))
-	}
 }
