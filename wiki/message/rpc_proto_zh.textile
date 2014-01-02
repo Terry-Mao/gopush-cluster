@@ -1,0 +1,75 @@
+<h3>Terry-Mao/gopush-cluster Message RPC协议文档</h3>
+Web内部RPC接口文档，用于Message离线消息内部存储等。
+
+<h3>接口汇总</h3>
+(head). | 接口名 | 描述 | 访问方式 |
+| "MessageRPC.Ping":MessageRPC_Ping | Service Ping | tcp RPC |
+| "MessageRPC.Save":MessageRPC_Save | 存储Message   | tcp RPC |
+| "MessageRPC.Get":MessageRPC_Get   | 获取Message   | tcp RPC |
+
+<h3>公共返回码</h3>
+仅限于返回int类型的接口
+
+(head). | 错误码 | 描述 |
+| 0 | 成功 |
+| 65534 | 参数错误 |
+| 65535 | 内部错误 |
+
+<h3>MessageRPC.Ping</h3>
+ * 请求参数
+
+(head). | 参数 | 类型 | 描述 |
+| m | int | 填0即可 |
+
+ * 返回码
+仅返回公共参数
+
+<h3>MessageRPC.Save</h3>
+ * 请求参数
+
+(head). | 参数 | 类型 | 描述 |
+| m | rpc.MessageSaveArgs | save接口存储消息结构体 |
+<pre>
+package rpc
+
+// Message Save Args
+type MessageSaveArgs struct {
+	MsgID  int64  // message id
+	Msg    string // message content
+	Expire int64  // message expire second
+	Key    string // subscriber key
+}
+</pre>
+
+ * 返回码
+仅返回公共参数
+
+<h3>MessageRPC.Get</h3>
+ * 请求参数
+
+(head). | 参数 | 类型 | 描述 |
+| m | rpc.MessageGetArgs | get接口获取离线消息结构体 |
+<pre>
+// Message Get Args
+type MessageGetArgs struct {
+	MsgID int64  // message id
+	Key   string // subscriber key
+}
+</pre>
+
+ * 返回码
+
+(head). | 错误码 | 描述 |
+| rpc. MessageGetResp | 返回的消息结构体 |
+<pre>
+// Message Get Response
+type MessageGetResp struct {
+	Ret  int      // response
+	Msgs []string // messages
+}
+</pre>
+
+
+[MessageRPC_Ping]#messagerpcping
+[MessageRPC_Save]#messagerpcsave
+[MessageRPC_Get]#messagerpcget

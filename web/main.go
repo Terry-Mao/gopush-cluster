@@ -34,41 +34,29 @@ func main() {
 	}
 
 	// Initialize zookeeper
-	if err := InitZK(); err != nil {
-		Log.Error("InitZK() failed(%v)", err)
+	if err := InitWatch(); err != nil {
+		Log.Error("InitWatch() failed(%v)", err)
 		os.Exit(-1)
 	}
 
-	// Initialize redis
-	InitRedis()
-
-	// Begin watch all of nodes
+	// Begin watch nodes
 	if err := BeginWatchNode(); err != nil {
 		Log.Error("BeginWatchNode() failed(%v)", err)
 		os.Exit(-1)
 	}
 
+	// Initialize message server client
+	if err := InitMsgSvrClient(); err != nil {
+		Log.Error("InitMsgSvrClient() failed(%v)", err)
+		os.Exit(-1)
+	}
+
 	http.HandleFunc("/server/get", ServerGet)
+	http.HandleFunc("/server/push", ServerPush)
+
 	http.HandleFunc("/msg/get", MsgGet)
 
-	go func() {
-		// Start internal service
-		/*internalServeMux := http.NewServeMux()
-		internalServeMux.HandleFunc("/msg/set", MsgSet)
-		err := http.ListenAndServe(Conf.InternalAddr, internalServeMux)
-		if err != nil {
-			Log.Error("http.ListenAndServe(%s) failed(%v)", Conf.InternalAddr, err)
-			os.Exit(-1)
-		}*/
-
-		// Start rpc
-		if err := StartRPC(); err != nil {
-			Log.Error("StartRPC() failed (%s)", err.Error())
-			os.Exit(-1)
-		}
-	}()
-
-	// Start external service
+	// Start service
 	if err := http.ListenAndServe(Conf.Addr, nil); err != nil {
 		Log.Error("http.ListenAndServe(%s) failed(%v)", Conf.Addr, err)
 		os.Exit(-1)

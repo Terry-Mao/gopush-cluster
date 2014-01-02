@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	"launchpad.net/gozk/zookeeper"
+	"net/rpc"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -16,13 +18,21 @@ var (
 	CometHash *hash.Ketama
 	// Store the first alive server of every node
 	// If there is no alive server under node, the value will be "", but key is exist in map
-	NodeInfo = make(map[string]string)
+	NodeInfoMap = make(map[string]*NodeInfo)
 )
 
 var ErrNoNode = errors.New("zookeeper children is nil")
 
-// InitZK initialize zookeeper connection
-func InitZK() error {
+type NodeInfo struct {
+	// The addr for subscribe
+	Data string
+	// The connection for publish RPC
+	PubRPC *rpc.Client
+}
+
+// InitWatch initialize watch module
+func InitWatch() error {
+	// Initialize zookeeper connection
 	zkTmp, session, err := zookeeper.Dial(Conf.Zookeeper.Addr, time.Duration(Conf.Zookeeper.Timeout)*1e9)
 	if err != nil {
 		return err
@@ -59,8 +69,8 @@ func BeginWatchNode() error {
 }
 
 // GetFirstServer get the first server under the node
-func GetFirstServer(node string) string {
-	return NodeInfo[node]
+func GetFirstServer(node string) *NodeInfo {
+	return NodeInfoMap[node]
 }
 
 // getNodes get all of nodes under the path
@@ -100,7 +110,7 @@ func watchNodes(nodes []string) {
 	}
 }
 
-// watchNodes watch the first server under the node
+// watchNodes watch the first server under the node, and keep rpc with publish RPC
 // the first server must be alive
 func watchFirstServer(node string) {
 	path := fmt.Sprintf("%s/%s", Conf.Zookeeper.RootPath, node)
@@ -112,19 +122,46 @@ func watchFirstServer(node string) {
 			continue
 		}
 
-		// If exist server then set it into NodeInfo
+		// If exist server then set it into NodeInfoMap
 		if len(subNodes) != 0 {
 			sort.Strings(subNodes)
 			data, _, err := zk.Get(fmt.Sprintf("%s/%s", path, subNodes[0]))
 			if err != nil {
-				Log.Error("watch node:%s error (%v)", node, err)
+				Log.Error("watch node:%s, subNode:%s, error (%v)", node, subNodes[0], err)
 				time.Sleep(10 * time.Second)
 				continue
 			}
 
-			NodeInfo[node] = data
+			// Fecth push server info
+			datas := strings.Split(data, ",")
+			if len(datas) < 2 {
+				Log.Error("subNode data error node:%s, subNode:%s", node, subNodes[0])
+				time.Sleep(10 * time.Second)
+				continue
+			}
+
+			info, ok := NodeInfoMap[node]
+			if ok {
+				info.Data = datas[0]
+				if info.PubRPC != nil {
+					info.PubRPC.Close()
+				}
+			} else {
+				info = &NodeInfo{Data: datas[0]}
+			}
+
+			// ReDial RPC
+			r, err := rpc.Dial(Conf.Push.Network, datas[1])
+			if err != nil {
+				Log.Error("rpc.Dial(%s, %s) error node:%s, subNode:%s", Conf.Push.Network, datas[1], node, subNodes[0])
+				time.Sleep(10 * time.Second)
+				continue
+			}
+
+			info.PubRPC = r
+			NodeInfoMap[node] = info
 		} else {
-			NodeInfo[node] = ""
+			NodeInfoMap[node] = nil
 		}
 
 		Log.Info("begin to watch node:%s", node)
