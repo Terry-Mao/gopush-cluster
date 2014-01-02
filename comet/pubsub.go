@@ -42,10 +42,6 @@ var (
 	MaxConnErr = errors.New("Exceed the max subscriber connection per key")
 	// Assection type failed
 	AssertTypeErr = errors.New("Subscriber assert type failed")
-	// Auth token failed
-	AuthTokenErr = errors.New("Auth token failed")
-	// Token exists
-	TokenExistErr = errors.New("Token already exist")
 
 	// heartbeat bytes
 	heartbeatBytes = []byte(heartbeatMsg)
@@ -60,13 +56,10 @@ var (
 func StartRPC() error {
 	var err error
 
-	// init rpc client when use outer channle
-	if Conf.ChannelType == OuterChannelType {
-		RPCCli, err = rpc.Dial("tcp", Conf.RPCAddr)
-		if err != nil {
-			Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
-			return err
-		}
+	RPCCli, err = rpc.Dial("tcp", Conf.RPCAddr)
+	if err != nil {
+		Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
+		return err
 	}
 
 	c := &ChannelRPC{}

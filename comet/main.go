@@ -63,13 +63,15 @@ func main() {
 		}
 	}()
 
-	// start rpc
-	go func() {
-		if err := StartRPC(); err != nil {
-			Log.Error("StartRPC() failed (%s)", err.Error())
-			os.Exit(-1)
-		}
-	}()
+	// outer channel: start rpc
+	if Conf.ChannelType == OuterChannelType {
+		go func() {
+			if err := StartRPC(); err != nil {
+				Log.Error("StartRPC() failed (%s)", err.Error())
+				os.Exit(-1)
+			}
+		}()
+	}
 
 	if Conf.Protocol == WebsocketProtocol {
 		// Start http push service
