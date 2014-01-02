@@ -27,11 +27,12 @@ func InitMsgSvrClient() error {
 					Log.Error("rpc.Dial(\"tcp\", %s) failed (%v)", Conf.Addr, err)
 					time.Sleep(time.Duration(Conf.MsgSvr.Retry) * time.Second)
 					Log.Warn("rpc reconnect \"%s\" after %d second", Conf.Addr, Conf.MsgSvr.Retry)
-					continue
 				} else {
 					Log.Info("rpc client reconnect \"%s\" ok", Conf.Addr)
 					MsgSvrClient = rpcTmp
 				}
+
+				continue
 			}
 
 			// every one second send a heartbeat ping
