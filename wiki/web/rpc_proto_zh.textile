@@ -17,12 +17,12 @@ Web内部RPC接口文档，用于Message离线消息内部存储等。
  * 请求参数
 
 (head). | 参数 | 类型 | 描述 |
-| m | rpc.ChannelPubArgs | publish接口推送消息结构体 |
+| m | rpc.MessagePubArgs | publish接口存储消息结构体 |
 <pre>
 package rpc
 
-// Channel Publish Args
-type ChannelPublishArgs struct {
+// Message Publish Args
+type MessagePublishArgs struct {
 	MsgID  int64  // message id
 	Msg    string // message content
 	Expire int64  // message expire second

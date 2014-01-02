@@ -32,7 +32,7 @@ func StartRPC() error {
 	return nil
 }
 
-func (r *MessageRPC) Save(m *myrpc.ChannelPublishArgs, ret *int) error {
+func (r *MessageRPC) Save(m *myrpc.MessagePublishArgs, ret *int) error {
 	if m == nil || m.Key == "" || m.Msg == "" {
 		*ret = ParamErr
 		return nil
