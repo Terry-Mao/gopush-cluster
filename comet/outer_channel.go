@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"net/http"
 	"sync"
@@ -16,8 +17,8 @@ const (
 )
 
 var (
-	MessageSetErr = errors.New("Message set failed")
-	httpTransport = &http.Transport{
+	MessageSaveErr = errors.New("Message set failed")
+	httpTransport  = &http.Transport{
 		Dial: func(netw, addr string) (net.Conn, error) {
 			deadline := time.Now().Add(messageSetDialTimeout * time.Second)
 			c, err := net.DialTimeout(netw, addr, messageSetDeadline*time.Second)
@@ -120,28 +121,19 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 	// rewrite message id
 	m.MsgID = c.snowflakeID()
 	Log.Debug("user_key:\"%s\" snowflakeID:%d", key, m.MsgID)
-	// message persistence
-	pd := m.PostString(key)
-	_, err := buf.WriteString(pd)
-	if err != nil {
-		Log.Error("buf.WriteString(\"%s\") failed (%s)", pd, err.Error())
-	}
-
-	res, err := httpClient.Post(Conf.MessageSetURL, "text/plain", buf)
-	if err != nil {
-		Log.Error("user_key:\"%s\" message set failed, %s(%s)", key, Conf.MessageSetURL, err.Error())
+	args := &myrpc.MessageSaveArgs{MsgID: m.MsgID, Msg: m.Msg, Expire: m.Expire, Key: key}
+	reply := retOK
+	if err := RPCCli.Call("MessageRPC.Save", args, &reply); err != nil {
+		Log.Error("MessageRPC.Save failed (%s)", err.Error())
 		return err
 	}
 
-	defer res.Body.Close()
-	// check ret code
-	if res.Header.Get("ret") != "0" {
-		Log.Error("user_key:\"%s\" message set failed %s(%s)", key, Conf.MessageSetURL, res.Header.Get("msg"))
-		return MessageSetErr
+	if reply != retOK {
+		Log.Error("MessageRPC.Save failed (ret=%d)", reply)
+		return MessageSaveErr
 	}
 
 	// send message to each conn when message id > conn last message id
-	buf.Reset()
 	b, err := m.Bytes(buf)
 	if err != nil {
 		Log.Error("message.Bytes(buf) failed (%s)", err.Error())

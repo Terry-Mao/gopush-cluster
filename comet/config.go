@@ -25,6 +25,7 @@ type Config struct {
 	Addr                string `json:"addr"`
 	AdminAddr           string `json:"admin_addr"`
 	PprofAddr           string `json:"pprof_addr"`
+	RPCAddr             string `json:"rpc_addr"`
 	ZookeeperAddr       string `json:"zookeeper_addr"`
 	ZookeeperTimeout    int    `json:"zookeeper_timeout"`
 	ZookeeperPath       string `json:"zookeeper_path"`
@@ -33,7 +34,6 @@ type Config struct {
 	MaxProcs            int    `json:"max_procs"`
 	TCPKeepAlive        int    `json:"tcp_keepalive"`
 	HeartbeatSec        int    `json:"heartbeat_sec"`
-	MessageSetURL       string `json:"message_set_url"`
 	MessageExpireSec    int64  `json:"message_expire_sec"`
 	ChannelExpireSec    int64  `json:"channel_expire_sec"`
 	MaxStoredMessage    int    `json:"max_stored_message"`
@@ -65,6 +65,7 @@ func NewConfig(file string) (*Config, error) {
 		AdminAddr:           "localhost:8081",
 		PprofAddr:           "localhost:8082",
 		ZookeeperAddr:       "localhost:2181",
+		RPCAddr:             "localhost:8083",
 		ZookeeperTimeout:    28800,
 		ZookeeperPath:       "/gopush-cluster",
 		Log:                 "./gopush.log",
@@ -72,7 +73,6 @@ func NewConfig(file string) (*Config, error) {
 		MaxProcs:            runtime.NumCPU(),
 		TCPKeepAlive:        1,
 		HeartbeatSec:        30,
-		MessageSetURL:       "localhost",
 		MessageExpireSec:    10800,  // 3 hour
 		ChannelExpireSec:    604800, // 24 * 7 hour
 		MaxStoredMessage:    20,

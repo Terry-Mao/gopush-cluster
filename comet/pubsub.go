@@ -5,8 +5,6 @@ import (
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
-	"net/http"
-	"net/http/pprof"
 	"net/rpc"
 	"time"
 )
@@ -28,6 +26,8 @@ const (
 	retPushMsgErr = 4
 	// migrate failed
 	retMigrateErr = 5
+	// rpc failed
+	retRPCErr = 6
 )
 
 const (
@@ -51,28 +51,24 @@ var (
 	heartbeatBytes = []byte(heartbeatMsg)
 	// heartbeat len
 	heartbeatByteLen = len(heartbeatMsg)
+
+	// rpc
+	RPCCli *rpc.Client
 )
-
-// StartPprofHttp start http pprof
-func StartPprofHttp() error {
-	pprofServeMux := http.NewServeMux()
-	pprofServeMux.HandleFunc("/debug/pprof/", pprof.Index)
-	pprofServeMux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	pprofServeMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	pprofServeMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-
-	Log.Info("start listen pprof addr:%s", Conf.PprofAddr)
-	err := http.ListenAndServe(Conf.PprofAddr, pprofServeMux)
-	if err != nil {
-		Log.Error("http.ListenAdServe(\"%s\") failed (%s)", Conf.PprofAddr, err.Error())
-		return err
-	}
-
-	return nil
-}
 
 // StartRPC start accept rpc call
 func StartRPC() error {
+	var err error
+
+	// init rpc client when use outer channle
+	if Conf.ChannelType == OuterChannelType {
+		RPCCli, err = rpc.Dial("tcp", Conf.RPCAddr)
+		if err != nil {
+			Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
+			return err
+		}
+	}
+
 	c := &ChannelRPC{}
 	rpc.Register(c)
 	l, err := net.Listen("tcp", Conf.AdminAddr)
@@ -166,7 +162,6 @@ func (c *ChannelRPC) Publish(m *myrpc.ChannelPublishArgs, ret *int) error {
 		return nil
 	}
 
-	// TODO call rpc with web
 	// use the channel push message
 	if err = ch.PushMsg(&Message{Msg: m.Msg, Expire: time.Now().UnixNano() + expire*Second, MsgID: m.MsgID}, m.Key); err != nil {
 		Log.Error("user_key:\"%s\" push message failed (%s)", m.Key, err.Error())
