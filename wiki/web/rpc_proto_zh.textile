@@ -17,7 +17,7 @@ h3(#MessageRPC_Save). MessageRPC.Save
  * 请求参数
 
 (head). | 参数 | 类型 | 描述 |
-| m | rpc.MessagePubArgs | publish接口推送消息结构体 |
+| m | rpc.MessagePubArgs | publish接口存储消息结构体 |
 <pre>
 package rpc
 
