@@ -53,7 +53,7 @@ func main() {
 	UserChannel = NewChannelList()
 	// start stats
 	StartStats()
-	// start admin http
+	// start pprof http
 	go func() {
 		if err := StartPprofHttp(); err != nil {
 			Log.Error("StartPprofHttp() failed (%s)", err.Error())
@@ -67,6 +67,9 @@ func main() {
 			Log.Error("StartRPC() failed (%s)", err.Error())
 			os.Exit(-1)
 		}
+
+		Log.Crit("rpc crash")
+		os.Exit(-1)
 	}()
 
 	if Conf.Protocol == WebsocketProtocol {
@@ -86,5 +89,5 @@ func main() {
 
 	// exit
 	Log.Info("gopush2 stop")
-	os.Exit(0)
+	os.Exit(-1)
 }

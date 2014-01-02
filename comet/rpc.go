@@ -50,6 +50,28 @@ func StartRPC() error {
 				Log.Error("RPCCli.Close() failed (%s)", err.Error())
 			}
 		}()
+
+		// rpc Ping
+		go func() {
+			for {
+				reply := 0
+				if err := RPCCli.Call("Web.Ping", 0, &reply); err != nil {
+					Log.Error("RPCCli.Call(\"Web.Ping\") failed (%s)", err.Error())
+					Log.Warn("RPC reconnect %s", Conf.RPCAddr)
+					rpcTmp, err := rpc.Dial("tcp", Conf.RPCAddr)
+					if err != nil {
+						// every one second retry connect
+						time.Sleep(1 * time.Second)
+						Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
+					} else {
+						RPCCli = rpcTmp
+					}
+				}
+
+				// every one second send a heartbeat ping
+				time.Sleep(1 * time.Second)
+			}
+		}()
 	}
 
 	c := &ChannelRPC{}
