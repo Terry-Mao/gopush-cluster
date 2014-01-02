@@ -2,13 +2,14 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
 const (
 	WebsocketProtocol = 0
 	TCPProtocol       = 1
-	heartbeatMsg      = "h"
+	Heartbeat         = "h"
 	oneSecond         = int64(time.Second)
 )
 
@@ -18,8 +19,10 @@ var (
 	// Assection type failed
 	AssertTypeErr = errors.New("Subscriber assert type failed")
 
-	// heartbeat bytes
-	heartbeatBytes = []byte(heartbeatMsg)
-	// heartbeat len
-	heartbeatByteLen = len(heartbeatMsg)
+	// Heartbeat
+	HeartbeatLen = len(Heartbeat)
+	// websocket heartbeat
+	WebsocketHeartbeatReply = []byte(Heartbeat)
+	// tcp hearbeat
+	TCPHeartbeatReply = []byte(fmt.Sprintf("$1\r\n%s\r\n", Heartbeat))
 )

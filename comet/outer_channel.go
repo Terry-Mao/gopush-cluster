@@ -92,7 +92,7 @@ func (c *OuterChannel) newWriteBuf() *bytes.Buffer {
 		return buf
 	default:
 		Log.Debug("outer channel buffer empty")
-		return bytes.NewBuffer(make([]byte, Conf.WriteBufByte))
+		return bytes.NewBuffer(make([]byte, 0, Conf.WriteBufByte))
 	}
 }
 
@@ -147,9 +147,11 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 			continue
 		}
 
-		if _, err = conn.Write(b); err != nil {
+		if n, err := conn.Write(b); err != nil {
 			Log.Error("conn.Write() failed (%s)", err.Error())
 			continue
+		} else {
+			Log.Debug("conn.Write %d bytes (%v)", n, b)
 		}
 
 		// if succeed, update the last message id, conn.Write may failed but err == nil(client shutdown or sth else), but the message won't loss till next connect to sub

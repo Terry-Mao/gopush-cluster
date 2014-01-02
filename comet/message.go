@@ -61,22 +61,13 @@ func (m *Message) Bytes(b *bytes.Buffer) ([]byte, error) {
 		}
 
 		// $size\r\ndata\r\n
-		if _, err = b.WriteString(fmt.Sprintf("$%d\r\n", len(byteJson))); err != nil {
+		n, err := b.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(byteJson), string(byteJson)))
+		if err != nil {
 			Log.Error("buf.WriteString() failed (%s)", err.Error())
 			return nil, err
 		}
 
-		if _, err = b.Write(byteJson); err != nil {
-			Log.Error("buf.Write() failed (%s)", err.Error())
-			return nil, err
-		}
-
-		if _, err = b.WriteString("\r\n"); err != nil {
-			Log.Error("buf.WriteString() failed (%s)", err.Error())
-			return nil, err
-		}
-
-		return b.Bytes(), nil
+		return b.Bytes()[0:n], nil
 	} else {
 		// websocket
 		return byteJson, nil

@@ -14,7 +14,7 @@ func main() {
 	mid := 0
 	heartbeat := 10
 
-	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:8080")
+	addr, err := net.ResolveTCPAddr("tcp", "10.33.14.42:8080")
 	if err != nil {
 		panic(err)
 	}
@@ -26,8 +26,8 @@ func main() {
 	}
 
 	fmt.Println("send sub request")
-    proto := []byte(fmt.Sprintf("*4\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n$%d\r\n%d\r\n$%d\r\n%d\r\n", len(cmd), cmd, len(key), key, len(strconv.Itoa(mid)), mid, len(strconv.Itoa(heartbeat)), heartbeat))
-    fmt.Println(string(proto))
+	proto := []byte(fmt.Sprintf("*4\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n$%d\r\n%d\r\n$%d\r\n%d\r\n", len(cmd), cmd, len(key), key, len(strconv.Itoa(mid)), mid, len(strconv.Itoa(heartbeat)), heartbeat))
+	fmt.Println(string(proto))
 	if _, err := conn.Write(proto); err != nil {
 		panic(err)
 	}
@@ -40,7 +40,7 @@ func main() {
 	}
 
 	bufStr := string(buf[0:n])
-	if bufStr == "h" {
+	if bufStr == "$1\r\nh\r\n" {
 		fmt.Println("get first heartbeat, start goroutine to sending heartbeat period")
 	} else {
 		panic("unknown heartbeat protocol")
@@ -70,44 +70,42 @@ func main() {
 			panic(err)
 		}
 
-		bufStr := string(buf[0:n])
-		if bufStr != "h" {
-			tbuf := bytes.NewBuffer(buf)
-			line, err := tbuf.ReadBytes('\n')
-			if err != nil {
-				panic(err)
-			}
+        fmt.Printf("%d (%v)", n, buf)
+		tbuf := bytes.NewBuffer(buf)
+		line, err := tbuf.ReadBytes('\n')
+		if err != nil {
+            fmt.Printf("(%s) %v", string(line), line)
+			panic(err)
+		}
 
-			if len(line) < 3 || line[0] != '$' || line[len(line)-2] != '\r' {
-				panic("protocol format1 error")
-			}
+		if len(line) < 3 || line[0] != '$' || line[len(line)-2] != '\r' {
+			panic("protocol format1 error")
+		}
 
-			cmdSize, err := strconv.Atoi(string(line[1 : len(line)-2]))
-			if err != nil {
-				panic(err)
-			}
+		cmdSize, err := strconv.Atoi(string(line[1 : len(line)-2]))
+		if err != nil {
+			panic(err)
+		}
 
-			data := make([]byte, cmdSize+2)
-			n, err := tbuf.Read(data)
-			if err != nil {
-				panic(err)
-			}
+		data := make([]byte, cmdSize+2)
+		n, err = tbuf.Read(data)
+		if err != nil {
+			panic(err)
+		}
 
-			if n != cmdSize+2 {
-				panic("protocol size error")
-			}
+		if n != cmdSize+2 {
+			panic("protocol size error")
+		}
 
-			if data[cmdSize] != '\r' || data[cmdSize+1] != '\n' {
-				panic("protocol format2 error")
-			}
+		if data[cmdSize] != '\r' || data[cmdSize+1] != '\n' {
+			panic("protocol format2 error")
+		}
 
-			fmt.Println(string(data[0:cmdSize]))
-		} else if bufStr == "h" {
-			// receive heartbeat continue
-			// fmt.Println("heartbeat")
-			continue
-		} else {
-			panic("unknow protocol")
+		reply := string(data[0:cmdSize])
+		if reply != "h" {
+			fmt.Println(reply)
+		} else if reply == "h" {
+			fmt.Println("heartbeat")
 		}
 	}
 }

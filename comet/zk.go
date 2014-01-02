@@ -104,8 +104,8 @@ func InitZookeeper() (*ZK, error) {
 		return nil, err
 	}
 
-	// register zk node, dns,rpc
-	data := Conf.DNS + "," + Conf.RPCAddr
+	// register zk node, dns,adminaddr
+	data := Conf.DNS + "," + Conf.AdminAddr
 	Log.Info("register %s:%s in zookeeper:%s", Conf.Node, data, Conf.ZookeeperPath)
 	if err = zk.Register(Conf.ZookeeperPath, Conf.Node, data); err != nil {
 		Log.Error("zk.Register(\"%s\", \"%s\") failed (%s)", Conf.ZookeeperPath, Conf.DNS, err.Error())

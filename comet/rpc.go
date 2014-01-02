@@ -55,14 +55,14 @@ func StartRPC() error {
 		go func() {
 			for {
 				reply := 0
-				if err := RPCCli.Call("WebRPC.Ping", 0, &reply); err != nil {
-					Log.Error("rpc.Call(\"WebRPC.Ping\") failed (%s)", err.Error())
+				if err := RPCCli.Call("MessageRPC.Ping", 0, &reply); err != nil {
+					Log.Error("rpc.Call(\"MessageRPC.Ping\") failed (%s)", err.Error())
 					rpcTmp, err := rpc.Dial("tcp", Conf.RPCAddr)
 					if err != nil {
 						Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
 						time.Sleep(time.Duration(Conf.RPCRetrySec) * time.Second)
 						Log.Warn("rpc reconnect \"%s\" after %d second", Conf.RPCAddr, Conf.RPCRetrySec)
-                        continue
+						continue
 					} else {
 						Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCAddr)
 						RPCCli = rpcTmp

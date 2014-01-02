@@ -211,7 +211,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	}
 
 	// send first heartbeat to tell client service is ready for accept heartbeat
-	if _, err := conn.Write(heartbeatBytes); err != nil {
+	if _, err := conn.Write(TCPHeartbeatReply); err != nil {
 		Log.Error("user_key:\"%s\" write first heartbeat to client failed (%s)", key, err.Error())
 		return
 	}
@@ -229,7 +229,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	}
 
 	// blocking wait client heartbeat
-	reply := make([]byte, heartbeatByteLen)
+	reply := make([]byte, HeartbeatLen)
 	begin := time.Now().UnixNano()
 	end := begin + oneSecond
 	for {
@@ -254,8 +254,8 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 			break
 		}
 
-		if string(reply) == heartbeatMsg {
-			if _, err = conn.Write(heartbeatBytes); err != nil {
+		if string(reply) == Heartbeat {
+			if _, err = conn.Write(TCPHeartbeatReply); err != nil {
 				Log.Error("user_key:\"%s\" conn.Write() failed, write heartbeat to client (%s)", key, err.Error())
 				break
 			}
