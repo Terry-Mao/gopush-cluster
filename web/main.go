@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"github.com/Terry-Mao/gopush-cluster/log"
-	"net/http"
 	"os"
 	"runtime"
 )
@@ -33,44 +32,12 @@ func main() {
 		os.Exit(-1)
 	}
 
-	// Initialize zookeeper
-	if err := InitZK(); err != nil {
-		Log.Error("InitZK() failed(%v)", err)
-		os.Exit(-1)
-	}
-
 	// Initialize redis
 	InitRedis()
 
-	// Begin watch all of nodes
-	if err := BeginWatchNode(); err != nil {
-		Log.Error("BeginWatchNode() failed(%v)", err)
-		os.Exit(-1)
-	}
-
-	http.HandleFunc("/server/get", ServerGet)
-	http.HandleFunc("/msg/get", MsgGet)
-
-	go func() {
-		// Start internal service
-		/*internalServeMux := http.NewServeMux()
-		internalServeMux.HandleFunc("/msg/set", MsgSet)
-		err := http.ListenAndServe(Conf.InternalAddr, internalServeMux)
-		if err != nil {
-			Log.Error("http.ListenAndServe(%s) failed(%v)", Conf.InternalAddr, err)
-			os.Exit(-1)
-		}*/
-
-		// Start rpc
-		if err := StartRPC(); err != nil {
-			Log.Error("StartRPC() failed (%s)", err.Error())
-			os.Exit(-1)
-		}
-	}()
-
-	// Start external service
-	if err := http.ListenAndServe(Conf.Addr, nil); err != nil {
-		Log.Error("http.ListenAndServe(%s) failed(%v)", Conf.Addr, err)
+	// Start rpc
+	if err := StartRPC(); err != nil {
+		Log.Error("StartRPC() failed (%v)", err)
 		os.Exit(-1)
 	}
 }
