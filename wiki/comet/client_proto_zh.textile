@@ -36,7 +36,7 @@ $第N个参数的字符串占用字节数字 CR LF
 格式参照上面提到的Redis协议来返回reply，
 例如：
 <pre>$5\r\nTerry\r\n</pre>
-其中Terry就是推送的消息内容。
+其中Terry就是接受到推送的消息内容。
 
 <h3>心跳</h3>
 心跳包：<pre>h</pre>
