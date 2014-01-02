@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Terry-Mao/gopush2/skiplist"
+	"github.com/Terry-Mao/gopush-cluster/skiplist"
 	"net"
 	"sync"
 	"time"
