@@ -1,0 +1,60 @@
+<h3>Terry-Mao/gopush-cluster Comet 配置文档</h3>
+comet使用标准json格式作为配置文件，例如：
+<pre>
+{
+  "dns": "10.33.14.42:8080",
+  "addr": "10.33.14.42:8080",
+  "admin_addr": "10.33.14.42:8081",
+  "pprof_addr": "10.33.14.42:8082",
+  "rpc_addr": "10.33.13.138:8081",
+  "zookeeper_addr": "10.20.216.122:2181",
+  "zookeeper_timeout": 28800,
+  "zookeeper_path": "/gopush-cluster",
+  "log": "/tmp/gopush-cluster.log",
+  "log_level": 7,
+  "max_procs": 4,
+  "tcp_keepalive": 0,
+  "heartbeat_sec": 30,
+  "message_expire_sec": 7200,
+  "channel_expire_sec": 28800,
+  "max_stored_message": 20,
+  "max_subscriber_per_key": 64,
+  "channel_bucket": 16,
+  "channel_type": 2,
+  "read_buf_instance": 4,
+  "read_buf_num_per_inst": 128,
+  "read_buf_byte": 512,
+  "write_buf_num": 128,
+  "write_buf_byte": 512,
+  "protocol": 1,
+  "auth": 0
+}
+</pre>
+就是comet的所有配置选项的字段展示。
+
+<h4>dns</h4>
+<h4>addr</h4>
+<h4>admin_addr</h4>
+<h4>pprof_addr</h4>
+<h4>rpc_addr</h4>
+<h4>zookeeper_addr</h4>
+<h4>zookeeper_timeout</h4>
+<h4>zookeeper_path</h4>
+<h4>log</h4>
+<h4>log_level</h4>
+<h4>max_procs</h4>
+<h4>tcp_keepalive</h4>
+<h4>heartbeat_sec</h4>
+<h4>message_expire_sec</h4>
+<h4>channel_expire_sec</h4>
+<h4>max_stored_message</h4>
+<h4>max_subscriber_per_key</h4>
+<h4>chanel_bucket</h4>
+<h4>channel_type</h4>
+<h4>read_buf_instance</h4>
+<h4>read_buf_num_per_inst</h4>
+<h4>read_buf_byte</h4>
+<h4>write_buf_num</h4>
+<h4>write_buf_byte</h4>
+<h4>protocol</h4>
+<h4>auth</h4>
