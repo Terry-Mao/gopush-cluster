@@ -57,7 +57,7 @@ func NewConfig(file string) (*Config, error) {
 	// Default config
 	cf := &Config{
 		Addr:     "127.0.0.1:8080",
-		LogPath:  "./push.log",
+		LogPath:  "./web.log",
 		LogLevel: 0,
 		Bucket:   16,
 	}
