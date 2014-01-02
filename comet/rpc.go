@@ -62,13 +62,13 @@ func StartRPC() error {
 					if err != nil {
 						Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
 					} else {
-						Log.Info("rpc client reconnect \"%s\" succeed", Conf.RPCAddr)
+						Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCAddr)
 						RPCCli = rpcTmp
 					}
 				}
 
 				// every one second send a heartbeat ping
-				Log.Debug("RPC Ping")
+				Log.Debug("RPC Ping ok")
 				time.Sleep(1 * time.Second)
 			}
 		}()
