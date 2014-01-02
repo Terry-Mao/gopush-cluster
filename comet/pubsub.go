@@ -87,7 +87,7 @@ func StartRPC() error {
 		}
 	}()
 
-	Log.Info("start listen admin addr:%s", Conf.AdminAddr)
+	Log.Info("start listen rpc addr:%s", Conf.AdminAddr)
 	rpc.Accept(l)
 	return nil
 }
