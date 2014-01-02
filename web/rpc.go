@@ -34,7 +34,7 @@ func StartRPC() error {
 	return nil
 }
 
-// store offline message interface
+// Store offline message interface
 func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 	if m == nil || m.Key == "" || m.Msg == "" {
 		*ret = ParamErr
@@ -54,6 +54,7 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 	return nil
 }
 
+// RPC for web ping
 type WebRPC struct {
 }
 

@@ -141,7 +141,6 @@ func (l *ChannelList) Get(key string) (Channel, error) {
 
 	if c, ok := b.Data[key]; !ok {
 		if Conf.Auth == 0 {
-			c.SetDeadline(time.Now().UnixNano() + Conf.ChannelExpireSec*Second)
 			Log.Debug("user_key:\"%s\" create a new channel", key)
 			if Conf.ChannelType == InnerChannelType {
 				c = NewInnerChannel()
@@ -152,8 +151,10 @@ func (l *ChannelList) Get(key string) (Channel, error) {
 				return nil, ChannelTypeErr
 			}
 
+			c.SetDeadline(time.Now().UnixNano() + Conf.ChannelExpireSec*Second)
 			ChStat.IncrCreate()
 			b.Data[key] = c
+			return c, nil
 		}
 
 		Log.Warn("user_key:\"%s\" channle not exists", key)
