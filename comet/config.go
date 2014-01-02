@@ -26,6 +26,8 @@ type Config struct {
 	AdminAddr           string `json:"admin_addr"`
 	PprofAddr           string `json:"pprof_addr"`
 	RPCAddr             string `json:"rpc_addr"`
+	RPCHeartbeatSec     int    `json:"rpc_heartbeat_sec"`
+	RPCRetrySec         int    `json:"rpc_retry_sec"`
 	ZookeeperAddr       string `json:"zookeeper_addr"`
 	ZookeeperTimeout    int    `json:"zookeeper_timeout"`
 	ZookeeperPath       string `json:"zookeeper_path"`
@@ -66,6 +68,8 @@ func NewConfig(file string) (*Config, error) {
 		PprofAddr:           "localhost:8082",
 		ZookeeperAddr:       "localhost:2181",
 		RPCAddr:             "localhost:8083",
+		RPCHeartbeatSec:     1,
+		RPCRetrySec:         3,
 		ZookeeperTimeout:    28800,
 		ZookeeperPath:       "/gopush-cluster",
 		Log:                 "./gopush.log",

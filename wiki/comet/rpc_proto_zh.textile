@@ -16,7 +16,7 @@ Comet内部RPC接口文档，用于Channel的创建，关闭，推送消息以�
 | 65534 | 参数错误 |
 | 65535 | 内部错误 |
 
-h3(#ChannelRPC_New). ChannelRPC.New
+<h3>ChannelRPC.New</h3>
  * 请求参数
 
 (head). | 参数 | 类型 | 描述 |
@@ -26,7 +26,7 @@ h3(#ChannelRPC_New). ChannelRPC.New
 (head). | 错误码 | 描述 |
 | 1 | 创建Channel失败 |
  
-h3(#ChannelRPC_Close). ChannelRPC.Close
+<h3>ChannelRPC.Close</h3>
  * 请求参数
 
 (head). | 参数 | 类型 | 描述 |
@@ -36,7 +36,7 @@ h3(#ChannelRPC_Close). ChannelRPC.Close
 (head). | 错误码 | 描述 |
 | 3 | 获取Channel失败 |
 
-h3(#ChannelRPC_Publish). ChannelRPC.Publish
+<h3>ChannelRPC.Publish</h3>
  * 请求参数
 
 (head). | 参数 | 类型 | 描述 |
@@ -58,7 +58,7 @@ type ChannelPublishArgs struct {
 | 3 | 获取Channel失败 |
 | 4 | 推送消息失败 |
 
-h3(#ChannelRPC_Migrate). ChannelRPC.Migrate
+<h3>ChannelRPC.Migrate</h3>
  * 请求参数
 
 (head). | 参数 | 类型 | 描述 |

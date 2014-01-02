@@ -47,7 +47,7 @@ func StartRPC() error {
 
 		defer func() {
 			if err := RPCCli.Close(); err != nil {
-				Log.Error("RPCCli.Close() failed (%s)", err.Error())
+				Log.Error("rpc.Close() failed (%s)", err.Error())
 			}
 		}()
 
@@ -56,11 +56,12 @@ func StartRPC() error {
 			for {
 				reply := 0
 				if err := RPCCli.Call("WebRPC.Ping", 0, &reply); err != nil {
-					Log.Error("RPCCli.Call(\"WebRPC.Ping\") failed (%s)", err.Error())
-					Log.Warn("RPC reconnect \"%s\"", Conf.RPCAddr)
+					Log.Error("rpc.Call(\"WebRPC.Ping\") failed (%s)", err.Error())
 					rpcTmp, err := rpc.Dial("tcp", Conf.RPCAddr)
 					if err != nil {
 						Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
+						time.Sleep(time.Duration(Conf.RPCRetrySec) * time.Second)
+						Log.Warn("rpc reconnect \"%s\" after %d second", Conf.RPCAddr, Conf.RPCRetrySec)
 					} else {
 						Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCAddr)
 						RPCCli = rpcTmp
@@ -68,8 +69,8 @@ func StartRPC() error {
 				}
 
 				// every one second send a heartbeat ping
-				Log.Debug("RPC Ping ok")
-				time.Sleep(1 * time.Second)
+				Log.Debug("rpc ping ok")
+				time.Sleep(time.Duration(Conf.RPCHeartbeatSec) * time.Second)
 			}
 		}()
 	}
