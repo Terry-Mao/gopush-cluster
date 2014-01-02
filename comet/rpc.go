@@ -62,6 +62,7 @@ func StartRPC() error {
 						Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
 						time.Sleep(time.Duration(Conf.RPCRetrySec) * time.Second)
 						Log.Warn("rpc reconnect \"%s\" after %d second", Conf.RPCAddr, Conf.RPCRetrySec)
+                        continue
 					} else {
 						Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCAddr)
 						RPCCli = rpcTmp
