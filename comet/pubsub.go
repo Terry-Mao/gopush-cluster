@@ -62,6 +62,12 @@ func StartRPC() error {
 		return err
 	}
 
+	defer func() {
+		if err := RPCCli.Close(); err != nil {
+			Log.Error("RPCCli.Close() failed (%s)", err.Error())
+		}
+	}()
+
 	c := &ChannelRPC{}
 	rpc.Register(c)
 	l, err := net.Listen("tcp", Conf.AdminAddr)
