@@ -161,7 +161,7 @@ func (c *ChannelRPC) Publish(m *myrpc.ChannelPublishArgs, ret *int) error {
 	}
 
 	// get a user channel
-	ch, err := UserChannel.Get(m.Key)
+	ch, err := UserChannel.New(m.Key)
 	if err != nil {
 		Log.Warn("user_key:\"%s\" can't get a channel (%s)", m.Key, err.Error())
 		*ret = retGetChannelErr
