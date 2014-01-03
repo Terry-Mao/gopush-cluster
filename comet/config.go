@@ -45,7 +45,6 @@ type Config struct {
 	ReadBufInstance     int    `json:"read_buf_instance"`
 	ReadBufNumPerInst   int    `json:"read_buf_num_per_inst"`
 	ReadBufByte         int    `json:"read_buf_byte"`
-	WriteBufNum         int    `json:"write_buf_num"`
 	WriteBufByte        int    `json:"write_buf_byte"`
 	Protocol            int    `json:"protocol"`
 	Debug               int    `json:"debug"`
@@ -86,7 +85,6 @@ func NewConfig(file string) (*Config, error) {
 		ReadBufInstance:     runtime.NumCPU(),
 		ReadBufNumPerInst:   1024,
 		ReadBufByte:         512,
-		WriteBufNum:         1024,
 		WriteBufByte:        512,
 		Protocol:            0,
 		Debug:               0,
