@@ -21,14 +21,6 @@ var (
 	ChannelExpiredErr = errors.New("Channel expired")
 	// Channle type unknown
 	ChannelTypeErr = errors.New("Channle type unknown")
-	// Token exists
-	TokenExistErr = errors.New("token exist")
-	// Token not exists
-	TokenNotExistErr = errors.New("token not exist")
-	// Token delete
-	TokenDeleteErr = errors.New("token delete failed")
-	// Token expired
-	TokenExpiredErr = errors.New("token expired")
 )
 
 // The subscriber interface

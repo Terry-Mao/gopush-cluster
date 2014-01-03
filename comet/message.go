@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +10,6 @@ import (
 var (
 	// Message expired
 	MsgExpiredErr = errors.New("Message already expired")
-	MsgBufErr     = errors.New("Message writeu buffer nil")
 )
 
 // The Message struct
@@ -42,7 +40,7 @@ func NewJsonStrMessage(str string) (*Message, error) {
 }
 
 // Bytes get a message bytes
-func (m *Message) Bytes(b *bytes.Buffer) ([]byte, error) {
+func (m *Message) Bytes() ([]byte, error) {
 	res := map[string]interface{}{
 		"msg": m.Msg,
 		"mid": m.MsgID,
@@ -56,18 +54,7 @@ func (m *Message) Bytes(b *bytes.Buffer) ([]byte, error) {
 
 	// tcp use Redis Response Protocol: http://redis.io/topics/protocol
 	if Conf.Protocol == TCPProtocol {
-		if b == nil {
-			return nil, MsgBufErr
-		}
-
-		// $size\r\ndata\r\n
-		n, err := b.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(byteJson), string(byteJson)))
-		if err != nil {
-			Log.Error("buf.WriteString() failed (%s)", err.Error())
-			return nil, err
-		}
-
-		return b.Bytes()[0:n], nil
+		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(byteJson), string(byteJson))), nil
 	} else {
 		// websocket
 		return byteJson, nil
