@@ -100,12 +100,21 @@ func SubscribeHandle(ws *websocket.Conn) {
 		return
 	}
 
-	Log.Info("client:%s subscribe to key = %s, mid = %d, heartbeat = %d", ws.Request().RemoteAddr, key, mid, heartbeat)
+	token := params.Get("token")
+	Log.Info("client:%s subscribe to key = %s, mid = %d, heartbeat = %d, token = %s", ws.Request().RemoteAddr, key, mid, heartbeat, token)
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key)
 	if err != nil {
 		Log.Error("user_key:\"%s\" can't get a channel (%s)", key, err.Error())
 		return
+	}
+
+	// auth token
+	if Conf.Auth == 1 {
+		if err = c.AuthToken(token, key); err != nil {
+			Log.Error("user_key:\"%s\" auth token failed (%s)", key, err.Error())
+			return
+		}
 	}
 
 	// send first heartbeat to tell client service is ready for accept heartbeat

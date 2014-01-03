@@ -27,6 +27,8 @@ const (
 	retMigrateErr = 5
 	// rpc failed
 	retRPCErr = 6
+	// add token
+	retAddTokenErr = 7
 )
 
 var (
@@ -100,21 +102,28 @@ type ChannelRPC struct {
 }
 
 // New expored a method for creating new channel
-func (c *ChannelRPC) New(key *string, ret *int) error {
-	if *key == "" {
+func (c *ChannelRPC) New(args *myrpc.ChannelNewArgs, ret *int) error {
+	if args == nil || args.Key == "" {
 		Log.Warn("ChannelRPC New param error")
 		*ret = retParamErr
 		return nil
 	}
 
 	// create a new channel for the user
-	Log.Info("user_key:\"%s\" add channel", *key)
-	_, err := UserChannel.New(*key)
+	Log.Info("user_key:\"%s\" add channel", args.Key)
+	ch, err := UserChannel.New(args.Key)
 	if err != nil {
-		Log.Error("user_key:\"%s\" can't create channle", *key)
+		Log.Error("user_key:\"%s\" can't create channle", args.Key)
 		*ret = retCreateChannelErr
-
 		return nil
+	}
+
+	if Conf.Auth == 1 {
+		if err = ch.AddToken(args.Token, args.Expire, args.Key); err != nil {
+			Log.Error("user_key:\"%s\" add token failed (%s)", args.Key, err.Error())
+			*ret = retAddTokenErr
+			return nil
+		}
 	}
 
 	*ret = retOK

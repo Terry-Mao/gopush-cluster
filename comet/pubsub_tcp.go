@@ -202,12 +202,25 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		return
 	}
 
-	Log.Info("client:\"%s\" subscribe to key = %s, mid = %d, heartbeat = %d", conn.RemoteAddr().String(), key, mid, heartbeat)
+	token := ""
+	if argLen > 3 {
+		token = args[3]
+	}
+
+	Log.Info("client:\"%s\" subscribe to key = %s, mid = %d, heartbeat = %d, token = %s", conn.RemoteAddr().String(), key, mid, heartbeat, token)
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key)
 	if err != nil {
 		Log.Warn("user_key:\"%s\" can't get a channel (%s)", key, err.Error())
 		return
+	}
+
+	// auth token
+	if Conf.Auth == 1 {
+		if err = c.AuthToken(token, key); err != nil {
+			Log.Error("user_key:\"%s\" auth token failed (%s)", key, err.Error())
+			return
+		}
 	}
 
 	// send first heartbeat to tell client service is ready for accept heartbeat

@@ -13,3 +13,10 @@ type ChannelMigrateArgs struct {
 	Nodes []string // current comet nodes
 	Vnode int      // ketama virtual node number
 }
+
+// Channel New Args
+type ChannelNewArgs struct {
+	Expire int64  // message expire second
+	Key    string // subscriber key
+    Token  string // auth token
+}
