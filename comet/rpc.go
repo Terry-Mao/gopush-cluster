@@ -158,29 +158,29 @@ func (c *ChannelRPC) Close(key *string, ret *int) error {
 }
 
 // Publish expored a method for publishing a message for the channel
-func (c *ChannelRPC) Publish(m *myrpc.ChannelPublishArgs, ret *int) error {
-	if m == nil || m.Key == "" || m.Msg == "" {
+func (c *ChannelRPC) Publish(args *myrpc.ChannelPublishArgs, ret *int) error {
+	if args == nil || args.Key == "" || args.Msg == "" {
 		Log.Warn("ChannelRPC Publish param error")
 		*ret = retParamErr
 		return nil
 	}
 
-	expire := m.Expire
+	expire := args.Expire
 	if expire <= 0 {
 		expire = Conf.MessageExpireSec
 	}
 
 	// get a user channel
-	ch, err := UserChannel.New(m.Key)
+	ch, err := UserChannel.New(args.Key)
 	if err != nil {
-		Log.Warn("user_key:\"%s\" can't get a channel (%s)", m.Key, err.Error())
+		Log.Warn("user_key:\"%s\" can't get a channel (%s)", args.Key, err.Error())
 		*ret = retGetChannelErr
 		return nil
 	}
 
 	// use the channel push message
-	if err = ch.PushMsg(&Message{Msg: m.Msg, Expire: time.Now().UnixNano() + expire*Second, MsgID: m.MsgID}, m.Key); err != nil {
-		Log.Error("user_key:\"%s\" push message failed (%s)", m.Key, err.Error())
+	if err = ch.PushMsg(&Message{Msg: args.Msg, Expire: time.Now().UnixNano() + expire*Second, MsgID: args.MsgID}, args.Key); err != nil {
+		Log.Error("user_key:\"%s\" push message failed (%s)", args.Key, err.Error())
 		*ret = retPushMsgErr
 		MsgStat.IncrFailed()
 		return nil
@@ -192,8 +192,8 @@ func (c *ChannelRPC) Publish(m *myrpc.ChannelPublishArgs, ret *int) error {
 }
 
 // Publish expored a method for publishing a message for the channel
-func (c *ChannelRPC) Migrate(m *myrpc.ChannelMigrateArgs, ret *int) error {
-	if len(m.Nodes) == 0 {
+func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
+	if len(args.Nodes) == 0 {
 		Log.Warn("ChannelRPC Migrate param error")
 		*ret = retParamErr
 		return nil
@@ -201,7 +201,7 @@ func (c *ChannelRPC) Migrate(m *myrpc.ChannelMigrateArgs, ret *int) error {
 
 	// find current node exists in new nodes
 	has := false
-	for _, str := range m.Nodes {
+	for _, str := range args.Nodes {
 		if str == Conf.Node {
 			has = true
 		}
@@ -214,7 +214,7 @@ func (c *ChannelRPC) Migrate(m *myrpc.ChannelMigrateArgs, ret *int) error {
 	}
 
 	// init ketama
-	ketama := hash.NewKetama2(m.Nodes, m.Vnode)
+	ketama := hash.NewKetama2(args.Nodes, args.Vnode)
 	channels := []Channel{}
 	// get all the channel lock
 	for i, c := range UserChannel.Channels {

@@ -17,6 +17,6 @@ type ChannelMigrateArgs struct {
 // Channel New Args
 type ChannelNewArgs struct {
 	Expire int64  // message expire second
-	Key    string // subscriber key
     Token  string // auth token
+	Key    string // subscriber key
 }
