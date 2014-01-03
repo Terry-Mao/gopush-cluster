@@ -21,6 +21,14 @@ var (
 	ChannelExpiredErr = errors.New("Channel expired")
 	// Channle type unknown
 	ChannelTypeErr = errors.New("Channle type unknown")
+	// Token exists
+	TokenExistErr = errors.New("token exist")
+	// Token not exists
+	TokenNotExistErr = errors.New("token not exist")
+	// Token delete
+	TokenDeleteErr = errors.New("token delete failed")
+	// Token expired
+	TokenExpiredErr = errors.New("token expired")
 )
 
 // The subscriber interface
@@ -30,6 +38,12 @@ type Channel interface {
 	SendOfflineMsg(conn net.Conn, mid int64, key string) error
 	// PushMsg push a message to the subscriber.
 	PushMsg(m *Message, key string) error
+	// Add a token for one subscriber
+	// The request token not equal the subscriber token will return errors.
+	AddToken(token string, expire int64, key string) error
+	// Auth auth the access token.
+	// The request token not match the subscriber token will return errors.
+	AuthToken(token string, key string) error
 	// AddConn add a connection for the subscriber.
 	// Exceed the max number of subscribers per key will return errors.
 	AddConn(conn net.Conn, mid int64, key string) error

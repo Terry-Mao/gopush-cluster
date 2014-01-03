@@ -12,8 +12,8 @@ const (
 )
 
 var (
-	ErrNodeExists    = errors.New("node already exists")
-	ErrNodeNotExists = errors.New("node not exists")
+	NodeExistErr    = errors.New("node already exists")
+	NodeNotExistErr = errors.New("node not exists")
 )
 
 type Node struct {
@@ -134,7 +134,7 @@ func (sl *SkipList) Insert(score int64, member interface{}) error {
 	// node exists
 	if q != nil && q.Score == score {
 		// q.Member = member
-		return ErrNodeExists
+		return NodeExistErr
 	}
 
 	// get a random level

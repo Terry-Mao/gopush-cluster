@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
+	"github.com/Terry-Mao/gopush-cluster/skiplist"
 	"net"
 	"net/http"
 	"sync"
@@ -51,6 +52,10 @@ type OuterChannel struct {
 	lastSID int64
 	// snowflake lastTtime
 	lastTime int64
+	// token expire
+	tokenTTL *skiplist.SkipList
+	// token
+	token map[string]int64
 }
 
 // snlwflakeID generate a time-based id for message
@@ -81,6 +86,8 @@ func NewOuterChannel() *OuterChannel {
 		writeBuf: make(chan *bytes.Buffer, Conf.WriteBufNum),
 		lastSID:  0,
 		lastTime: 0,
+		token:    map[string]int64{},
+		tokenTTL: skiplist.New(),
 	}
 }
 
@@ -108,6 +115,89 @@ func (c *OuterChannel) putWriteBuf(buf *bytes.Buffer) {
 // SendOfflineMsg implements the Channel SendOfflineMsg method.
 func (c *OuterChannel) SendOfflineMsg(conn net.Conn, mid int64, key string) error {
 	// no need
+	return nil
+}
+
+// expireToken delete the expired token
+func (c *OuterChannel) expireToken(key string) error {
+	now := time.Now().UnixNano()
+	// find the min node, if expired then continue
+	for n := c.tokenTTL.Head.Next(); n != nil; n = n.Next() {
+		if n.Score < now {
+			if en := c.tokenTTL.Delete(n.Score); en == nil {
+				Log.Error("user_key:\"%s\" skiplist delete node %d failed (%s)", key, n.Score)
+				Log.Crit("user_key:\"%s\" skiplist linked list fatal error", key)
+				return TokenDeleteErr
+			}
+
+			m, _ := n.Member.(string)
+			delete(c.token, m)
+		} else {
+			Log.Debug("user_key:\"%s\" skiplist no other node expired", key)
+			break
+		}
+	}
+
+	return nil
+}
+
+// AddToken implements the Channel AddToken method.
+func (c *OuterChannel) AddToken(token string, expire int64, key string) error {
+	if expire <= time.Now().UnixNano() {
+		Log.Error("user_key:\"%s\" add token %s already expired", key, token)
+		return TokenExpiredErr
+	}
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if _, ok := c.token[token]; ok {
+		Log.Error("user_key:\"%s\" add token %s already exists", key, token)
+		return TokenExistErr
+	} else {
+		c.token[token] = expire
+		if err := c.tokenTTL.Insert(expire, token); err != nil {
+			Log.Error("user_key:\"%s\" skiplist token %s insert failed (%s)", key, token, err.Error())
+			return err
+		}
+	}
+
+	// check has expired token
+	if err := c.expireToken(key); err != nil {
+		Log.Error("user_key:\"%s\" expire token failed (%s)", key, err.Error())
+	}
+
+	return nil
+}
+
+// AuthToken implements the Channel AuthToken method.
+func (c *OuterChannel) AuthToken(token string, key string) error {
+	now := time.Now().UnixNano()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	// token only used once
+	if t, ok := c.token[token]; ok {
+		if dn := c.tokenTTL.Delete(t); dn == nil {
+			Log.Error("user_key:\"%s\" skiplist delete node %d failed", key, t)
+			return TokenDeleteErr
+		}
+
+		delete(c.token, token)
+		if t < now {
+			Log.Error("user_key:\"%s\" add token %s already expired", key, token)
+			return TokenExpiredErr
+		}
+	} else {
+		Log.Error("user_key:\"%s\" auth token %s not exists", key, token)
+		return TokenNotExistErr
+	}
+
+	// check has expired token
+	if err := c.expireToken(key); err != nil {
+		Log.Error("user_key:\"%s\" expire token failed (%s)", key, err.Error())
+	}
+
 	return nil
 }
 
@@ -151,7 +241,7 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 			Log.Error("conn.Write() failed (%s)", err.Error())
 			continue
 		} else {
-			Log.Debug("conn.Write %d bytes (%v)", n, b)
+			Log.Debug("PushMsg conn.Write %d bytes (%v)", n, b)
 		}
 
 		// if succeed, update the last message id, conn.Write may failed but err == nil(client shutdown or sth else), but the message won't loss till next connect to sub
