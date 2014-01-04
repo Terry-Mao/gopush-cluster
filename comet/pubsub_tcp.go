@@ -14,53 +14,69 @@ const (
 )
 
 var (
+	// cmd parse failed
 	CmdFmtErr = errors.New("cmd format error")
 	// tcp hearbeat
 	tcpHeartbeatReply = []byte("+h\r\n")
-	tcpAuthReply      = []byte("-a\r\n")
-	tcpChannelReply   = []byte("-c\r\n")
-	tcpParamReply     = []byte("-p\r\n")
+	// auth failed reply
+	tcpAuthReply = []byte("-a\r\n")
+	// channle not found reply
+	tcpChannelReply = []byte("-c\r\n")
+	// param error reply
+	tcpParamReply = []byte("-p\r\n")
 )
 
-// TCPReadBuf store buffer in chan
-type TCPReadBuf struct {
+// tcpBuf cache.
+type tcpBufCache struct {
 	instance []chan *bufio.Reader
+	round    int
 }
 
-// NewTCPReadBuf get a mutiple instance chan stored the bufio.Reader obj
-func NewTCPReadBuf() *TCPReadBuf {
-	readBufInstance := make([]chan *bufio.Reader, 0, Conf.ReadBufInstance)
+// newTCPBufCache return a new tcpBuf cache.
+func newtcpBufCache() *tcpBufCache {
+	inst := make([]chan *bufio.Reader, 0, Conf.ReadBufInstance)
 	Log.Debug("create %d read buffer instance", Conf.ReadBufInstance)
 	for i := 0; i < Conf.ReadBufInstance; i++ {
-		readBufInstance = append(readBufInstance, make(chan *bufio.Reader, Conf.ReadBufNumPerInst))
+		inst = append(inst, make(chan *bufio.Reader, Conf.ReadBufNumPerInst))
 	}
 
-	return &TCPReadBuf{instance: readBufInstance}
+	return &tcpBufCache{instance: inst, round: 0}
 }
 
-// Get return a bufio.Reader, if chan is empty then create a new one
-func (b *TCPReadBuf) Get(conn io.Reader, idx int) *bufio.Reader {
+// Get return a chan bufio.Reader (round-robin).
+func (b *tcpBufCache) Get() chan *bufio.Reader {
+	rc := b.instance[b.round]
+	// split requets to diff buffer chan
+	if b.round++; b.round == Conf.ReadBufInstance {
+		b.round = 0
+	}
+
+	return rc
+}
+
+// newBufioReader get a Reader by chan, if chan empty new a Reader.
+func newBufioReader(c chan *bufio.Reader, r io.Reader) *bufio.Reader {
 	select {
-	case rd := <-b.instance[idx]:
-		rd.Reset(conn)
-		return rd
+	case p := <-c:
+		p.Reset(r)
+		return p
 	default:
-		Log.Debug("tcp read buffer empty")
-		return bufio.NewReaderSize(conn, Conf.ReadBufByte)
+		Log.Warn("tcp bufioReader cache empty")
+		return bufio.NewReaderSize(r, Conf.ReadBufByte)
 	}
 }
 
-// Pub return back a reader to the chan, if chan is full then discard it
-func (b *TCPReadBuf) Put(buf *bufio.Reader, idx int) {
-	buf.Reset(nil)
+// putBufioReader pub back a Reader to chan, if chan full discard it.
+func putBufioReader(c chan *bufio.Reader, r *bufio.Reader) {
+	r.Reset(nil)
 	select {
-	case b.instance[idx] <- buf:
+	case c <- r:
 	default:
-		Log.Debug("tcp read buffer full")
+		Log.Warn("tcp bufioReader cache full")
 	}
 }
 
-// StartTCP start listen tcp
+// StartTCP start listen tcp.
 func StartTCP() error {
 	addr, err := net.ResolveTCPAddr("tcp", Conf.Addr)
 	if err != nil {
@@ -83,9 +99,7 @@ func StartTCP() error {
 	}()
 
 	// init reader buffer instance
-	rb := NewTCPReadBuf()
-	// loop for accept conn
-	round := 0
+	rb := newtcpBufCache()
 	for {
 		Log.Debug("start accept")
 		conn, err := l.AcceptTCP()
@@ -119,14 +133,9 @@ func StartTCP() error {
 			continue
 		}
 
+		rc := rb.Get()
 		// one connection one routine
-		go handleTCPConn(conn, round, rb)
-		// split requets to diff buffer chan
-		round++
-		if round == Conf.ReadBufInstance {
-			round = 0
-		}
-
+		go handleTCPConn(conn, rc)
 		Log.Debug("accept finished")
 	}
 
@@ -135,14 +144,13 @@ func StartTCP() error {
 	return nil
 }
 
-// hanleTCPConn handle a long live tcp connection
-func handleTCPConn(conn net.Conn, round int, rb *TCPReadBuf) {
+// hanleTCPConn handle a long live tcp connection.
+func handleTCPConn(conn net.Conn, rc chan *bufio.Reader) {
 	Log.Debug("handleTcpConn routine start")
-	// parse protocol reference: http://redis.io/topics/protocol (use redis protocol)
-	rd := rb.Get(conn, round)
+	rd := newBufioReader(rc, conn)
 	if args, err := parseCmd(rd); err == nil {
 		// return buffer bufio.Reader
-		rb.Put(rd, round)
+		putBufioReader(rc, rd)
 		switch args[0] {
 		case "sub":
 			SubscribeTCPHandle(conn, args[1:])
@@ -153,7 +161,7 @@ func handleTCPConn(conn net.Conn, round int, rb *TCPReadBuf) {
 		}
 	} else {
 		// return buffer bufio.Reader
-		rb.Put(rd, round)
+		putBufioReader(rc, rd)
 		Log.Error("parseCmd() failed (%s)", err.Error())
 	}
 
@@ -166,7 +174,7 @@ func handleTCPConn(conn net.Conn, round int, rb *TCPReadBuf) {
 	return
 }
 
-// SubscribeTCPHandle handle the subscribers's connection
+// SubscribeTCPHandle handle the subscribers's connection.
 func SubscribeTCPHandle(conn net.Conn, args []string) {
 	argLen := len(args)
 	if argLen < 2 {
@@ -256,10 +264,10 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	// blocking wait client heartbeat
 	reply := make([]byte, HeartbeatLen)
 	begin := time.Now().UnixNano()
-	end := begin + oneSecond
+	end := begin + Second
 	for {
 		// more then 1 sec, reset the timer
-		if end-begin >= oneSecond {
+		if end-begin >= Second {
 			if err = conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(heartbeat))); err != nil {
 				Log.Error("user_key:\"%s\" conn.SetReadDeadLine() failed (%s)", key, err.Error())
 				break
@@ -302,7 +310,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	return
 }
 
-// parseCmd parse the tcp request command
+// parseCmd parse the tcp request command.
 func parseCmd(rd *bufio.Reader) ([]string, error) {
 	// get argument number
 	argNum, err := parseCmdSize(rd, '*')
@@ -339,7 +347,7 @@ func parseCmd(rd *bufio.Reader) ([]string, error) {
 	return args, nil
 }
 
-// parseCmdSize get the request protocol cmd size
+// parseCmdSize get the request protocol cmd size.
 func parseCmdSize(rd *bufio.Reader, prefix uint8) (int, error) {
 	// get command size
 	cs, err := rd.ReadBytes('\n')
@@ -364,7 +372,7 @@ func parseCmdSize(rd *bufio.Reader, prefix uint8) (int, error) {
 	return cmdSize, nil
 }
 
-// parseCmdData get the sub request protocol cmd data not included \r\n
+// parseCmdData get the sub request protocol cmd data not included \r\n.
 func parseCmdData(rd *bufio.Reader, cmdLen int) ([]byte, error) {
 	d, err := rd.ReadBytes('\n')
 	if err != nil {

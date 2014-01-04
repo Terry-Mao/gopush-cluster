@@ -15,15 +15,16 @@ const (
 )
 
 var (
-	// Channle not exists
 	ChannelNotExistErr = errors.New("Channle not exist")
-	// Channel expired
-	ChannelExpiredErr = errors.New("Channel expired")
-	// Channle type unknown
-	ChannelTypeErr = errors.New("Channle type unknown")
+	ChannelExpiredErr  = errors.New("Channel expired")
+	ChannelTypeErr     = errors.New("Channle type unknown")
 )
 
-// The subscriber interface
+var (
+	UserChannel *ChannelList
+)
+
+// The subscriber interface.
 type Channel interface {
 	// SendOfflineMsg send messages which id greate than the request id to the subscriber.
 	// net.Conn write failed will return errors.
@@ -41,38 +42,35 @@ type Channel interface {
 	AddConn(conn net.Conn, mid int64, key string) error
 	// RemoveConn remove a connection for the  subscriber.
 	RemoveConn(conn net.Conn, mid int64, key string) error
-	// SetDeadline set the channel deadline unixnano
+	// SetDeadline set the channel deadline unixnano.
 	SetDeadline(d int64)
-	// Timeout
 	Timeout() bool
 	// Expire expire the channle and clean data.
 	Close() error
 }
 
+// Channel bucket.
 type ChannelBucket struct {
 	Data  map[string]Channel
 	mutex *sync.Mutex
 }
 
+// Channel list.
 type ChannelList struct {
 	Channels []*ChannelBucket
 }
 
-var (
-	UserChannel *ChannelList
-)
-
-// Lock lock the bucket mutex
+// Lock lock the bucket mutex.
 func (c *ChannelBucket) Lock() {
 	c.mutex.Lock()
 }
 
-// Unlock unlock the bucket mutex
+// Unlock unlock the bucket mutex.
 func (c *ChannelBucket) Unlock() {
 	c.mutex.Unlock()
 }
 
-// NewChannelList create a new channel bucket set
+// NewChannelList create a new channel bucket set.
 func NewChannelList() *ChannelList {
 	l := &ChannelList{Channels: []*ChannelBucket{}}
 	// split hashmap to many bucket
@@ -89,7 +87,7 @@ func NewChannelList() *ChannelList {
 	return l
 }
 
-// Count get the bucket total channel count
+// Count get the bucket total channel count.
 func (l *ChannelList) Count() int {
 	c := 0
 	for i := 0; i < Conf.ChannelBucket; i++ {
@@ -99,7 +97,7 @@ func (l *ChannelList) Count() int {
 	return c
 }
 
-// bucket return a channelBucket use murmurhash3
+// bucket return a channelBucket use murmurhash3.
 func (l *ChannelList) bucket(key string) *ChannelBucket {
 	h := hash.NewMurmur3C()
 	h.Write([]byte(key))
@@ -108,7 +106,7 @@ func (l *ChannelList) bucket(key string) *ChannelBucket {
 	return l.Channels[idx]
 }
 
-// New create a user channle
+// New create a user channle.
 func (l *ChannelList) New(key string) (Channel, error) {
 	// get a channel bucket
 	b := l.bucket(key)
@@ -138,7 +136,7 @@ func (l *ChannelList) New(key string) (Channel, error) {
 	}
 }
 
-// Get a user channel from ChannleList
+// Get a user channel from ChannleList.
 func (l *ChannelList) Get(key string) (Channel, error) {
 	// get a channel bucket
 	b := l.bucket(key)
@@ -186,7 +184,7 @@ func (l *ChannelList) Get(key string) (Channel, error) {
 	}
 }
 
-// Delete a user channel from ChannleList
+// Delete a user channel from ChannleList.
 func (l *ChannelList) Delete(key string) (Channel, error) {
 	// get a channel bucket
 	b := l.bucket(key)

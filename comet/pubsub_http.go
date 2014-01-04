@@ -68,7 +68,7 @@ func StartHttp() error {
 	return nil
 }
 
-// Subscriber Handle is the websocket handle for sub request
+// Subscriber Handle is the websocket handle for sub request.
 func SubscribeHandle(ws *websocket.Conn) {
 	params := ws.Request().URL.Query()
 	// get subscriber key
@@ -143,10 +143,10 @@ func SubscribeHandle(ws *websocket.Conn) {
 	// blocking wait client heartbeat
 	reply := ""
 	begin := time.Now().UnixNano()
-	end := begin + oneSecond
+	end := begin + Second
 	for {
 		// more then 1 sec, reset the timer
-		if end-begin >= oneSecond {
+		if end-begin >= Second {
 			if err = ws.SetReadDeadline(time.Now().Add(time.Second * time.Duration(heartbeat))); err != nil {
 				Log.Error("user_key:\"%s\" websocket.SetReadDeadline() failed (%s)", key, err.Error())
 				break

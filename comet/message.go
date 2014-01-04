@@ -8,11 +8,10 @@ import (
 )
 
 var (
-	// Message expired
 	MsgExpiredErr = errors.New("Message already expired")
 )
 
-// The Message struct
+// The Message struct.
 type Message struct {
 	// Message
 	Msg string `json:"msg"`
@@ -22,12 +21,12 @@ type Message struct {
 	MsgID int64 `json:"mid"`
 }
 
-// Expired check mesage expired or not
+// Expired check mesage expired or not.
 func (m *Message) Expired() bool {
 	return time.Now().UnixNano() > m.Expire
 }
 
-// NewJsonStrMessage unmarshal the Message
+// NewJsonStrMessage unmarshal the Message.
 func NewJsonStrMessage(str string) (*Message, error) {
 	m := &Message{}
 	err := json.Unmarshal([]byte(str), m)
@@ -39,7 +38,7 @@ func NewJsonStrMessage(str string) (*Message, error) {
 	return m, nil
 }
 
-// Bytes get a message bytes
+// Bytes get a message bytes.
 func (m *Message) Bytes() ([]byte, error) {
 	res := map[string]interface{}{
 		"msg": m.Msg,

@@ -22,7 +22,7 @@ type InnerChannel struct {
 	token *Token
 }
 
-// New a inner message stored channel
+// New a inner message stored channel.
 func NewInnerChannel() *InnerChannel {
 	return &InnerChannel{
 		mutex:      &sync.Mutex{},

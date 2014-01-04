@@ -25,7 +25,7 @@ type OuterChannel struct {
 	snowflake *Snowflake
 }
 
-// New a user outer stored message channel
+// New a user outer stored message channel.
 func NewOuterChannel() *OuterChannel {
 	return &OuterChannel{
 		mutex:     &sync.Mutex{},

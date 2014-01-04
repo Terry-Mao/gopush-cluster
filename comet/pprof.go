@@ -5,7 +5,7 @@ import (
 	"net/http/pprof"
 )
 
-// StartPprofHttp start http pprof
+// StartPprofHttp start http pprof.
 func StartPprofHttp() error {
 	pprofServeMux := http.NewServeMux()
 	pprofServeMux.HandleFunc("/debug/pprof/", pprof.Index)

@@ -2,14 +2,12 @@ package main
 
 import (
 	"errors"
-	"time"
 )
 
 const (
 	WebsocketProtocol = 0
 	TCPProtocol       = 1
 	Heartbeat         = "h"
-	oneSecond         = int64(time.Second)
 )
 
 var (
