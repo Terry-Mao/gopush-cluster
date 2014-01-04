@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+var (
+	// websocket heartbeat
+	websocketHeartbeatReply = []byte(Heartbeat)
+)
+
 type KeepAliveListener struct {
 	net.Listener
 }
@@ -118,7 +123,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	}
 
 	// send first heartbeat to tell client service is ready for accept heartbeat
-	if _, err = ws.Write(WebsocketHeartbeatReply); err != nil {
+	if _, err = ws.Write(websocketHeartbeatReply); err != nil {
 		Log.Error("user_key:\"%s\" write first heartbeat to client failed (%s)", key, err.Error())
 		return
 	}
@@ -156,7 +161,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 		}
 
 		if reply == Heartbeat {
-			if _, err = ws.Write(WebsocketHeartbeatReply); err != nil {
+			if _, err = ws.Write(websocketHeartbeatReply); err != nil {
 				Log.Error("user_key:\"%s\" write heartbeat to client failed (%s)", key, err.Error())
 				break
 			}

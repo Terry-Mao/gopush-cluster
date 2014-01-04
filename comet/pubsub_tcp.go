@@ -15,6 +15,11 @@ const (
 
 var (
 	CmdFmtErr = errors.New("cmd format error")
+	// tcp hearbeat
+	tcpHeartbeatReply = []byte("+h\r\n")
+	tcpAuthReply      = []byte("-a\r\n")
+	tcpChannelReply   = []byte("-c\r\n")
+	tcpParamReply     = []byte("-p\r\n")
 )
 
 // TCPReadBuf store buffer in chan
@@ -165,6 +170,7 @@ func handleTCPConn(conn net.Conn, round int, rb *TCPReadBuf) {
 func SubscribeTCPHandle(conn net.Conn, args []string) {
 	argLen := len(args)
 	if argLen < 2 {
+		conn.Write(tcpParamReply)
 		Log.Error("subscriber missing argument")
 		return
 	}
@@ -172,6 +178,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	// key, mid, heartbeat
 	key := args[0]
 	if key == "" {
+		conn.Write(tcpParamReply)
 		Log.Warn("client:%s key param error", conn.RemoteAddr)
 		return
 	}
@@ -179,6 +186,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	midStr := args[1]
 	mid, err := strconv.ParseInt(midStr, 10, 64)
 	if err != nil {
+		conn.Write(tcpParamReply)
 		Log.Error("user_key:\"%s\" parse mid:\"%s\" error (%s)", key, midStr, err.Error())
 		return
 	}
@@ -189,6 +197,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		heartbeatStr = args[2]
 		i, err := strconv.Atoi(heartbeatStr)
 		if err != nil {
+			conn.Write(tcpParamReply)
 			Log.Error("user_key:\"%s\" heartbeat:\"%s\" argument error (%s)", key, heartbeatStr, err.Error())
 			return
 		}
@@ -198,6 +207,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 
 	heartbeat *= 2
 	if heartbeat <= 0 {
+		conn.Write(tcpParamReply)
 		Log.Warn("user_key:\"%s\" heartbeat argument error, less than 0", key)
 		return
 	}
@@ -212,6 +222,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	c, err := UserChannel.Get(key)
 	if err != nil {
 		Log.Warn("user_key:\"%s\" can't get a channel (%s)", key, err.Error())
+		conn.Write(tcpChannelReply)
 		return
 	}
 
@@ -219,12 +230,13 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	if Conf.Auth == 1 {
 		if err = c.AuthToken(token, key); err != nil {
 			Log.Error("user_key:\"%s\" auth token failed (%s)", key, err.Error())
+			conn.Write(tcpAuthReply)
 			return
 		}
 	}
 
 	// send first heartbeat to tell client service is ready for accept heartbeat
-	if _, err := conn.Write(TCPHeartbeatReply); err != nil {
+	if _, err := conn.Write(tcpHeartbeatReply); err != nil {
 		Log.Error("user_key:\"%s\" write first heartbeat to client failed (%s)", key, err.Error())
 		return
 	}
@@ -268,7 +280,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		}
 
 		if string(reply) == Heartbeat {
-			if _, err = conn.Write(TCPHeartbeatReply); err != nil {
+			if _, err = conn.Write(tcpHeartbeatReply); err != nil {
 				Log.Error("user_key:\"%s\" conn.Write() failed, write heartbeat to client (%s)", key, err.Error())
 				break
 			}

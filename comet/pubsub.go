@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -21,8 +20,4 @@ var (
 
 	// Heartbeat
 	HeartbeatLen = len(Heartbeat)
-	// websocket heartbeat
-	WebsocketHeartbeatReply = []byte(Heartbeat)
-	// tcp hearbeat
-	TCPHeartbeatReply = []byte(fmt.Sprintf("$1\r\n%s\r\n", Heartbeat))
 )
