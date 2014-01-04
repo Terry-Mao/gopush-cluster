@@ -27,6 +27,7 @@ type ChannelStat struct {
 	Access uint64 // total access count
 	Create uint64 // total create count
 	Expire uint64 // total expire count
+	Delete uint64 // total delete count
 }
 
 func (s *ChannelStat) IncrAccess() {
@@ -41,12 +42,17 @@ func (s *ChannelStat) IncrExpire() {
 	atomic.AddUint64(&s.Expire, 1)
 }
 
+func (s *ChannelStat) IncrDelete() {
+	atomic.AddUint64(&s.Delete, 1)
+}
+
 // Stat get the channle stat info
 func (s *ChannelStat) Stat() []byte {
 	res := map[string]interface{}{}
 	res["access"] = s.Access
 	res["create"] = s.Create
 	res["expire"] = s.Expire
+	res["delete"] = s.Delete
 	res["current"] = UserChannel.Count()
 
 	return jsonRes(res)

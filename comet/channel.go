@@ -185,3 +185,22 @@ func (l *ChannelList) Get(key string) (Channel, error) {
 		return c, nil
 	}
 }
+
+// Delete a user channel from ChannleList
+func (l *ChannelList) Delete(key string) (Channel, error) {
+	// get a channel bucket
+	b := l.bucket(key)
+	b.Lock()
+
+	if c, ok := b.Data[key]; !ok {
+		Log.Warn("user_key:\"%s\" channle not exists", key)
+		b.Unlock()
+		return nil, ChannelNotExistErr
+	} else {
+		Log.Info("user_key:\"%s\" delete channel", key)
+		delete(b.Data, key)
+		ChStat.IncrDelete()
+		b.Unlock()
+		return c, nil
+	}
+}

@@ -140,9 +140,9 @@ func (c *ChannelRPC) Close(key *string, ret *int) error {
 
 	// close the channle for the user
 	Log.Info("user_key:\"%s\" close channel", *key)
-	ch, err := UserChannel.Get(*key)
+	ch, err := UserChannel.Delete(*key)
 	if err != nil {
-		Log.Error("user_key:\"%s\" can't get channle", *key)
+		Log.Error("user_key:\"%s\" can't get channle (%s)", *key, err.Error())
 		*ret = retGetChannelErr
 
 		return nil
@@ -216,6 +216,7 @@ func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
 	// init ketama
 	ketama := hash.NewKetama2(args.Nodes, args.Vnode)
 	channels := []Channel{}
+	keys := []string{}
 	// get all the channel lock
 	for i, c := range UserChannel.Channels {
 		Log.Info("migrate channel bucket:%d", i)
@@ -224,8 +225,14 @@ func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
 			hn := ketama.Node(k)
 			if hn != Conf.Node {
 				channels = append(channels, v)
+				keys = append(keys, k)
 				Log.Debug("migrate key:\"%s\" hit node:\"%s\"", k, hn)
 			}
+		}
+
+		for _, k := range keys {
+			Log.Info("migrate delete channel key \"%s\"", k)
+			delete(c.Data, k)
 		}
 
 		c.Unlock()

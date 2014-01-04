@@ -149,7 +149,8 @@ func (c *OuterChannel) Timeout() bool {
 
 // Close implements the Channel Close method.
 func (c *OuterChannel) Close() error {
-	c.mutex.Lock()
+	mutex := c.mutex
+	mutex.Lock()
 
 	for conn, _ := range c.conn {
 		if err := conn.Close(); err != nil {
@@ -158,6 +159,11 @@ func (c *OuterChannel) Close() error {
 		}
 	}
 
-	c.mutex.Unlock()
+	c.conn = nil
+	c.token = nil
+	c.snowflake = nil
+	c.mutex = nil
+	c = nil
+	mutex.Unlock()
 	return nil
 }
