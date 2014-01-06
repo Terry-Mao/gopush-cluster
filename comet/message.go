@@ -53,9 +53,14 @@ func (m *Message) Bytes() ([]byte, error) {
 
 	// tcp use Redis Response Protocol: http://redis.io/topics/protocol
 	if Conf.Protocol == TCPProtocol {
-		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(byteJson), string(byteJson))), nil
+		return MessageReply(byteJson), nil
 	} else {
 		// websocket
 		return byteJson, nil
 	}
+}
+
+// redis protocol reply
+func MessageReply(msg []byte) []byte {
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(msg), string(msg)))
 }

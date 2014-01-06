@@ -33,7 +33,7 @@ const (
 
 var (
 	// rpc
-	RPCCli *rpc.Client
+	MsgRPC *rpc.Client
 )
 
 // StartRPC start accept rpc call
@@ -41,14 +41,14 @@ func StartRPC() error {
 	var err error
 
 	if Conf.ChannelType == OuterChannelType {
-		RPCCli, err = rpc.Dial("tcp", Conf.RPCAddr)
+		MsgRPC, err = rpc.Dial("tcp", Conf.RPCAddr)
 		if err != nil {
 			Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
 			return err
 		}
 
 		defer func() {
-			if err := RPCCli.Close(); err != nil {
+			if err := MsgRPC.Close(); err != nil {
 				Log.Error("rpc.Close() failed (%s)", err.Error())
 			}
 		}()
@@ -57,7 +57,7 @@ func StartRPC() error {
 		go func() {
 			for {
 				reply := 0
-				if err := RPCCli.Call("MessageRPC.Ping", 0, &reply); err != nil {
+				if err := MsgRPC.Call("MessageRPC.Ping", 0, &reply); err != nil {
 					Log.Error("rpc.Call(\"MessageRPC.Ping\") failed (%s)", err.Error())
 					rpcTmp, err := rpc.Dial("tcp", Conf.RPCAddr)
 					if err != nil {
@@ -67,7 +67,7 @@ func StartRPC() error {
 						continue
 					} else {
 						Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCAddr)
-						RPCCli = rpcTmp
+						MsgRPC = rpcTmp
 					}
 				}
 

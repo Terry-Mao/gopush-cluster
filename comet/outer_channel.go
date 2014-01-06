@@ -10,6 +10,7 @@ import (
 
 var (
 	MessageSaveErr = errors.New("Message set failed")
+	MessageGetErr  = errors.New("Message get failed")
 )
 
 type OuterChannel struct {
@@ -21,18 +22,18 @@ type OuterChannel struct {
 	expire int64
 	// token
 	token *Token
-	// snowflake id
-	snowflake *Snowflake
+	// time id
+	timeID *TimeID
 }
 
 // New a user outer stored message channel.
 func NewOuterChannel() *OuterChannel {
 	return &OuterChannel{
-		mutex:     &sync.Mutex{},
-		conn:      map[net.Conn]int64{},
-		expire:    time.Now().UnixNano() + Conf.ChannelExpireSec*Second,
-		snowflake: NewSnowflake(),
-		token:     NewToken(),
+		mutex:  &sync.Mutex{},
+		conn:   map[net.Conn]int64{},
+		expire: time.Now().UnixNano() + Conf.ChannelExpireSec*Second,
+		timeID: NewTimeID(),
+		token:  NewToken(),
 	}
 }
 
@@ -64,6 +65,41 @@ func (c *OuterChannel) AuthToken(token string, key string) error {
 
 // SendOfflineMsg implements the Channel SendOfflineMsg method.
 func (c *OuterChannel) SendOfflineMsg(conn net.Conn, mid int64, key string) error {
+	var reply myrpc.MessageGetResp
+	args := &myrpc.MessageGetArgs{MsgID: mid, Key: key}
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	// check exceed the maxsubscribers
+	if len(c.conn)+1 > Conf.MaxSubscriberPerKey {
+		Log.Warn("user_key:\"%s\" exceed the max subscribers", key)
+		return MaxConnErr
+	}
+
+	if err := MsgRPC.Call("MessageRPC.Get", args, &reply); err != nil {
+		Log.Error("RPC.Call(\"MessageRPC.Get\") error MsgID:%d, Key:%s (%s)", mid, key, err.Error())
+		return err
+	}
+
+	if reply.Ret != retOK {
+		Log.Error("RPC.Call(\"MessageRPC.Get\") error MsgID:%d, Key:%s (ret:%d)", mid, key, reply.Ret)
+		return MessageGetErr
+	}
+
+	for _, msg := range reply.Msgs {
+		if _, err := conn.Write(MessageReply([]byte(msg))); err != nil {
+			Log.Error("user_key:\"%s\" conn.Write() failed (%s)", key, err.Error())
+			return err
+		}
+
+		Log.Debug("user_key:\"%s\" write offline message : %s", key, msg)
+		// notice: ignore message repair id
+		// mid = msg.MsgID
+	}
+
+	Log.Debug("user_key:\"%s\" add conn", key)
+	c.conn[conn] = mid
+	ConnStat.IncrAdd()
 	// no need
 	return nil
 }
@@ -73,11 +109,11 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	// rewrite message id
-	m.MsgID = c.snowflake.ID()
-	Log.Debug("user_key:\"%s\" snowflakeID:%d", key, m.MsgID)
+	m.MsgID = c.timeID.ID()
+	Log.Debug("user_key:\"%s\" timeID:%d", key, m.MsgID)
 	args := &myrpc.MessageSaveArgs{MsgID: m.MsgID, Msg: m.Msg, Expire: m.Expire, Key: key}
 	reply := retOK
-	if err := RPCCli.Call("MessageRPC.Save", args, &reply); err != nil {
+	if err := MsgRPC.Call("MessageRPC.Save", args, &reply); err != nil {
 		Log.Error("MessageRPC.Save failed (%s)", err.Error())
 		return err
 	}
@@ -118,12 +154,12 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 
 // AddConn implements the Channel AddConn method.
 func (c *OuterChannel) AddConn(conn net.Conn, mid int64, key string) error {
-	c.mutex.Lock()
+	//c.mutex.Lock()
 	// save the last push message id
-	c.conn[conn] = mid
-	c.mutex.Unlock()
-	Log.Debug("user_key:\"%s\" add conn", key)
-	ConnStat.IncrAdd()
+	//c.conn[conn] = mid
+	//c.mutex.Unlock()
+	//Log.Debug("user_key:\"%s\" add conn", key)
+	//ConnStat.IncrAdd()
 	return nil
 }
 
@@ -161,7 +197,7 @@ func (c *OuterChannel) Close() error {
 
 	c.conn = nil
 	c.token = nil
-	c.snowflake = nil
+	c.timeID = nil
 	c.mutex = nil
 	c = nil
 	mutex.Unlock()

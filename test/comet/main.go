@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	"bufio"
 	"fmt"
 	"net"
 	"strconv"
@@ -11,7 +11,7 @@ import (
 func main() {
 	cmd := "sub"
 	key := "Terry-Mao"
-	mid := 0
+	mid := 13890241394662581
 	heartbeat := 10
 
 	addr, err := net.ResolveTCPAddr("tcp", "10.33.18.33:8080")
@@ -32,32 +32,9 @@ func main() {
 		panic(err)
 	}
 
-	buf := make([]byte, 1024)
 	// get first heartbeat
-	n, err := conn.Read(buf)
-	if err != nil {
-		panic(err)
-	}
-
-	bufStr := string(buf[0:n])
-	if bufStr == "+h\r\n" {
-		fmt.Println("get first heartbeat, start goroutine to sending heartbeat period")
-	} else {
-		panic("unknown heartbeat protocol")
-	}
-
-	// send heartbeat
-	go func() {
-		fmt.Println("send heartbeat")
-		for {
-			if _, err := conn.Write([]byte("h")); err != nil {
-				panic(err)
-			}
-
-			time.Sleep(time.Duration(heartbeat) * time.Second)
-		}
-	}()
-
+	first := false
+	rd := bufio.NewReader(conn)
 	// block read reply from service
 	fmt.Println("wait message")
 	for {
@@ -65,13 +42,7 @@ func main() {
 			panic(err)
 		}
 
-		n, err := conn.Read(buf)
-		if err != nil {
-			panic(err)
-		}
-
-		tbuf := bytes.NewBuffer(buf)
-		line, err := tbuf.ReadBytes('\n')
+		line, err := rd.ReadBytes('\n')
 		if err != nil {
 			fmt.Printf("(%s) %v", string(line), line)
 			panic(err)
@@ -89,13 +60,12 @@ func main() {
 				panic(err)
 			}
 
-			data := make([]byte, cmdSize+2)
-			n, err = tbuf.Read(data)
+			data, err := rd.ReadBytes('\n')
 			if err != nil {
 				panic(err)
 			}
 
-			if n != cmdSize+2 {
+			if len(data) != cmdSize+2 {
 				panic("protocol size error")
 			}
 
@@ -106,8 +76,23 @@ func main() {
 			reply := string(data[0:cmdSize])
 			fmt.Println(reply)
 			break
-		// heartbeat
+			// heartbeat
 		case '+':
+			if !first {
+				// send heartbeat
+				go func() {
+					fmt.Println("send heartbeat")
+					for {
+						if _, err := conn.Write([]byte("h")); err != nil {
+							panic(err)
+						}
+
+						time.Sleep(time.Duration(heartbeat) * time.Second)
+					}
+				}()
+
+				first = true
+			}
 			fmt.Println("heartbeat")
 			break
 		}
