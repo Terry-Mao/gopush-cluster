@@ -1,5 +1,5 @@
 <h3>Terry-Mao/gopush-cluster Message RPC协议文档</h3>
-Web内部RPC接口文档，用于Message离线消息内部存储等。
+Message内部RPC接口文档，用于Message离线消息内部存储等。
 
 <h3>接口汇总</h3>
 (head). | 接口名 | 描述 | 访问方式 |

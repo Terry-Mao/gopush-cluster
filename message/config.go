@@ -30,7 +30,6 @@ type Config struct {
 	Addr     string                  `json:"addr"`
 	LogPath  string                  `json:"log_path"`
 	LogLevel int                     `json:"log_level"`
-	Bucket   uint                    `json:"bucket"`
 	Redis    map[string]*RedisConfig `json:"redis"`
 }
 
@@ -46,7 +45,6 @@ func NewConfig(file string) (*Config, error) {
 		Addr:     "127.0.0.1:8082",
 		LogPath:  "./message.log",
 		LogLevel: 0,
-		Bucket:   16,
 	}
 
 	// Parse config file
