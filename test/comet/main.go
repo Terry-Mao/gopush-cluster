@@ -14,7 +14,7 @@ func main() {
 	mid := 0
 	heartbeat := 10
 
-	addr, err := net.ResolveTCPAddr("tcp", "10.33.14.42:8080")
+	addr, err := net.ResolveTCPAddr("tcp", "10.33.18.33:8080")
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +40,7 @@ func main() {
 	}
 
 	bufStr := string(buf[0:n])
-	if bufStr == "$1\r\nh\r\n" {
+	if bufStr == "+h\r\n" {
 		fmt.Println("get first heartbeat, start goroutine to sending heartbeat period")
 	} else {
 		panic("unknown heartbeat protocol")
@@ -70,42 +70,46 @@ func main() {
 			panic(err)
 		}
 
-        fmt.Printf("%d (%v)", n, buf)
 		tbuf := bytes.NewBuffer(buf)
 		line, err := tbuf.ReadBytes('\n')
 		if err != nil {
-            fmt.Printf("(%s) %v", string(line), line)
+			fmt.Printf("(%s) %v", string(line), line)
 			panic(err)
 		}
 
-		if len(line) < 3 || line[0] != '$' || line[len(line)-2] != '\r' {
+		if line[len(line)-2] != '\r' {
 			panic("protocol format1 error")
 		}
 
-		cmdSize, err := strconv.Atoi(string(line[1 : len(line)-2]))
-		if err != nil {
-			panic(err)
-		}
+		switch line[0] {
+		// reply
+		case '$':
+			cmdSize, err := strconv.Atoi(string(line[1 : len(line)-2]))
+			if err != nil {
+				panic(err)
+			}
 
-		data := make([]byte, cmdSize+2)
-		n, err = tbuf.Read(data)
-		if err != nil {
-			panic(err)
-		}
+			data := make([]byte, cmdSize+2)
+			n, err = tbuf.Read(data)
+			if err != nil {
+				panic(err)
+			}
 
-		if n != cmdSize+2 {
-			panic("protocol size error")
-		}
+			if n != cmdSize+2 {
+				panic("protocol size error")
+			}
 
-		if data[cmdSize] != '\r' || data[cmdSize+1] != '\n' {
-			panic("protocol format2 error")
-		}
+			if data[cmdSize] != '\r' || data[cmdSize+1] != '\n' {
+				panic("protocol format2 error")
+			}
 
-		reply := string(data[0:cmdSize])
-		if reply != "h" {
+			reply := string(data[0:cmdSize])
 			fmt.Println(reply)
-		} else if reply == "h" {
+			break
+		// heartbeat
+		case '+':
 			fmt.Println("heartbeat")
+			break
 		}
 	}
 }
