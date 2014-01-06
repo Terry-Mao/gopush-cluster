@@ -72,6 +72,7 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 
 // Get offline message interface
 func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) error {
+	Log.Debug("request data %v", *m)
 	// Get all of offline messages which larger than MsgID
 	msgs, err := GetMessages(m.Key, m.MsgID)
 	if err != nil {
@@ -113,6 +114,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 		return nil
 	}
 
+	Log.Debug("response data %v", *rw)
 	rw.Ret = OK
 	rw.Msgs = data
 	return nil

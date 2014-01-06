@@ -19,6 +19,7 @@ func AdminPush(rw http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		http.Error(rw, "Method Not Allowed", 405)
+		return
 	}
 
 	// Final response operation
@@ -86,6 +87,7 @@ func AdminNodeAdd(rw http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		http.Error(rw, "Method Not Allowed", 405)
+		return
 	}
 
 	// Final response operation
@@ -138,6 +140,7 @@ func AdminNodeDel(rw http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		http.Error(rw, "Method Not Allowed", 405)
+		return
 	}
 
 	// Final response operation

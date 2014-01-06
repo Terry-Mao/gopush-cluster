@@ -22,6 +22,7 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
 		http.Error(rw, "Method Not Allowed", 405)
+		return
 	}
 
 	// Final ResponseWriter operation
@@ -83,6 +84,7 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
 		http.Error(rw, "Method Not Allowed", 405)
+		return
 	}
 
 	// Get params
@@ -112,5 +114,6 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		result["data"] = reply.Msgs
 	}
 
+	ret = reply.Ret
 	return
 }
