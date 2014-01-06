@@ -51,10 +51,14 @@ func main() {
 		os.Exit(-1)
 	}
 
+	// External service handle
 	http.HandleFunc("/server/get", ServerGet)
-	http.HandleFunc("/server/push", ServerPush)
-
 	http.HandleFunc("/msg/get", MsgGet)
+
+	// Internal admin handle
+	http.HandleFunc("/admin/push", AdminPush)
+	http.HandleFunc("/admin/node/add", AdminNodeAdd)
+	http.HandleFunc("/admin/node/del", AdminNodeDel)
 
 	// Start service
 	if err := http.ListenAndServe(Conf.Addr, nil); err != nil {

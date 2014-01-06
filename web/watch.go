@@ -8,24 +8,27 @@ import (
 	"net/rpc"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
 var (
-	// zookeeper connection
+	// Zookeeper connection
 	zk *zookeeper.Conn
-	// ketama algorithm
+	// Ketama algorithm for comet
 	CometHash *hash.Ketama
 	// Store the first alive server of every node
-	// If there is no alive server under node, the value will be "", but key is exist in map
+	// If there is no alive server under the node, the value will be nil, but key is exist in map
 	NodeInfoMap = make(map[string]*NodeInfo)
+	// Lock for NodeInfoMap
+	NodeInfoMapLock sync.RWMutex
 )
 
 var ErrNoNode = errors.New("zookeeper children is nil")
 
 type NodeInfo struct {
 	// The addr for subscribe
-	Data string
+	SubAddr string
 	// The connection for publish RPC
 	PubRPC *rpc.Client
 }
@@ -68,9 +71,59 @@ func BeginWatchNode() error {
 	return nil
 }
 
-// GetFirstServer get the first server under the node
-func GetFirstServer(node string) *NodeInfo {
+// GetNode get the node infomation under the node
+func GetNode(node string) *NodeInfo {
+	NodeInfoMapLock.RLock()
+	defer NodeInfoMapLock.RUnlock()
+
 	return NodeInfoMap[node]
+}
+
+// AddNode add a node and watch it
+func AddNode(node string) error {
+	NodeInfoMapLock.RLock()
+	defer NodeInfoMapLock.RUnlock()
+	_, ok := NodeInfoMap[node]
+	if ok {
+		return nil
+	}
+
+	go watchFirstServer(node)
+
+	var nodes []string
+	for n, _ := range NodeInfoMap {
+		nodes = append(nodes, n)
+	}
+
+	nodes = append(nodes, node)
+	CometHash = hash.NewKetama2(nodes, 255)
+
+	return nil
+}
+
+// DelNode disconnect and delete a node
+func DelNode(node string) error {
+	var nodes []string
+	NodeInfoMapLock.Lock()
+	defer NodeInfoMapLock.Unlock()
+	for n, client := range NodeInfoMap {
+		if n == node {
+			if client != nil && client.PubRPC != nil {
+				client.PubRPC.Close()
+				client.PubRPC = nil
+			}
+
+			continue
+		}
+
+		nodes = append(nodes, n)
+	}
+
+	CometHash = hash.NewKetama2(nodes, 255)
+
+	delete(NodeInfoMap, node)
+
+	return nil
 }
 
 // getNodes get all of nodes under the path
@@ -140,15 +193,17 @@ func watchFirstServer(node string) {
 				continue
 			}
 
+			NodeInfoMapLock.RLock()
 			info, ok := NodeInfoMap[node]
 			if ok {
-				info.Data = datas[0]
+				info.SubAddr = datas[0]
 				if info.PubRPC != nil {
 					info.PubRPC.Close()
 				}
 			} else {
-				info = &NodeInfo{Data: datas[0]}
+				info = &NodeInfo{SubAddr: datas[0]}
 			}
+			NodeInfoMapLock.RUnlock()
 
 			// ReDial RPC
 			r, err := rpc.Dial(Conf.Push.Network, datas[1])
@@ -159,13 +214,23 @@ func watchFirstServer(node string) {
 			}
 
 			info.PubRPC = r
+			NodeInfoMapLock.Lock()
 			NodeInfoMap[node] = info
+			NodeInfoMapLock.Unlock()
 		} else {
+			NodeInfoMapLock.Lock()
 			NodeInfoMap[node] = nil
+			NodeInfoMapLock.Unlock()
 		}
 
-		Log.Info("begin to watch node:%s", node)
+		Log.Warn("begin to watch node:%s", node)
 		event := <-watch
-		Log.Info("end to watch node:%s event:%v", node, event)
+		if event.Type == zookeeper.EVENT_DELETED {
+			Log.Warn("stop to watch node:%s", node)
+			DelNode(node)
+			break
+		}
+
+		Log.Warn("end to watch node:%s event:%v, try to watch repeated", node, event)
 	}
 }

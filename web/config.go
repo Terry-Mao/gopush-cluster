@@ -41,7 +41,6 @@ type Config struct {
 	Addr      string           `json:"addr"`
 	LogPath   string           `json:"log_path"`
 	LogLevel  int              `json:"log_level"`
-	Bucket    uint             `json:"bucket"`
 	Zookeeper *ZookeeperConfig `json:"zookeeper"`
 	Push      *PushConfig      `json:"push"`
 	MsgSvr    *MessageServer   `json:"msg_svr"`
@@ -59,7 +58,6 @@ func NewConfig(file string) (*Config, error) {
 		Addr:     "127.0.0.1:8080",
 		LogPath:  "./web.log",
 		LogLevel: 0,
-		Bucket:   16,
 	}
 
 	// Parse config file
