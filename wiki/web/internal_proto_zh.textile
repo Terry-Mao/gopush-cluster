@@ -3,7 +3,7 @@ Web外部接口文档，用于获取Subcribe节点等
 
 <h3>接口汇总</h3>
 (head). | 接口名 | URL | 访问方式 |
-| "获取订阅节点":获取订阅节点 | /server/get | GET |
+| "获取订阅节点”:ServerGet | /server/get | GET |
 
 <h3>公共返回码</h3>
 
@@ -27,4 +27,4 @@ Web外部接口文档，用于获取Subcribe节点等
 </pre>
 
 
-[获取订阅节点]#获取订阅节点
+[ServerGet]#serverget

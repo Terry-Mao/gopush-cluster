@@ -3,7 +3,7 @@ Web内部接口文档，用于推送消息等
 
 <h3>接口汇总</h3>
 (head). | 接口名 | URL | 访问方式 |
-| "推送消息":推送消息| /admin/push | POST |
+| "推送消息”:AdminPush| /admin/push | POST |
 
 <h3>公共返回码</h3>
 
@@ -30,4 +30,4 @@ Web内部接口文档，用于推送消息等
 </pre>
 
 
-[推送消息]#推送消息
+[AdminPush]#adminpush
