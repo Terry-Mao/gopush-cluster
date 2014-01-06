@@ -4,6 +4,7 @@ Web外部接口文档，用于获取Subcribe节点,获取离线消息等
 <h3>接口汇总</h3>
 (head). | 接口名 | URL | 访问方式 |
 | "获取订阅节点":ServerGet | /server/get | GET |
+| "获取离线消息":MsgGet    | /msg/get    | GET |
 
 <h3>公共返回码</h3>
 
@@ -40,7 +41,7 @@ Web外部接口文档，用于获取Subcribe节点,获取离线消息等
 {
     "ret": 0,
     "msg": "ok"
-    "data":{
+    "data": {
 	    "server": "127.0.0.1:8080"  //IP:Port
     }
 }
@@ -54,16 +55,15 @@ Web外部接口文档，用于获取Subcribe节点,获取离线消息等
 | mid | int64  | 最新接收的消息ID |
 
  * 返回参数说明
-
-(head). | 参数 | 类型 | 描述 |
-| server | string | 返回的可用于订阅的地址 |
+data数据块中为各个消息体组成的数组
 
  * 返回结果
+
 <pre>
 {
     "ret": 0,
     "msg": "ok",
-    "B": [
+    "data": [
         "\"msg\":\"test1\",\"expire\":60,\"mid\":1389013827663910518",
         "\"msg\":\"test2\",\"expire\":60,\"mid\":1389013827663910762",
         "\"msg\":\"test3\",\"expire\":60,\"mid\":1389013827663910998"
@@ -73,3 +73,4 @@ Web外部接口文档，用于获取Subcribe节点,获取离线消息等
 
 
 [ServerGet]#获取订阅节点
+[MsgGet]#获取离线消息
