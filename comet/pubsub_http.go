@@ -123,6 +123,10 @@ func SubscribeHandle(ws *websocket.Conn) {
 	// send first heartbeat to tell client service is ready for accept heartbeat
 	if _, err = ws.Write(websocketHeartbeatReply); err != nil {
 		Log.Error("user_key:\"%s\" write first heartbeat to client failed (%s)", key, err.Error())
+		if err := c.RemoveConn(ws, key); err != nil {
+			Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err.Error())
+		}
+
 		return
 	}
 

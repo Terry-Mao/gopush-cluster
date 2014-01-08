@@ -244,6 +244,10 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	// send first heartbeat to tell client service is ready for accept heartbeat
 	if _, err := conn.Write(tcpHeartbeatReply); err != nil {
 		Log.Error("user_key:\"%s\" write first heartbeat to client failed (%s)", key, err.Error())
+		if err := c.RemoveConn(conn, key); err != nil {
+			Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err.Error())
+		}
+
 		return
 	}
 
