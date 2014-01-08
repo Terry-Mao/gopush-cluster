@@ -16,12 +16,9 @@ comet使用标准json格式作为配置文件，例如：
   "max_procs": 4,
   "tcp_keepalive": 0,
   "heartbeat_sec": 30,
-  "message_expire_sec": 7200,
   "channel_expire_sec": 28800,
-  "max_stored_message": 20,
   "max_subscriber_per_key": 64,
   "channel_bucket": 16,
-  "channel_type": 2,
   "read_buf_instance": 4,
   "read_buf_num_per_inst": 128,
   "read_buf_byte": 512,
@@ -94,17 +91,9 @@ comet使用标准json格式作为配置文件，例如：
 默认客户端心跳超时，单位为秒，例如30。
 <pre>30</pre>
 
-<h4>message_expire_sec</h4>
-消息过期时间，单位为秒，例如60。（仅针对内部存储消息方案有效）
-<pre>60</pre>
-
 <h4>channel_expire_sec</h4>
 通道过期时间，表示Channel多久没连接就过期关闭，例如7200。
 <pre>7200</pre>
-
-<h4>max_stored_message</h4>
-单个用户最大存储离线消息数，例如30。（仅针对内部存储消息方案有效）
-<pre>30</pre>
 
 <h4>max_subscriber_per_key</h4>
 单个通道中最大订阅人数，例如64。
@@ -113,10 +102,6 @@ comet使用标准json格式作为配置文件，例如：
 <h4>channel_bucket</h4>
 通道分片桶，表示并发可操作的Channel个人，推荐CPU核心*4，例如：128。
 <pre>128</pre>
-
-<h4>channel_type</h4>
-通道类型，1表示内部存储、2表示外部存储消息，例如1或2。
-<pre>1或2</pre>
 
 <h4>read_buf_instance</h4>
 read buffer的实例个数，推荐CPU核心*4，例如128。
