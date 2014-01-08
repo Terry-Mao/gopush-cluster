@@ -19,6 +19,12 @@ var (
 	redisHash         *hash.Ketama
 )
 
+// Struct for delele message
+type DelMessageInfo struct {
+	Key  string
+	Msgs []string
+}
+
 // Initialize redis pool, Initialize consistent hash ring
 func InitRedis() {
 	// Redis pool
@@ -81,6 +87,42 @@ func GetMessages(key string, mid int64) ([]string, error) {
 	}
 
 	return reply, nil
+}
+
+// Delete Message
+func DelMessages(info *DelMessageInfo) error {
+	commands := []struct {
+		args []interface{}
+	}{}
+
+	for i := 0; i < len(info.Msgs); i++ {
+		commands = append(commands,
+			struct {
+				args []interface{}
+			}{
+				args: []interface{}{"ZREM", info.Key, info.Msgs[i]},
+			},
+		)
+	}
+
+	conn := getRedisConn(info.Key)
+	if conn == nil {
+		return RedisNoConnErr
+	}
+
+	defer conn.Close()
+
+	for _, cmd := range commands {
+		if err := conn.Send(cmd.args[0].(string), cmd.args[1:]...); err != nil {
+			return err
+		}
+	}
+
+	if err := conn.Flush(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // getRedisConn get the redis connection of matching with key
