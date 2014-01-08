@@ -27,12 +27,17 @@ type Message struct {
 
 // RPC For receive offline messages
 type MessageRPC struct {
+	DelChan chan *DelMessageInfo
 }
 
 // StartRPC start accept rpc call
 func StartRPC() error {
-	msg := &MessageRPC{}
+	msg := &MessageRPC{make(chan *DelMessageInfo, 10000)}
 	rpc.Register(msg)
+
+	// Start a routine for delete message
+	go msg.DelProc()
+
 	l, err := net.Listen("tcp", Conf.Addr)
 	if err != nil {
 		Log.Error("net.Listen(\"tcp\", \"%s\") failed (%v)", Conf.Addr, err)
@@ -78,7 +83,6 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	if err != nil {
 		Log.Error("get messages error (%v)", err)
 		rw.Ret = InternalErr
-		rw.Msgs = nil
 		return nil
 	}
 
@@ -89,8 +93,9 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	}
 
 	var (
-		data []string
-		msg  = &Message{}
+		data    []string
+		delMsgs []string
+		msg     = &Message{}
 	)
 
 	// Checkout expired offline messages
@@ -98,16 +103,18 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 		if err := json.Unmarshal([]byte(msgs[i]), &msg); err != nil {
 			Log.Error("internal message:%s error (%v)", msgs[i], err)
 			rw.Ret = InternalErr
-			rw.Msgs = nil
 			return nil
 		}
 
 		if time.Now().UnixNano() > msg.Expire {
+			delMsgs = append(delMsgs, msgs[i])
 			continue
 		}
 
 		data = append(data, msgs[i])
 	}
+
+	r.DelChan <- &DelMessageInfo{Key: m.Key, Msgs: delMsgs}
 
 	if len(data) == 0 {
 		rw.Ret = OK
@@ -124,4 +131,14 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 func (r *MessageRPC) Ping(p int, ret *int) error {
 	*ret = OK
 	return nil
+}
+
+// Asynchronous delete message
+func (r *MessageRPC) DelProc() {
+	for {
+		info := <-r.DelChan
+		if err := DelMessages(info); err != nil {
+			Log.Error("DelMessages(key:%s,Msgs:%v) failed (%v)", info.Key, info.Msgs, err)
+		}
+	}
 }
