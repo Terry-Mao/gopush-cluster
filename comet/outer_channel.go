@@ -28,12 +28,20 @@ type OuterChannel struct {
 
 // New a user outer stored message channel.
 func NewOuterChannel() *OuterChannel {
+	var t *Token
+
+	if Conf.Auth == 1 {
+		t = NewToken()
+	} else {
+		t = nil
+	}
+
 	return &OuterChannel{
 		mutex:  &sync.Mutex{},
 		conn:   map[net.Conn]bool{},
 		expire: time.Now().UnixNano() + Conf.ChannelExpireSec*Second,
 		timeID: NewTimeID(),
-		token:  NewToken(),
+		token:  t,
 	}
 }
 
