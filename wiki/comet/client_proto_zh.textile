@@ -26,10 +26,8 @@ $第N个参数的字符串占用字节数字 CR LF
 | token | string | 否 | 3 | 验证连接的token |
 
 例如：
-<pre>==*==4\r\n$3\r\nsub\r\n$9\r\nTerry-Mao\r\n$1\r\n0\r\n$2\r\n10\r\n</pre>
-表示一共有 *4* 个参数的指令，第一个参数表示指令是 *sub* ；第二个参数表示Key是 *Terry-Mao* ；第三个参数表示本地的消息ID是 *0* ；第四个参数表示心跳周期是 *10* 秒；其中指令前面的$num表示指令的字符字节长度，如$3表示sub的订阅指令长度为 *3* 。
-comet定义的数据为标准json：
-<pre>{msg:"your data", mid:100}</pre>
+<pre>==*==3\r\n$3\r\nsub\r\n$9\r\nTerry-Mao\r\n$1\r\n0\r\n$2\r\n10\r\n</pre>
+表示一共有 *3* 个参数的指令，第一个参数表示指令是 *sub* ；第二个参数表示Key是 *Terry-Mao* ；第三个参数表示心跳周期是 *10* 秒；其中指令前面的$num表示指令的字符字节长度，如$3表示sub的订阅指令长度为 *3* 。
 
 <h3>状态</h3>
 错误状态的协议首字符都是“-”，例如参数错误、未授权的Channel、Token验证失败等。
@@ -52,5 +50,8 @@ comet定义的数据为标准json：
 例如：
 <pre>$5\r\nTerry\r\n</pre>
 其中Terry就是接受到推送的消息内容。
+在comet返回的数据定义为标准json：
+<pre>{msg:"your data", mid:100}</pre>
+客户端需要最终拿到的是json字符串，然后解析获取其中的msg为推送数据，mid为消息ID（客户端保存这个ID，用于获取下次离线消息用）。
 
 [redis_ref]http://redis.io/topics/protocol
