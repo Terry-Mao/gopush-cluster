@@ -15,9 +15,8 @@ const (
 )
 
 var (
-	ChannelNotExistErr = errors.New("Channle not exist")
-	ChannelExpiredErr  = errors.New("Channel expired")
-	ChannelTypeErr     = errors.New("Channle type unknown")
+	ErrChannelNotExist = errors.New("Channle not exist")
+	ErrChannelExpired  = errors.New("Channel expired")
 )
 
 var (
@@ -143,7 +142,7 @@ func (l *ChannelList) Get(key string) (Channel, error) {
 		}
 
 		Log.Warn("user_key:\"%s\" channle not exists", key)
-		return nil, ChannelNotExistErr
+		return nil, ErrChannelNotExist
 	} else {
 		// check expired
 		if c.Timeout() {
@@ -155,7 +154,7 @@ func (l *ChannelList) Get(key string) (Channel, error) {
 			}
 
 			ChStat.IncrExpire()
-			return nil, ChannelExpiredErr
+			return nil, ErrChannelExpired
 		}
 
 		Log.Debug("user_key:\"%s\" refresh channel bucket expire time", key)
@@ -174,7 +173,7 @@ func (l *ChannelList) Delete(key string) (Channel, error) {
 	if c, ok := b.Data[key]; !ok {
 		Log.Warn("user_key:\"%s\" channle not exists", key)
 		b.Unlock()
-		return nil, ChannelNotExistErr
+		return nil, ErrChannelNotExist
 	} else {
 		Log.Info("user_key:\"%s\" delete channel", key)
 		delete(b.Data, key)

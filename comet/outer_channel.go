@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	MessageSaveErr = errors.New("Message set failed")
-	MessageGetErr  = errors.New("Message get failed")
+	ErrMessageSave = errors.New("Message set failed")
+	ErrMessageGet  = errors.New("Message get failed")
 )
 
 type OuterChannel struct {
@@ -87,7 +87,7 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 
 	if reply != retOK {
 		Log.Error("MessageRPC.Save failed (ret=%d)", reply)
-		return MessageSaveErr
+		return ErrMessageSave
 	}
 
 	// send message to each conn when message id > conn last message id
@@ -116,7 +116,7 @@ func (c *OuterChannel) AddConn(conn net.Conn, key string) error {
 	c.mutex.Lock()
 	if len(c.conn)+1 > Conf.MaxSubscriberPerKey {
 		Log.Error("user_key:\"%s\" exceed conn", key)
-		return MaxConnErr
+		return ErrMaxConn
 	}
 
 	c.conn[conn] = true

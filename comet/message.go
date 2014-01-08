@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	MsgExpiredErr = errors.New("Message already expired")
+	ErrMsgExpired = errors.New("Message already expired")
 )
 
 // The Message struct.

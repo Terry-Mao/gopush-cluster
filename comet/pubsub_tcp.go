@@ -15,7 +15,7 @@ const (
 
 var (
 	// cmd parse failed
-	CmdFmtErr = errors.New("cmd format error")
+	ErrProtocol = errors.New("cmd format error")
 	// tcp hearbeat
 	tcpHeartbeatReply = []byte("+h\r\n")
 	// auth failed reply
@@ -311,7 +311,7 @@ func parseCmd(rd *bufio.Reader) ([]string, error) {
 
 	if argNum < 1 {
 		Log.Error("tcp:cmd argument number length error")
-		return nil, CmdFmtErr
+		return nil, ErrProtocol
 	}
 
 	args := make([]string, 0, argNum)
@@ -349,14 +349,14 @@ func parseCmdSize(rd *bufio.Reader, prefix uint8) (int, error) {
 	csl := len(cs)
 	if csl <= 3 || cs[0] != prefix || cs[csl-2] != '\r' {
 		Log.Error("tcp:\"%v\"(%d) number format error, length error or prefix error or no \\r", cs, csl)
-		return 0, CmdFmtErr
+		return 0, ErrProtocol
 	}
 
 	// skip the \r\n
 	cmdSize, err := strconv.Atoi(string(cs[1 : csl-2]))
 	if err != nil {
 		Log.Error("tcp:\"%v\" number parse int failed (%s)", cs, err.Error())
-		return 0, CmdFmtErr
+		return 0, ErrProtocol
 	}
 
 	return cmdSize, nil
@@ -374,7 +374,7 @@ func parseCmdData(rd *bufio.Reader, cmdLen int) ([]byte, error) {
 	// check last \r\n
 	if dl != cmdLen+2 || d[dl-2] != '\r' {
 		Log.Error("tcp:\"%v\"(%d) number format error, length error or no \\r", d, dl)
-		return nil, CmdFmtErr
+		return nil, ErrProtocol
 	}
 
 	// skip last \r\n

@@ -8,11 +8,11 @@ import (
 
 var (
 	// Token exists
-	TokenExistErr = errors.New("token exist")
+	ErrTokenExist = errors.New("token exist")
 	// Token not exists
-	TokenNotExistErr = errors.New("token not exist")
+	ErrTokenNotExist = errors.New("token not exist")
 	// Token expired
-	TokenExpiredErr = errors.New("token expired")
+	ErrTokenExpired = errors.New("token expired")
 )
 
 // Token struct
@@ -43,7 +43,7 @@ func (t *Token) Add(ticket string, expire int64) error {
 		t.token[ticket] = e
 	} else {
 		Log.Error("add token %s:%d exist", ticket, expire)
-		return TokenExistErr
+		return ErrTokenExist
 	}
 
 	t.clean()
@@ -54,13 +54,13 @@ func (t *Token) Add(ticket string, expire int64) error {
 func (t *Token) Auth(ticket string) error {
 	if e, ok := t.token[ticket]; !ok {
 		Log.Error("auth token %s not exist", ticket)
-		return TokenNotExistErr
+		return ErrTokenNotExist
 	} else {
 		td, _ := e.Value.(*TokenData)
 		if td.Expire < time.Now().UnixNano() {
 			Log.Error("token %s expired", ticket)
 			delete(t.token, td.Ticket)
-			return TokenExpiredErr
+			return ErrTokenExpired
 		}
 	}
 
@@ -72,7 +72,7 @@ func (t *Token) Auth(ticket string) error {
 func (t *Token) Expire(ticket string, expire int64) error {
 	if e, ok := t.token[ticket]; !ok {
 		Log.Error("expire token %s not exist", ticket)
-		return TokenNotExistErr
+		return ErrTokenNotExist
 	} else {
 		// refresh ttl
 		td, _ := e.Value.(*TokenData)

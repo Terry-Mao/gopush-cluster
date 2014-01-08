@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	NodeNameErr = errors.New("zookeeper node name must not contain \",\"")
+	ErrNodeName = errors.New("zookeeper node name must not contain \",\"")
 )
 
 type ZK struct {
