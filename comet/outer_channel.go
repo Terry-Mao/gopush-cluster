@@ -17,7 +17,7 @@ type OuterChannel struct {
 	// Mutex
 	mutex *sync.Mutex
 	// Client conn
-	conn map[net.Conn]int64
+	conn map[net.Conn]bool
 	// Channel expired unixnano
 	expire int64
 	// token
@@ -30,7 +30,7 @@ type OuterChannel struct {
 func NewOuterChannel() *OuterChannel {
 	return &OuterChannel{
 		mutex:  &sync.Mutex{},
-		conn:   map[net.Conn]int64{},
+		conn:   map[net.Conn]bool{},
 		expire: time.Now().UnixNano() + Conf.ChannelExpireSec*Second,
 		timeID: NewTimeID(),
 		token:  NewToken(),
@@ -63,47 +63,6 @@ func (c *OuterChannel) AuthToken(token string, key string) error {
 	return nil
 }
 
-// SendOfflineMsg implements the Channel SendOfflineMsg method.
-func (c *OuterChannel) SendOfflineMsg(conn net.Conn, mid int64, key string) error {
-	var reply myrpc.MessageGetResp
-	args := &myrpc.MessageGetArgs{MsgID: mid, Key: key}
-
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	// check exceed the maxsubscribers
-	if len(c.conn)+1 > Conf.MaxSubscriberPerKey {
-		Log.Warn("user_key:\"%s\" exceed the max subscribers", key)
-		return MaxConnErr
-	}
-
-	if err := MsgRPC.Call("MessageRPC.Get", args, &reply); err != nil {
-		Log.Error("RPC.Call(\"MessageRPC.Get\") error MsgID:%d, Key:%s (%s)", mid, key, err.Error())
-		return err
-	}
-
-	if reply.Ret != retOK {
-		Log.Error("RPC.Call(\"MessageRPC.Get\") error MsgID:%d, Key:%s (ret:%d)", mid, key, reply.Ret)
-		return MessageGetErr
-	}
-
-	for _, msg := range reply.Msgs {
-		if _, err := conn.Write(MessageReply([]byte(msg))); err != nil {
-			Log.Error("user_key:\"%s\" conn.Write() failed (%s)", key, err.Error())
-			return err
-		}
-
-		Log.Debug("user_key:\"%s\" write offline message : %s", key, msg)
-		// notice: ignore message repair id
-		// mid = msg.MsgID
-	}
-
-	Log.Debug("user_key:\"%s\" add conn", key)
-	c.conn[conn] = mid
-	ConnStat.IncrAdd()
-	// no need
-	return nil
-}
-
 // PushMsg implements the Channel PushMsg method.
 func (c *OuterChannel) PushMsg(m *Message, key string) error {
 	c.mutex.Lock()
@@ -130,13 +89,7 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 		return err
 	}
 	// push message
-	for conn, mid := range c.conn {
-		// ignore message cause it's id less than mid
-		if mid >= m.MsgID {
-			Log.Warn("user_key:\"%s\" ignore mid:%d, last mid:%d", key, m.MsgID, mid)
-			continue
-		}
-
+	for conn, _ := range c.conn {
 		if n, err := conn.Write(b); err != nil {
 			Log.Error("conn.Write() failed (%s)", err.Error())
 			continue
@@ -144,8 +97,6 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 			Log.Debug("PushMsg conn.Write %d bytes (%v)", n, b)
 		}
 
-		// if succeed, update the last message id, conn.Write may failed but err == nil(client shutdown or sth else), but the message won't loss till next connect to sub
-		c.conn[conn] = m.MsgID
 		Log.Info("user_key:\"%s\" push message \"%s\":%d", key, m.Msg, m.MsgID)
 	}
 
@@ -153,18 +104,17 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 }
 
 // AddConn implements the Channel AddConn method.
-func (c *OuterChannel) AddConn(conn net.Conn, mid int64, key string) error {
-	//c.mutex.Lock()
-	// save the last push message id
-	//c.conn[conn] = mid
-	//c.mutex.Unlock()
-	//Log.Debug("user_key:\"%s\" add conn", key)
-	//ConnStat.IncrAdd()
+func (c *OuterChannel) AddConn(conn net.Conn, key string) error {
+	c.mutex.Lock()
+	c.conn[conn] = true
+	c.mutex.Unlock()
+	Log.Debug("user_key:\"%s\" add conn", key)
+	ConnStat.IncrAdd()
 	return nil
 }
 
 // RemoveConn implements the Channel RemoveConn method.
-func (c *OuterChannel) RemoveConn(conn net.Conn, mid int64, key string) error {
+func (c *OuterChannel) RemoveConn(conn net.Conn, key string) error {
 	c.mutex.Lock()
 	delete(c.conn, conn)
 	c.mutex.Unlock()

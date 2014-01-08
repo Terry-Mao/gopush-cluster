@@ -26,9 +26,6 @@ var (
 
 // The subscriber interface.
 type Channel interface {
-	// SendOfflineMsg send messages which id greate than the request id to the subscriber.
-	// net.Conn write failed will return errors.
-	SendOfflineMsg(conn net.Conn, mid int64, key string) error
 	// PushMsg push a message to the subscriber.
 	PushMsg(m *Message, key string) error
 	// Add a token for one subscriber
@@ -39,9 +36,9 @@ type Channel interface {
 	AuthToken(token string, key string) error
 	// AddConn add a connection for the subscriber.
 	// Exceed the max number of subscribers per key will return errors.
-	AddConn(conn net.Conn, mid int64, key string) error
+	AddConn(conn net.Conn, key string) error
 	// RemoveConn remove a connection for the  subscriber.
-	RemoveConn(conn net.Conn, mid int64, key string) error
+	RemoveConn(conn net.Conn, key string) error
 	// SetDeadline set the channel deadline unixnano.
 	SetDeadline(d int64)
 	Timeout() bool
@@ -121,15 +118,7 @@ func (l *ChannelList) New(key string) (Channel, error) {
 		return c, nil
 	} else {
 		Log.Debug("user_key:\"%s\" create a new channel", key)
-		if Conf.ChannelType == InnerChannelType {
-			c = NewInnerChannel()
-		} else if Conf.ChannelType == OuterChannelType {
-			c = NewOuterChannel()
-		} else {
-			Log.Error("user_key:\"%s\" unknown channel type : %d (0: inner_channel, 1: outer_channel)", key, Conf.ChannelType)
-			return nil, ChannelTypeErr
-		}
-
+		c = NewOuterChannel()
 		ChStat.IncrCreate()
 		b.Data[key] = c
 		return c, nil
@@ -146,15 +135,7 @@ func (l *ChannelList) Get(key string) (Channel, error) {
 	if c, ok := b.Data[key]; !ok {
 		if Conf.Auth == 0 {
 			Log.Debug("user_key:\"%s\" create a new channel", key)
-			if Conf.ChannelType == InnerChannelType {
-				c = NewInnerChannel()
-			} else if Conf.ChannelType == OuterChannelType {
-				c = NewOuterChannel()
-			} else {
-				Log.Error("user_key:\"%s\" unknown channel type : %d (0: inner_channel, 1: outer_channel)", key, Conf.ChannelType)
-				return nil, ChannelTypeErr
-			}
-
+			c = NewOuterChannel()
 			c.SetDeadline(time.Now().UnixNano() + Conf.ChannelExpireSec*Second)
 			ChStat.IncrCreate()
 			b.Data[key] = c

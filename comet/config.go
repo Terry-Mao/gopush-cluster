@@ -41,7 +41,6 @@ type Config struct {
 	MaxStoredMessage    int    `json:"max_stored_message"`
 	MaxSubscriberPerKey int    `json:"max_subscriber_per_key"`
 	ChannelBucket       int    `json:"channel_bucket"`
-	ChannelType         int    `json:"channel_type"`
 	ReadBufInstance     int    `json:"read_buf_instance"`
 	ReadBufNumPerInst   int    `json:"read_buf_num_per_inst"`
 	ReadBufByte         int    `json:"read_buf_byte"`
@@ -81,7 +80,6 @@ func NewConfig(file string) (*Config, error) {
 		MaxStoredMessage:    20,
 		MaxSubscriberPerKey: 0, // no limit
 		ChannelBucket:       16,
-		ChannelType:         0,
 		ReadBufInstance:     runtime.NumCPU(),
 		ReadBufNumPerInst:   1024,
 		ReadBufByte:         512,

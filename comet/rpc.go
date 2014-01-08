@@ -40,43 +40,41 @@ var (
 func StartRPC() error {
 	var err error
 
-	if Conf.ChannelType == OuterChannelType {
-		MsgRPC, err = rpc.Dial("tcp", Conf.RPCAddr)
-		if err != nil {
-			Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
-			return err
-		}
-
-		defer func() {
-			if err := MsgRPC.Close(); err != nil {
-				Log.Error("rpc.Close() failed (%s)", err.Error())
-			}
-		}()
-
-		// rpc Ping
-		go func() {
-			for {
-				reply := 0
-				if err := MsgRPC.Call("MessageRPC.Ping", 0, &reply); err != nil {
-					Log.Error("rpc.Call(\"MessageRPC.Ping\") failed (%s)", err.Error())
-					rpcTmp, err := rpc.Dial("tcp", Conf.RPCAddr)
-					if err != nil {
-						Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
-						time.Sleep(time.Duration(Conf.RPCRetrySec) * time.Second)
-						Log.Warn("rpc reconnect \"%s\" after %d second", Conf.RPCAddr, Conf.RPCRetrySec)
-						continue
-					} else {
-						Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCAddr)
-						MsgRPC = rpcTmp
-					}
-				}
-
-				// every one second send a heartbeat ping
-				Log.Debug("rpc ping ok")
-				time.Sleep(time.Duration(Conf.RPCHeartbeatSec) * time.Second)
-			}
-		}()
+	MsgRPC, err = rpc.Dial("tcp", Conf.RPCAddr)
+	if err != nil {
+		Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
+		return err
 	}
+
+	defer func() {
+		if err := MsgRPC.Close(); err != nil {
+			Log.Error("rpc.Close() failed (%s)", err.Error())
+		}
+	}()
+
+	// rpc Ping
+	go func() {
+		for {
+			reply := 0
+			if err := MsgRPC.Call("MessageRPC.Ping", 0, &reply); err != nil {
+				Log.Error("rpc.Call(\"MessageRPC.Ping\") failed (%s)", err.Error())
+				rpcTmp, err := rpc.Dial("tcp", Conf.RPCAddr)
+				if err != nil {
+					Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCAddr, err.Error())
+					time.Sleep(time.Duration(Conf.RPCRetrySec) * time.Second)
+					Log.Warn("rpc reconnect \"%s\" after %d second", Conf.RPCAddr, Conf.RPCRetrySec)
+					continue
+				} else {
+					Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCAddr)
+					MsgRPC = rpcTmp
+				}
+			}
+
+			// every one second send a heartbeat ping
+			Log.Debug("rpc ping ok")
+			time.Sleep(time.Duration(Conf.RPCHeartbeatSec) * time.Second)
+		}
+	}()
 
 	c := &ChannelRPC{}
 	rpc.Register(c)

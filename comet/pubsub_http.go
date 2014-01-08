@@ -78,14 +78,6 @@ func SubscribeHandle(ws *websocket.Conn) {
 		return
 	}
 
-	// get lastest message id
-	midStr := params.Get("mid")
-	mid, err := strconv.ParseInt(midStr, 10, 64)
-	if err != nil {
-		Log.Error("user_key:\"%s\" mid argument error (%s)", key, err.Error())
-		return
-	}
-
 	// get heartbeat second
 	heartbeat := Conf.HeartbeatSec
 	heartbeatStr := params.Get("heartbeat")
@@ -106,7 +98,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	}
 
 	token := params.Get("token")
-	Log.Info("client:%s subscribe to key = %s, mid = %d, heartbeat = %d, token = %s", ws.Request().RemoteAddr, key, mid, heartbeat, token)
+	Log.Info("client:%s subscribe to key = %s, heartbeat = %d, token = %s", ws.Request().RemoteAddr, key, heartbeat, token)
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key)
 	if err != nil {
@@ -128,14 +120,8 @@ func SubscribeHandle(ws *websocket.Conn) {
 		return
 	}
 
-	// send stored message, and use the last message id if sent any
-	if err = c.SendOfflineMsg(ws, mid, key); err != nil {
-		Log.Error("user_key:\"%s\" send offline message failed (%s)", key, err.Error())
-		return
-	}
-
 	// add a conn to the channel
-	if err = c.AddConn(ws, mid, key); err != nil {
+	if err = c.AddConn(ws, key); err != nil {
 		Log.Error("user_key:\"%s\" add conn failed (%s)", key, err.Error())
 		return
 	}
@@ -176,7 +162,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	}
 
 	// remove exists conn
-	if err := c.RemoveConn(ws, mid, key); err != nil {
+	if err := c.RemoveConn(ws, key); err != nil {
 		Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err.Error())
 	}
 

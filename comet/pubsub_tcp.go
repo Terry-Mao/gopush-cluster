@@ -177,13 +177,13 @@ func handleTCPConn(conn net.Conn, rc chan *bufio.Reader) {
 // SubscribeTCPHandle handle the subscribers's connection.
 func SubscribeTCPHandle(conn net.Conn, args []string) {
 	argLen := len(args)
-	if argLen < 2 {
+	if argLen == 0 {
 		conn.Write(tcpParamReply)
 		Log.Error("subscriber missing argument")
 		return
 	}
 
-	// key, mid, heartbeat
+	// key, heartbeat
 	key := args[0]
 	if key == "" {
 		conn.Write(tcpParamReply)
@@ -191,18 +191,10 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		return
 	}
 
-	midStr := args[1]
-	mid, err := strconv.ParseInt(midStr, 10, 64)
-	if err != nil {
-		conn.Write(tcpParamReply)
-		Log.Error("user_key:\"%s\" parse mid:\"%s\" error (%s)", key, midStr, err.Error())
-		return
-	}
-
 	heartbeat := Conf.HeartbeatSec
 	heartbeatStr := ""
-	if argLen > 2 {
-		heartbeatStr = args[2]
+	if argLen > 1 {
+		heartbeatStr = args[1]
 		i, err := strconv.Atoi(heartbeatStr)
 		if err != nil {
 			conn.Write(tcpParamReply)
@@ -221,11 +213,11 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	}
 
 	token := ""
-	if argLen > 3 {
-		token = args[3]
+	if argLen > 2 {
+		token = args[2]
 	}
 
-	Log.Info("client:\"%s\" subscribe to key = %s, mid = %d, heartbeat = %d, token = %s", conn.RemoteAddr().String(), key, mid, heartbeat, token)
+	Log.Info("client:\"%s\" subscribe to key = %s, heartbeat = %d, token = %s", conn.RemoteAddr().String(), key, heartbeat, token)
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key)
 	if err != nil {
@@ -249,14 +241,8 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		return
 	}
 
-	// send stored message, and use the last message id if sent any
-	if err = c.SendOfflineMsg(conn, mid, key); err != nil {
-		Log.Error("user_key:\"%s\" send offline message failed (%s)", key, err.Error())
-		return
-	}
-
 	// add a conn to the channel
-	if err = c.AddConn(conn, mid, key); err != nil {
+	if err = c.AddConn(conn, key); err != nil {
 		Log.Error("user_key:\"%s\" add conn failed (%s)", key, err.Error())
 		return
 	}
@@ -303,7 +289,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	}
 
 	// remove exists conn
-	if err := c.RemoveConn(conn, mid, key); err != nil {
+	if err := c.RemoveConn(conn, key); err != nil {
 		Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err.Error())
 	}
 
