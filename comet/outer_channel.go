@@ -106,6 +106,11 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 // AddConn implements the Channel AddConn method.
 func (c *OuterChannel) AddConn(conn net.Conn, key string) error {
 	c.mutex.Lock()
+	if len(c.conn)+1 > Conf.MaxSubscriberPerKey {
+		Log.Error("user_key:\"%s\" exceed conn", key)
+		return MaxConnErr
+	}
+
 	c.conn[conn] = true
 	c.mutex.Unlock()
 	Log.Debug("user_key:\"%s\" add conn", key)
