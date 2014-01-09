@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/list"
 	"errors"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
@@ -17,7 +18,7 @@ type OuterChannel struct {
 	// Mutex
 	mutex *sync.Mutex
 	// Client conn
-	conn map[net.Conn]bool
+	conn *list.List
 	// Channel expired unixnano
 	expire int64
 	// token
@@ -38,7 +39,7 @@ func NewOuterChannel() *OuterChannel {
 
 	return &OuterChannel{
 		mutex:  &sync.Mutex{},
-		conn:   map[net.Conn]bool{},
+		conn:   list.New(),
 		expire: time.Now().UnixNano() + Conf.ChannelExpireSec*Second,
 		timeID: NewTimeID(),
 		token:  t,
@@ -97,7 +98,9 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 		return err
 	}
 	// push message
-	for conn, _ := range c.conn {
+	for e := c.conn.Front(); e != nil; e = e.Next() {
+		conn, _ := e.Value.(net.Conn)
+		// do something with e.Value
 		if n, err := conn.Write(b); err != nil {
 			Log.Error("conn.Write() failed (%s)", err.Error())
 			continue
@@ -106,30 +109,31 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 		}
 
 		Log.Info("user_key:\"%s\" push message \"%s\":%d", key, m.Msg, m.MsgID)
+
 	}
 
 	return nil
 }
 
 // AddConn implements the Channel AddConn method.
-func (c *OuterChannel) AddConn(conn net.Conn, key string) error {
+func (c *OuterChannel) AddConn(conn net.Conn, key string) (*list.Element, error) {
 	c.mutex.Lock()
-	if len(c.conn)+1 > Conf.MaxSubscriberPerKey {
+	if c.conn.Len()+1 > Conf.MaxSubscriberPerKey {
 		Log.Error("user_key:\"%s\" exceed conn", key)
-		return ErrMaxConn
+		return nil, ErrMaxConn
 	}
 
-	c.conn[conn] = true
+	e := c.conn.PushBack(conn)
 	c.mutex.Unlock()
 	Log.Debug("user_key:\"%s\" add conn", key)
 	ConnStat.IncrAdd()
-	return nil
+	return e, nil
 }
 
 // RemoveConn implements the Channel RemoveConn method.
-func (c *OuterChannel) RemoveConn(conn net.Conn, key string) error {
+func (c *OuterChannel) RemoveConn(e *list.Element, key string) error {
 	c.mutex.Lock()
-	delete(c.conn, conn)
+	c.conn.Remove(e)
 	c.mutex.Unlock()
 	Log.Debug("user_key:\"%s\" remove conn", key)
 	ConnStat.IncrRemove()
@@ -150,8 +154,8 @@ func (c *OuterChannel) Timeout() bool {
 func (c *OuterChannel) Close() error {
 	mutex := c.mutex
 	mutex.Lock()
-
-	for conn, _ := range c.conn {
+	for e := c.conn.Front(); e != nil; e = e.Next() {
+		conn, _ := e.Value.(net.Conn)
 		if err := conn.Close(); err != nil {
 			// ignore close error
 			Log.Warn("conn.Close() failed (%s)", err.Error())
@@ -162,7 +166,6 @@ func (c *OuterChannel) Close() error {
 	c.token = nil
 	c.timeID = nil
 	c.mutex = nil
-	c = nil
 	mutex.Unlock()
 	return nil
 }

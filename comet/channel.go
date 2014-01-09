@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/list"
 	"errors"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	"net"
@@ -35,9 +36,9 @@ type Channel interface {
 	AuthToken(token string, key string) error
 	// AddConn add a connection for the subscriber.
 	// Exceed the max number of subscribers per key will return errors.
-	AddConn(conn net.Conn, key string) error
+	AddConn(conn net.Conn, key string) (*list.Element, error)
 	// RemoveConn remove a connection for the  subscriber.
-	RemoveConn(conn net.Conn, key string) error
+	RemoveConn(e *list.Element, key string) error
 	// SetDeadline set the channel deadline unixnano.
 	SetDeadline(d int64)
 	Timeout() bool

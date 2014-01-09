@@ -236,7 +236,8 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	}
 
 	// add a conn to the channel
-	if err = c.AddConn(conn, key); err != nil {
+	connElem, err := c.AddConn(conn, key)
+	if err != nil {
 		Log.Error("user_key:\"%s\" add conn failed (%s)", key, err.Error())
 		return
 	}
@@ -244,7 +245,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	// send first heartbeat to tell client service is ready for accept heartbeat
 	if _, err := conn.Write(tcpHeartbeatReply); err != nil {
 		Log.Error("user_key:\"%s\" write first heartbeat to client failed (%s)", key, err.Error())
-		if err := c.RemoveConn(conn, key); err != nil {
+		if err := c.RemoveConn(connElem, key); err != nil {
 			Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err.Error())
 		}
 
@@ -293,7 +294,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	}
 
 	// remove exists conn
-	if err := c.RemoveConn(conn, key); err != nil {
+	if err := c.RemoveConn(connElem, key); err != nil {
 		Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err.Error())
 	}
 
