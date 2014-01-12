@@ -114,11 +114,9 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 		data = append(data, msgs[i])
 	}
 
-	r.DelChan <- &DelMessageInfo{Key: m.Key, Msgs: delMsgs}
-
-	if len(data) == 0 {
-		rw.Ret = OK
-		return nil
+	// Send to delete message process
+	if len(delMsgs) != 0 {
+		r.DelChan <- &DelMessageInfo{Key: m.Key, Msgs: delMsgs}
 	}
 
 	Log.Debug("response data %v", *rw)
