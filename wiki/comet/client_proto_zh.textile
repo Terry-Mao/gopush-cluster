@@ -26,7 +26,7 @@ $第N个参数的字符串占用字节数字 CR LF
 | token | string | 否 | 3 | 验证连接的token |
 
 例如：
-<pre>==*==3\r\n$3\r\nsub\r\n$9\r\nTerry-Mao\r\n$1\r\n0\r\n$2\r\n10\r\n</pre>
+<pre>==*==3\r\n$3\r\nsub\r\n$9\r\nTerry-Mao\r\n$2\r\n10\r\n</pre>
 表示一共有 *3* 个参数的指令，第一个参数表示指令是 *sub* ；第二个参数表示Key是 *Terry-Mao* ；第三个参数表示心跳周期是 *10* 秒；其中指令前面的$num表示指令的字符字节长度，如$3表示sub的订阅指令长度为 *3* 。
 
 <h3>状态</h3>
