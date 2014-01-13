@@ -97,30 +97,29 @@ func AddNode(node string) error {
 
 	nodes = append(nodes, node)
 
+	// Notice comet to migrate node
+	if err := ChannelRPCMigrate(nodes, NodeInfoMap); err != nil {
+		return err
+	}
+
 	go watchFirstServer(node)
 
 	CometHash = hash.NewKetama2(nodes, 255)
-
-	// Notice comet to migrate node
-	if err := ChannelRPCMigrate(nodes); err != nil {
-		return err
-	}
 
 	return nil
 }
 
 // DelNode disconnect and delete a node
 func DelNode(node string) error {
-	var nodes []string
+	var (
+		nodes []string
+		info  *NodeInfo
+	)
 	NodeInfoMapLock.Lock()
 	defer NodeInfoMapLock.Unlock()
-	for n, client := range NodeInfoMap {
+	for n, c := range NodeInfoMap {
 		if n == node {
-			if client != nil && client.PubRPC != nil {
-				client.PubRPC.Close()
-				client.PubRPC = nil
-			}
-
+			info = c
 			continue
 		}
 
@@ -131,8 +130,13 @@ func DelNode(node string) error {
 
 	delete(NodeInfoMap, node)
 
+	if info != nil && info.PubRPC != nil {
+		info.PubRPC.Close()
+		info.PubRPC = nil
+	}
+
 	// Notice comet to migrate node
-	if err := ChannelRPCMigrate(nodes); err != nil {
+	if err := ChannelRPCMigrate(nodes, NodeInfoMap); err != nil {
 		return err
 	}
 
@@ -141,12 +145,12 @@ func DelNode(node string) error {
 
 // RPC Migrate interface
 // Migrate the lost connections after changed node
-func ChannelRPCMigrate(nodes []string) error {
+func ChannelRPCMigrate(nodes []string, nodeInfoMap map[string]*NodeInfo) error {
 	var (
 		ret int
 	)
 
-	for n, svrInfo := range NodeInfoMap {
+	for n, svrInfo := range nodeInfoMap {
 		if svrInfo != nil && svrInfo.PubRPC != nil {
 			args := &myrpc.ChannelMigrateArgs{Nodes: nodes, Vnode: 255}
 			if err := svrInfo.PubRPC.Call("ChannelRPC.Migrate", args, &ret); err != nil {
@@ -159,6 +163,8 @@ func ChannelRPCMigrate(nodes []string) error {
 				Log.Error("RPC.Call(\"ChannelRPC.Migrate\") error node:%s (%v)", n, err)
 				return err
 			}
+
+			Log.Debug("RPC.Call(\"ChannelRPC.Migrate\") success node:%s", n)
 		}
 	}
 
@@ -227,7 +233,7 @@ func watchFirstServer(node string) {
 			// Fecth push server info
 			datas := strings.Split(data, ",")
 			if len(datas) < 2 {
-				Log.Error("subNode data error node:%s, subNode:%s", node, subNodes[0])
+				Log.Error("get subNode data error node:%s, subNode:%s, data:%s", node, subNodes[0], data)
 				time.Sleep(10 * time.Second)
 				continue
 			}

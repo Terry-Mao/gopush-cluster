@@ -65,7 +65,8 @@ func main() {
 
 		err := http.ListenAndServe(Conf.AdminAddr, adminServeMux)
 		if err != nil {
-			panic(err)
+			Log.Error("http.ListenAndServe(%s) failed(%v)", Conf.AdminAddr, err)
+			os.Exit(-1)
 		}
 	}()
 

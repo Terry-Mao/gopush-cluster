@@ -174,7 +174,7 @@ func AdminNodeDel(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	node := values.Get("node")
-	if node == "node" {
+	if node == "" {
 		ret = ParamErr
 		return
 	}
