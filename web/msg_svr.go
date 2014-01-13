@@ -1,6 +1,7 @@
 package main
 
 import (
+	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net/rpc"
 	"time"
 )
@@ -42,4 +43,14 @@ func InitMsgSvrClient() error {
 	}()
 
 	return nil
+}
+
+func MessageRPCGet(mid int64, key string) (*myrpc.MessageGetResp, error) {
+	var reply myrpc.MessageGetResp
+	args := &myrpc.MessageGetArgs{MsgID: mid, Key: key}
+	if err := MsgSvrClient.Call("MessageRPC.Get", args, &reply); err != nil {
+		return nil, err
+	}
+
+	return &reply, nil
 }

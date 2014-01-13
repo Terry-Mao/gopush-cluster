@@ -8,6 +8,7 @@ package main
 const (
 	OK          = 0
 	NoNodeErr   = 1001
+	NodeExist   = 1002
 	ParamErr    = 65534
 	InternalErr = 65535
 

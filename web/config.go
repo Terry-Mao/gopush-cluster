@@ -39,6 +39,7 @@ type MessageServer struct {
 
 type Config struct {
 	Addr      string           `json:"addr"`
+	AdminAddr string           `json:"admin_addr"`
 	LogPath   string           `json:"log_path"`
 	LogLevel  int              `json:"log_level"`
 	Zookeeper *ZookeeperConfig `json:"zookeeper"`
@@ -55,9 +56,10 @@ func NewConfig(file string) (*Config, error) {
 
 	// Default config
 	cf := &Config{
-		Addr:     "127.0.0.1:8080",
-		LogPath:  "./web.log",
-		LogLevel: 0,
+		Addr:      "127.0.0.1:80",
+		AdminAddr: "127.0.0.1:81",
+		LogPath:   "./web.log",
+		LogLevel:  0,
 	}
 
 	// Parse config file

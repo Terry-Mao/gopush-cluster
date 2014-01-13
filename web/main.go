@@ -56,9 +56,18 @@ func main() {
 	http.HandleFunc("/msg/get", MsgGet)
 
 	// Internal admin handle
-	http.HandleFunc("/admin/push", AdminPush)
-	http.HandleFunc("/admin/node/add", AdminNodeAdd)
-	http.HandleFunc("/admin/node/del", AdminNodeDel)
+	go func() {
+		adminServeMux := http.NewServeMux()
+
+		adminServeMux.HandleFunc("/admin/push", AdminPush)
+		adminServeMux.HandleFunc("/admin/node/add", AdminNodeAdd)
+		adminServeMux.HandleFunc("/admin/node/del", AdminNodeDel)
+
+		err := http.ListenAndServe(Conf.AdminAddr, adminServeMux)
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	// Start service
 	if err := http.ListenAndServe(Conf.Addr, nil); err != nil {
