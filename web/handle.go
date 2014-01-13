@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
+
 	"io"
 	"net/http"
 	"strconv"
@@ -102,9 +102,9 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var reply myrpc.MessageGetResp
-	args := &myrpc.MessageGetArgs{MsgID: midI, Key: key}
-	if err := MsgSvrClient.Call("MessageRPC.Get", args, &reply); err != nil {
+	// RPC get offline messages
+	reply, err := MessageRPCGet(midI, key)
+	if err != nil {
 		Log.Error("RPC.Call(\"MessageRPC.Get\") error MsgID:%d, Key:%s (%v)", midI, key, err)
 		ret = InternalErr
 		return

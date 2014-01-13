@@ -123,7 +123,12 @@ func AdminNodeAdd(rw http.ResponseWriter, r *http.Request) {
 
 	// Add a node
 	if err := AddNode(node); err != nil {
-		ret = InternalErr
+		if err == ErrNodeExist {
+			ret = NodeExist
+		} else {
+			ret = InternalErr
+		}
+
 		return
 	}
 

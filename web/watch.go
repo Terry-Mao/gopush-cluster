@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
+	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"launchpad.net/gozk/zookeeper"
 	"net/rpc"
 	"sort"
@@ -25,6 +26,7 @@ var (
 )
 
 var ErrNoNode = errors.New("zookeeper children is nil")
+var ErrNodeExist = errors.New("node already exist")
 
 type NodeInfo struct {
 	// The addr for subscribe
@@ -85,10 +87,8 @@ func AddNode(node string) error {
 	defer NodeInfoMapLock.RUnlock()
 	_, ok := NodeInfoMap[node]
 	if ok {
-		return nil
+		return ErrNodeExist
 	}
-
-	go watchFirstServer(node)
 
 	var nodes []string
 	for n, _ := range NodeInfoMap {
@@ -96,7 +96,15 @@ func AddNode(node string) error {
 	}
 
 	nodes = append(nodes, node)
+
+	go watchFirstServer(node)
+
 	CometHash = hash.NewKetama2(nodes, 255)
+
+	// Notice comet to migrate node
+	if err := ChannelRPCMigrate(nodes); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -122,6 +130,37 @@ func DelNode(node string) error {
 	CometHash = hash.NewKetama2(nodes, 255)
 
 	delete(NodeInfoMap, node)
+
+	// Notice comet to migrate node
+	if err := ChannelRPCMigrate(nodes); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RPC Migrate interface
+// Migrate the lost connections after changed node
+func ChannelRPCMigrate(nodes []string) error {
+	var (
+		ret int
+	)
+
+	for n, svrInfo := range NodeInfoMap {
+		if svrInfo != nil && svrInfo.PubRPC != nil {
+			args := &myrpc.ChannelMigrateArgs{Nodes: nodes, Vnode: 255}
+			if err := svrInfo.PubRPC.Call("ChannelRPC.Migrate", args, &ret); err != nil {
+				Log.Error("RPC.Call(\"ChannelRPC.Migrate\") error node:%s (%v)", n, err)
+				return err
+			}
+
+			if ret != OK {
+				err := errors.New(fmt.Sprintf("ret:%d", ret))
+				Log.Error("RPC.Call(\"ChannelRPC.Migrate\") error node:%s (%v)", n, err)
+				return err
+			}
+		}
+	}
 
 	return nil
 }
