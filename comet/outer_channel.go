@@ -152,8 +152,7 @@ func (c *OuterChannel) Timeout() bool {
 
 // Close implements the Channel Close method.
 func (c *OuterChannel) Close() error {
-	mutex := c.mutex
-	mutex.Lock()
+	c.mutex.Lock()
 	for e := c.conn.Front(); e != nil; e = e.Next() {
 		conn, _ := e.Value.(net.Conn)
 		if err := conn.Close(); err != nil {
@@ -162,10 +161,6 @@ func (c *OuterChannel) Close() error {
 		}
 	}
 
-	c.conn = nil
-	c.token = nil
-	c.timeID = nil
-	c.mutex = nil
-	mutex.Unlock()
+	c.mutex.Unlock()
 	return nil
 }
