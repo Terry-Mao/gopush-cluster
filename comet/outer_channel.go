@@ -76,21 +76,23 @@ func (c *OuterChannel) AuthToken(token string, key string) error {
 func (c *OuterChannel) PushMsg(m *Message, key string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	// rewrite message id
-	m.MsgID = c.timeID.ID()
-	Log.Debug("user_key:\"%s\" timeID:%d", key, m.MsgID)
-	args := &myrpc.MessageSaveArgs{MsgID: m.MsgID, Msg: m.Msg, Expire: m.Expire, Key: key}
-	reply := retOK
-	if err := MsgRPC.Call("MessageRPC.Save", args, &reply); err != nil {
-		Log.Error("MessageRPC.Save failed (%s)", err.Error())
-		return err
-	}
+	// private message need persistence
+	if m.GroupID == myrpc.PrivateGroupID {
+		// rewrite message id
+		m.MsgID = c.timeID.ID()
+		Log.Debug("user_key:\"%s\" timeID:%d", key, m.MsgID)
+		args := &myrpc.MessageSaveArgs{MsgID: m.MsgID, Msg: m.Msg, Expire: m.Expire, Key: key}
+		reply := retOK
+		if err := MsgRPC.Call("MessageRPC.Save", args, &reply); err != nil {
+			Log.Error("MessageRPC.Save failed (%s)", err.Error())
+			return err
+		}
 
-	if reply != retOK {
-		Log.Error("MessageRPC.Save failed (ret=%d)", reply)
-		return ErrMessageSave
+		if reply != retOK {
+			Log.Error("MessageRPC.Save failed (ret=%d)", reply)
+			return ErrMessageSave
+		}
 	}
-
 	// send message to each conn when message id > conn last message id
 	b, err := m.Bytes()
 	if err != nil {
@@ -109,7 +111,6 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 		}
 
 		Log.Info("user_key:\"%s\" push message \"%s\":%d", key, m.Msg, m.MsgID)
-
 	}
 
 	return nil

@@ -1,11 +1,17 @@
 package rpc
 
+const (
+	PrivateGroupID = 0
+	PublicGroupID  = 1
+)
+
 // Channel Publish Args
 type ChannelPublishArgs struct {
-	MsgID  int64  // message id
-	Msg    string // message content
-	Expire int64  // message expire second
-	Key    string // subscriber key
+	GroupID int    // message group id
+	MsgID   int64  // message id
+	Msg     string // message content
+	Expire  int64  // message expire second
+	Key     string // subscriber key
 }
 
 // Channel Migrate Args
@@ -17,6 +23,6 @@ type ChannelMigrateArgs struct {
 // Channel New Args
 type ChannelNewArgs struct {
 	Expire int64  // message expire second
-    Token  string // auth token
+	Token  string // auth token
 	Key    string // subscriber key
 }

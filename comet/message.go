@@ -19,6 +19,8 @@ type Message struct {
 	Expire int64 `json:"expire"`
 	// Message id
 	MsgID int64 `json:"mid"`
+	// Group id
+	GroupID int `json:"gid"`
 }
 
 // Expired check mesage expired or not.
@@ -43,6 +45,7 @@ func (m *Message) Bytes() ([]byte, error) {
 	res := map[string]interface{}{
 		"msg": m.Msg,
 		"mid": m.MsgID,
+		"gid": m.GroupID,
 	}
 
 	byteJson, err := json.Marshal(res)
@@ -53,7 +56,7 @@ func (m *Message) Bytes() ([]byte, error) {
 
 	// tcp use Redis Response Protocol: http://redis.io/topics/protocol
 	if Conf.Protocol == TCPProtocol {
-		return MessageReply(byteJson), nil
+		return messageReply(byteJson), nil
 	} else {
 		// websocket
 		return byteJson, nil
@@ -61,6 +64,6 @@ func (m *Message) Bytes() ([]byte, error) {
 }
 
 // redis protocol reply
-func MessageReply(msg []byte) []byte {
+func messageReply(msg []byte) []byte {
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(msg), string(msg)))
 }

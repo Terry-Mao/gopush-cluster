@@ -177,7 +177,7 @@ func (c *ChannelRPC) Publish(args *myrpc.ChannelPublishArgs, ret *int) error {
 	}
 
 	// use the channel push message
-	if err = ch.PushMsg(&Message{Msg: args.Msg, Expire: time.Now().UnixNano() + expire*Second, MsgID: args.MsgID}, args.Key); err != nil {
+	if err = ch.PushMsg(&Message{Msg: args.Msg, Expire: time.Now().UnixNano() + expire*Second, MsgID: args.MsgID, GroupID: args.GroupID}, args.Key); err != nil {
 		Log.Error("user_key:\"%s\" push message failed (%s)", args.Key, err.Error())
 		*ret = retPushMsgErr
 		MsgStat.IncrFailed()
