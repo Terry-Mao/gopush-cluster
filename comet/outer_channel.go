@@ -77,7 +77,7 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	// private message need persistence
-	if m.GroupID == myrpc.PrivateGroupID {
+	if m.GroupID != myrpc.PublicGroupID {
 		// rewrite message id
 		m.MsgID = c.timeID.ID()
 		Log.Debug("user_key:\"%s\" timeID:%d", key, m.MsgID)
