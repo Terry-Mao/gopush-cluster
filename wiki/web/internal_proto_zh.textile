@@ -4,8 +4,8 @@ Web内部接口文档，用于推送消息、节点管理等
 <h3>接口汇总</h3>
 (head). | 接口名 | URL | 访问方式 |
 | "推送消息":AdminPush   | /admin/push     | POST |
-| "推送消息":AdminNodeAdd| /admin/node/add | POST |
-| "推送消息":AdminNodeDel| /admin/node/del | POST |
+| "添加节点":AdminNodeAdd| /admin/node/add | POST |
+| "删除节点":AdminNodeDel| /admin/node/del | POST |
 
 <h3>公共返回码</h3>
 

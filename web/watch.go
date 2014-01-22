@@ -16,7 +16,7 @@ import (
 var (
 	// Zookeeper connection
 	zk *zookeeper.Conn
-	// Ketama algorithm for comet
+	// Ketama algorithm for Comet
 	CometHash *hash.Ketama
 	// Store the first alive server of every node
 	// If there is no alive server under the node, the value will be nil, but key is exist in map
@@ -81,7 +81,7 @@ func GetNode(node string) *NodeInfo {
 	return NodeInfoMap[node]
 }
 
-// AddNode add a node and watch it
+// AddNode add a node and watch it, and notice Comet to migrate node
 func AddNode(node string) error {
 	NodeInfoMapLock.RLock()
 	defer NodeInfoMapLock.RUnlock()
@@ -97,7 +97,7 @@ func AddNode(node string) error {
 
 	nodes = append(nodes, node)
 
-	// Notice comet to migrate node
+	// Notice Comet to migrate node
 	if err := ChannelRPCMigrate(nodes, NodeInfoMap); err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func AddNode(node string) error {
 	return nil
 }
 
-// DelNode disconnect and delete a node
+// DelNode disconnect and delete a node, and notice Comet to migrate node
 func DelNode(node string) error {
 	var (
 		nodes []string
@@ -135,7 +135,7 @@ func DelNode(node string) error {
 		info.PubRPC = nil
 	}
 
-	// Notice comet to migrate node
+	// Notice Comet to migrate node
 	if err := ChannelRPCMigrate(nodes, NodeInfoMap); err != nil {
 		return err
 	}
