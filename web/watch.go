@@ -102,8 +102,10 @@ func AddNode(node string) error {
 		return err
 	}
 
+	// Watch the node
 	go watchFirstServer(node)
 
+	// Update Comet hash, because of nodes are changed
 	CometHash = hash.NewKetama2(nodes, 255)
 
 	return nil
@@ -115,8 +117,14 @@ func DelNode(node string) error {
 		nodes []string
 		info  *NodeInfo
 	)
+
 	NodeInfoMapLock.Lock()
 	defer NodeInfoMapLock.Unlock()
+
+	if _, ok := NodeInfoMap[node]; !ok {
+		return nil
+	}
+
 	for n, c := range NodeInfoMap {
 		if n == node {
 			info = c
@@ -126,8 +134,10 @@ func DelNode(node string) error {
 		nodes = append(nodes, n)
 	}
 
+	// Update Comet hash, cause nodes are changed
 	CometHash = hash.NewKetama2(nodes, 255)
 
+	// Delete node from map before call Migrate RPC interface of Comet, cause needn`t to notice deleted node
 	delete(NodeInfoMap, node)
 
 	if info != nil && info.PubRPC != nil {
@@ -146,9 +156,7 @@ func DelNode(node string) error {
 // RPC Migrate interface
 // Migrate the lost connections after changed node
 func ChannelRPCMigrate(nodes []string, nodeInfoMap map[string]*NodeInfo) error {
-	var (
-		ret int
-	)
+	ret := OK
 
 	for n, svrInfo := range nodeInfoMap {
 		if svrInfo != nil && svrInfo.PubRPC != nil {

@@ -129,6 +129,7 @@ func AdminNodeAdd(rw http.ResponseWriter, r *http.Request) {
 			ret = InternalErr
 		}
 
+		Log.Error("add node error (%v)", err)
 		return
 	}
 
@@ -181,6 +182,7 @@ func AdminNodeDel(rw http.ResponseWriter, r *http.Request) {
 
 	// Add a watch for node
 	if err := DelNode(node); err != nil {
+		Log.Error("del node error (%v)", err)
 		ret = InternalErr
 		return
 	}
