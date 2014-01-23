@@ -10,12 +10,14 @@ type MessageSaveArgs struct {
 
 // Message Get Args
 type MessageGetArgs struct {
-	MsgID int64  // message id
-	Key   string // subscriber key
+	MsgID    int64  // message id
+	PubMsgID int64  // public message id
+	Key      string // subscriber key
 }
 
 // Message Get Response
 type MessageGetResp struct {
-	Ret  int      // response
-	Msgs []string // messages
+	Ret     int      // response
+	Msgs    []string // messages
+	PubMsgs []string // public messages
 }
