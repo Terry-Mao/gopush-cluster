@@ -92,7 +92,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	}
 
 	// Get public offline messages which larger than MsgID
-	psgs, err := GetMessages("public", m.MsgID)
+	pMsgs, err := GetMessages("public", m.MsgID)
 	if err != nil {
 		Log.Error("get public messages error (%v)", err)
 		rw.Ret = InternalErr
@@ -100,7 +100,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	}
 
 	numMsg := len(msgs)
-	numPMsg := len(psgs)
+	numPMsg := len(pMsgs)
 	if numMsg == 0 && numPMsg == 0 {
 		rw.Ret = OK
 		return nil
@@ -130,18 +130,18 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 		data = append(data, msgs[i])
 	}
 	for i := 0; i < numPMsg; i++ {
-		if err := json.Unmarshal([]byte(pData[i]), &msg); err != nil {
-			Log.Error("internal message:%s error (%v)", pData[i], err)
+		if err := json.Unmarshal([]byte(pMsgs[i]), &msg); err != nil {
+			Log.Error("internal message:%s error (%v)", pMsgs[i], err)
 			rw.Ret = InternalErr
 			return nil
 		}
 
 		if tNow > msg.Expire {
-			delMsgs = append(delMsgs, pData[i])
+			delMsgs = append(delMsgs, pMsgs[i])
 			continue
 		}
 
-		data = append(data, pData[i])
+		pData = append(pData, pMsgs[i])
 	}
 
 	// Send to delete message process

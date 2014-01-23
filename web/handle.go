@@ -62,7 +62,7 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 // Data struct as response of handle ServerGet
 type MsgGetData struct {
 	Msgs  []string `json:"msgs"`
-	PMsgs []string `json:"pubmsgs"`
+	PMsgs []string `json:"pmsgs"`
 }
 
 // MsgGet handle for msg get
@@ -70,6 +70,7 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 	var (
 		ret    = InternalErr
 		result = make(map[string]interface{})
+		data   = &MsgGetData{}
 	)
 
 	// Final ResponseWriter operation
@@ -119,9 +120,14 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(reply.Msgs) > 0 {
-		result["data"] = reply.Msgs
+		data.Msgs = reply.Msgs
 	}
 
+	if len(reply.PubMsgs) > 0 {
+		data.PMsgs = reply.PubMsgs
+	}
+
+	result["data"] = data
 	ret = reply.Ret
 	return
 }

@@ -20,6 +20,7 @@ func InitConfig() {
 // Config struct
 type Config struct {
 	Addr             string
+	PKey             string
 	LogPath          string
 	LogLevel         int
 	RedisNetwork     string
@@ -38,6 +39,7 @@ func NewConfig(fileName string) (*Config, error) {
 
 	conf := &Config{
 		Addr:             ":8070",
+		PKey:             "gopushpkey",
 		LogPath:          "./message.log",
 		LogLevel:         7,
 		RedisNetwork:     "tcp",
@@ -56,6 +58,15 @@ func NewConfig(fileName string) (*Config, error) {
 			}
 		} else {
 			conf.Addr = addr
+		}
+
+		pKey, err := bSec.String("pkey")
+		if err != nil {
+			if err != goconf.ErrNoKey {
+				return nil, fmt.Errorf("config section:\"base\" key:\"pKey\" error(%v)", err)
+			}
+		} else {
+			conf.PKey = pKey
 		}
 	}
 
@@ -122,7 +133,7 @@ func NewConfig(fileName string) (*Config, error) {
 	redisAddrsSec := gconf.Get("redis.addr")
 	if redisAddrsSec != nil {
 		for _, key := range redisAddrsSec.Keys() {
-			addr, err := redisAddrsSec.String("key")
+			addr, err := redisAddrsSec.String(key)
 			if err != nil {
 				return nil, fmt.Errorf("config section:\"redis.addrs\" key:\"%s\" error(%v)", key, err)
 			}
