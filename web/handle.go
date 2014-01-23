@@ -61,7 +61,8 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 
 // Data struct as response of handle ServerGet
 type MsgGetData struct {
-	Msgs []string `json:"msgs"`
+	Msgs  []string `json:"msgs"`
+	PMsgs []string `json:"pubmsgs"`
 }
 
 // MsgGet handle for msg get
@@ -91,7 +92,8 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 	val := r.URL.Query()
 	key := val.Get("key")
 	mid := val.Get("mid")
-	if key == "" || mid == "" {
+	pMid := val.Get("pmid")
+	if key == "" || mid == "" || pMid == "" {
 		ret = ParamErr
 		return
 	}
@@ -102,10 +104,16 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// RPC get offline messages
-	reply, err := MessageRPCGet(midI, key)
+	pMidI, err := strconv.ParseInt(pMid, 10, 64)
 	if err != nil {
-		Log.Error("RPC.Call(\"MessageRPC.Get\") error MsgID:%d, Key:%s (%v)", midI, key, err)
+		ret = ParamErr
+		return
+	}
+
+	// RPC get offline messages
+	reply, err := MessageRPCGet(key, midI, pMidI)
+	if err != nil {
+		Log.Error("RPC.Call(\"MessageRPC.Get\")  Key:%s, MsgID:%d error(%v)", midI, key, err)
 		ret = InternalErr
 		return
 	}
