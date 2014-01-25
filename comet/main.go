@@ -56,7 +56,8 @@ func main() {
 	StartComet()
 	// start rpc
 	StartRPC()
+	// init signals
+	InitSignal()
 	// exit
 	Log.Info("gopush2 stop")
-	os.Exit(-1)
 }

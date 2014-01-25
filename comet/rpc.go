@@ -70,7 +70,7 @@ func InitMessageRPC() error {
 			}
 			// every one second send a heartbeat ping
 			Log.Debug("rpc ping ok")
-			time.Sleep(Conf.RPCHeartbeat)
+			time.Sleep(Conf.RPCPing)
 		}
 	}()
 	return nil

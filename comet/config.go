@@ -51,7 +51,7 @@ type Config struct {
 	TokenExpire             time.Duration
 	// rpc
 	RPCMessageAddr string
-	RPCHeartbeat   time.Duration
+	RPCPing        time.Duration
 	RPCRetry       time.Duration
 }
 
@@ -84,7 +84,7 @@ func InitConfig(file string) (*Config, error) {
 		ChannelBucket:           runtime.NumCPU(),
 		Auth:                    false,
 		RPCMessageAddr:          "localhost:6972",
-		RPCHeartbeat:            1 * time.Second,
+		RPCPing:                 1 * time.Second,
 		RPCRetry:                1 * time.Second,
 	}
 	c := goconf.New()
@@ -125,9 +125,6 @@ func InitConfig(file string) (*Config, error) {
 		return nil, err
 	}
 	if err := setConfigDefString(baseSection, "admin.bind", &cf.AdminBind); err != nil {
-		return nil, err
-	}
-	if err := setConfigDefString(baseSection, "rpc.message.addr", &cf.RPCMessageAddr); err != nil {
 		return nil, err
 	}
 	// zookeeper section
@@ -184,6 +181,19 @@ func InitConfig(file string) (*Config, error) {
 		return nil, err
 	}
 	if err := setConfigDefDuration(chSection, "token.expire", &cf.TokenExpire); err != nil {
+		return nil, err
+	}
+	rpcSection := c.Get("rpc")
+	if rpcSection == nil {
+		return nil, ErrNoConfigSection
+	}
+	if err := setConfigDefString(rpcSection, "message.addr", &cf.RPCMessageAddr); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefDuration(rpcSection, "ping", &cf.RPCPing); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefDuration(rpcSection, "retry", &cf.RPCRetry); err != nil {
 		return nil, err
 	}
 	return cf, nil
