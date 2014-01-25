@@ -28,7 +28,7 @@ func main() {
 	// Load log
 	Log, err = log.New(Conf.LogPath, Conf.LogLevel)
 	if err != nil {
-		Log.Error("log.New(\"LogPath\":%s) failed(%v)", Conf.LogPath, err)
+		Log.Error("log.New(\"%s\") failed(%v)", Conf.LogPath, err)
 		os.Exit(-1)
 	}
 
@@ -37,7 +37,7 @@ func main() {
 
 	// Start rpc
 	if err := StartRPC(); err != nil {
-		Log.Error("StartRPC() failed (%v)", err)
+		Log.Error("StartRPC() error(%v)", err)
 		os.Exit(-1)
 	}
 }

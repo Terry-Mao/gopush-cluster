@@ -45,23 +45,24 @@ func StartRPC() error {
 
 	l, err := net.Listen("tcp", Conf.Addr)
 	if err != nil {
-		Log.Error("net.Listen(\"tcp\", \"%s\") failed (%v)", Conf.Addr, err)
+		Log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", Conf.Addr, err)
 		return err
 	}
 
 	defer func() {
 		if err := l.Close(); err != nil {
-			Log.Error("listener.Close() failed (%v)", err)
+			Log.Error("listener.Close() error(%v)", err)
 		}
 	}()
 
-	Log.Info("start listen admin addr:%s", Conf.Addr)
+	Log.Info("start listen admin addr:\"%s\"", Conf.Addr)
 	rpc.Accept(l)
 	return nil
 }
 
 // Store offline message interface
 func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
+	Log.Debug("save data %v", *m)
 	if m == nil || m.MsgID < 0 {
 		*ret = ParamErr
 		return nil
@@ -71,7 +72,7 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 	recordMsg := Message{Msg: m.Msg, Expire: m.Expire, MsgID: m.MsgID}
 	message, _ := json.Marshal(recordMsg)
 	if err := SaveMessage(m.Key, string(message), m.MsgID); err != nil {
-		Log.Error("save message error (%v)", err)
+		Log.Error("save message error(%v)", err)
 		*ret = InternalErr
 		return nil
 	}
@@ -86,15 +87,15 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	// Get all of offline messages which larger than MsgID that corresponding to m.Key
 	msgs, err := GetMessages(m.Key, m.MsgID)
 	if err != nil {
-		Log.Error("get messages error (%v)", err)
+		Log.Error("get messages error(%v)", err)
 		rw.Ret = InternalErr
 		return nil
 	}
 
 	// Get public offline messages which larger than MsgID
-	pMsgs, err := GetMessages("public", m.MsgID)
+	pMsgs, err := GetMessages(Conf.PKey, m.PubMsgID)
 	if err != nil {
-		Log.Error("get public messages error (%v)", err)
+		Log.Error("get public messages error(%v)", err)
 		rw.Ret = InternalErr
 		return nil
 	}
@@ -107,17 +108,18 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	}
 
 	var (
-		data    []string
-		pData   []string
-		delMsgs []string
-		msg     = &Message{}
-		tNow    = time.Now().UnixNano()
+		data     []string
+		pData    []string
+		delMsgs  []string
+		delPMsgs []string
+		msg      = &Message{}
+		tNow     = time.Now().UnixNano()
 	)
 
 	// Checkout expired offline messages
 	for i := 0; i < numMsg; i++ {
 		if err := json.Unmarshal([]byte(msgs[i]), &msg); err != nil {
-			Log.Error("internal message:%s error (%v)", msgs[i], err)
+			Log.Error("internal message:\"%s\" error(%v)", msgs[i], err)
 			rw.Ret = InternalErr
 			return nil
 		}
@@ -131,22 +133,25 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	}
 	for i := 0; i < numPMsg; i++ {
 		if err := json.Unmarshal([]byte(pMsgs[i]), &msg); err != nil {
-			Log.Error("internal message:%s error (%v)", pMsgs[i], err)
+			Log.Error("internal message:\"%s\" error(%v)", pMsgs[i], err)
 			rw.Ret = InternalErr
 			return nil
 		}
-
 		if tNow > msg.Expire {
-			delMsgs = append(delMsgs, pMsgs[i])
+			delPMsgs = append(delPMsgs, pMsgs[i])
 			continue
 		}
-
 		pData = append(pData, pMsgs[i])
 	}
 
 	// Send to delete message process
 	if len(delMsgs) != 0 {
+		Log.Debug("delete expire private messages:\"%s\"", pMsgs)
 		DelChan <- &DelMessageInfo{Key: m.Key, Msgs: delMsgs}
+	}
+	if len(delPMsgs) != 0 {
+		Log.Debug("delete expire private messages:\"%s\"", pMsgs)
+		DelChan <- &DelMessageInfo{Key: Conf.PKey, Msgs: delPMsgs}
 	}
 
 	Log.Debug("response data %v", *rw)
@@ -168,7 +173,7 @@ func DelProc() {
 	for {
 		info := <-DelChan
 		if err := DelMessages(info); err != nil {
-			Log.Error("DelMessages(key:%s,Msgs:%v) failed (%v)", info.Key, info.Msgs, err)
+			Log.Error("DelMessages(key:\"%s\", Msgs:\"%s\") error(%v)", info.Key, info.Msgs, err)
 		}
 	}
 }
