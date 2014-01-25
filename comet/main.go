@@ -16,26 +16,24 @@ func main() {
 	// parse cmd-line arguments
 	flag.Parse()
 	// init config
-	Conf, err = NewConfig(ConfFile)
+	Conf, err = InitConfig(ConfFile)
 	if err != nil {
 		log.DefaultLogger.Error("NewConfig(\"%s\") failed (%s)", ConfFile, err.Error())
 		os.Exit(-1)
 	}
-
 	// Set max routine
-	runtime.GOMAXPROCS(Conf.MaxProcs)
+	runtime.GOMAXPROCS(Conf.MaxProc)
 	// init log
-	if Log, err = log.New(Conf.Log, Conf.LogLevel); err != nil {
-		log.DefaultLogger.Error("log.New(\"%s\", %d) failed (%s)", Conf.Log, Conf.LogLevel, err.Error())
+	if Log, err = log.New(Conf.LogFile, Conf.LogLevel); err != nil {
+		log.DefaultLogger.Error("log.New(\"%s\", %d) failed (%s)", Conf.LogFile, Conf.LogLevel, err.Error())
 		os.Exit(-1)
 	}
-
 	defer Log.Close()
-	if Conf.Addr == Conf.AdminAddr {
-		Log.Warn("Configure \"AdminAdd\" = \"Addr\" is not allowed for security reason")
+	// init process
+	if err = InitProcess(); err != nil {
+		Log.Error("InitProcess() failed (%s)", err.Error())
 		os.Exit(-1)
 	}
-
 	Log.Info("gopush2 start")
 	StartStats()
 	if zk, err := InitZookeeper(); err != nil {
@@ -48,45 +46,16 @@ func main() {
 			}
 		}()
 	}
-
 	// create channel
 	UserChannel = NewChannelList()
 	// start stats
 	StartStats()
 	// start pprof http
-	go func() {
-		if err := StartPprofHttp(); err != nil {
-			Log.Error("StartPprofHttp() failed (%s)", err.Error())
-			os.Exit(-1)
-		}
-	}()
-
+	StartPprof()
+	// start comet
+	StartComet()
 	// start rpc
-	go func() {
-		if err := StartRPC(); err != nil {
-			Log.Error("StartRPC() failed (%s)", err.Error())
-			os.Exit(-1)
-		}
-
-		Log.Crit("rpc crash")
-		os.Exit(-1)
-	}()
-
-	if Conf.Protocol == WebsocketProtocol {
-		// Start http push service
-		if err = StartHttp(); err != nil {
-			Log.Error("StartHttp() failed (%s)", err.Error())
-		}
-	} else if Conf.Protocol == TCPProtocol {
-		// Start http push service
-		if err = StartTCP(); err != nil {
-			Log.Error("StartTCP() failed (%s)", err.Error())
-		}
-	} else {
-		Log.Warn("unknown gopush-cluster protocol %d, (0: websocket, 1: tcp)", Conf.Protocol)
-		os.Exit(-1)
-	}
-
+	StartRPC()
 	// exit
 	Log.Info("gopush2 stop")
 	os.Exit(-1)

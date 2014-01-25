@@ -13,7 +13,6 @@ import (
 var (
 	// server
 	startTime int64 // process start unixnano
-
 	// channel
 	ChStat = &ChannelStat{}
 	// message
@@ -26,7 +25,6 @@ var (
 type ChannelStat struct {
 	Access uint64 // total access count
 	Create uint64 // total create count
-	Expire uint64 // total expire count
 	Delete uint64 // total delete count
 }
 
@@ -38,10 +36,6 @@ func (s *ChannelStat) IncrCreate() {
 	atomic.AddUint64(&s.Create, 1)
 }
 
-func (s *ChannelStat) IncrExpire() {
-	atomic.AddUint64(&s.Expire, 1)
-}
-
 func (s *ChannelStat) IncrDelete() {
 	atomic.AddUint64(&s.Delete, 1)
 }
@@ -51,10 +45,8 @@ func (s *ChannelStat) Stat() []byte {
 	res := map[string]interface{}{}
 	res["access"] = s.Access
 	res["create"] = s.Create
-	res["expire"] = s.Expire
 	res["delete"] = s.Delete
 	res["current"] = UserChannel.Count()
-
 	return jsonRes(res)
 }
 
@@ -78,7 +70,6 @@ func (s *MessageStat) Stat() []byte {
 	res["succeed"] = s.Succeed
 	res["failed"] = s.Failed
 	res["total"] = s.Succeed + s.Failed
-
 	return jsonRes(res)
 }
 
@@ -102,7 +93,6 @@ func (s *ConnectionStat) Stat() []byte {
 	res["add"] = s.Add
 	res["remove"] = s.Remove
 	res["current"] = s.Add - s.Remove
-
 	return jsonRes(res)
 }
 
@@ -147,7 +137,6 @@ func MemStats() []byte {
 	res["enable_gc"] = m.EnableGC
 	res["debug_gc"] = m.DebugGC
 	res["by_size"] = m.BySize
-
 	return jsonRes(res)
 }
 
@@ -162,7 +151,6 @@ func GoStats() []byte {
 	res["cgo_call"] = runtime.NumCgoCall()
 	res["goroutine_num"] = runtime.NumGoroutine()
 	res["version"] = runtime.Version()
-
 	return jsonRes(res)
 }
 
@@ -185,7 +173,6 @@ func ServerStats() []byte {
 		res["group"] = usr.Gid
 		res["user"] = usr.Uid
 	}
-
 	return jsonRes(res)
 }
 
@@ -196,7 +183,6 @@ func ConfigInfo() []byte {
 		Log.Error("json.MarshalIndent(\"%v\", \"\", \"    \") failed", Conf)
 		return []byte{}
 	}
-
 	return byteJson
 }
 
@@ -207,7 +193,6 @@ func jsonRes(res map[string]interface{}) []byte {
 		Log.Error("json.MarshalIndent(\"%v\", \"\", \"    \") failed", res)
 		return []byte{}
 	}
-
 	return byteJson
 }
 
@@ -217,10 +202,8 @@ func StatHandle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
-
 	params := r.URL.Query()
 	types := params.Get("type")
-
 	res := []byte{}
 	switch types {
 	case "memory":
@@ -240,7 +223,6 @@ func StatHandle(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Not Found", 404)
 	}
-
 	if _, err := w.Write(res); err != nil {
 		Log.Error("w.Write(\"%s\") failed (%s)", string(res), err.Error())
 	}

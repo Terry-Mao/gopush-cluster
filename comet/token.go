@@ -24,7 +24,7 @@ type Token struct {
 // Token Element
 type TokenData struct {
 	Ticket string
-	Expire int64
+	Expire time.Time
 }
 
 // NewToken create a token struct ptr
@@ -36,16 +36,15 @@ func NewToken() *Token {
 }
 
 // Add add a token
-func (t *Token) Add(ticket string, expire int64) error {
+func (t *Token) Add(ticket string) error {
 	if e, ok := t.token[ticket]; !ok {
 		// new element add to lru back
-		e = t.lru.PushBack(&TokenData{Ticket: ticket, Expire: expire})
+		e = t.lru.PushBack(&TokenData{Ticket: ticket, Expire: time.Now().Add(Conf.TokenExpire)})
 		t.token[ticket] = e
 	} else {
-		Log.Error("add token %s:%d exist", ticket, expire)
+		Log.Error("token \"%s\" exist", ticket)
 		return ErrTokenExist
 	}
-
 	t.clean()
 	return nil
 }
@@ -53,55 +52,39 @@ func (t *Token) Add(ticket string, expire int64) error {
 // Auth auth a token is valid
 func (t *Token) Auth(ticket string) error {
 	if e, ok := t.token[ticket]; !ok {
-		Log.Error("auth token %s not exist", ticket)
+		Log.Error("token \"%s\" not exist", ticket)
 		return ErrTokenNotExist
 	} else {
 		td, _ := e.Value.(*TokenData)
-		if td.Expire < time.Now().UnixNano() {
-			Log.Error("token %s expired", ticket)
-			delete(t.token, td.Ticket)
+		if time.Now().After(td.Expire) {
+			t.clean()
+			Log.Warn("token \"%s\" expired", ticket)
 			return ErrTokenExpired
 		}
+		td.Expire = time.Now().Add(Conf.TokenExpire)
+		t.lru.MoveToBack(e)
 	}
-
 	t.clean()
 	return nil
 }
 
-// Expire set the expired time for the ticket
-func (t *Token) Expire(ticket string, expire int64) error {
-	if e, ok := t.token[ticket]; !ok {
-		Log.Error("expire token %s not exist", ticket)
-		return ErrTokenNotExist
-	} else {
-		// refresh ttl
-		td, _ := e.Value.(*TokenData)
-		td.Expire = expire
-		t.lru.MoveToBack(e)
-	}
-
-	return nil
-}
-
-// expire scan the lru list expire the element
+// clean scan the lru list expire the element
 func (t *Token) clean() {
-	now := time.Now().UnixNano()
+	now := time.Now()
 	e := t.lru.Front()
 	for {
 		if e == nil {
 			break
 		}
-
 		td, _ := e.Value.(*TokenData)
-		if td.Expire < now {
-			Log.Warn("token %s:%d expired", td.Ticket, td.Expire)
+		if now.After(td.Expire) {
+			Log.Warn("token \"%s\" expired", td.Ticket)
 			o := e.Next()
+			delete(t.token, td.Ticket)
 			t.lru.Remove(e)
 			e = o
-			delete(t.token, td.Ticket)
 			continue
-		} else {
-			break
 		}
+		break
 	}
 }

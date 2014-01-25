@@ -6,7 +6,6 @@ import (
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"sync"
-	"time"
 )
 
 var (
@@ -14,68 +13,65 @@ var (
 	ErrMessageGet  = errors.New("Message get failed")
 )
 
-type OuterChannel struct {
+// Sequence Channel struct.
+type SeqChannel struct {
 	// Mutex
 	mutex *sync.Mutex
-	// Client conn
+	// client conn double linked-list
 	conn *list.List
-	// Channel expired unixnano
-	expire int64
+	// TODO Remove time id
+	timeID *TimeID
 	// token
 	token *Token
-	// time id
-	timeID *TimeID
 }
 
-// New a user outer stored message channel.
-func NewOuterChannel() *OuterChannel {
-	var t *Token
-
-	if Conf.Auth == 1 {
-		t = NewToken()
-	} else {
-		t = nil
-	}
-
-	return &OuterChannel{
+// New a user seq stored message channel.
+func NewSeqChannel() *SeqChannel {
+	ch := &SeqChannel{
 		mutex:  &sync.Mutex{},
 		conn:   list.New(),
-		expire: time.Now().UnixNano() + Conf.ChannelExpireSec*Second,
 		timeID: NewTimeID(),
-		token:  t,
+		token:  nil,
 	}
+	if Conf.Auth {
+		ch.token = NewToken()
+	}
+	return ch
 }
 
 // AddToken implements the Channel AddToken method.
-func (c *OuterChannel) AddToken(token string, expire int64, key string) error {
+func (c *SeqChannel) AddToken(key, token string) error {
+	if !Conf.Auth {
+		return nil
+	}
 	c.mutex.Lock()
-	if err := c.token.Add(token, expire); err != nil {
-		Log.Error("user_key:\"%s\" add token failed (%s)", key, err.Error())
+	if err := c.token.Add(token); err != nil {
 		c.mutex.Unlock()
+		Log.Error("user_key:\"%s\" c.token.Add(\"%s\") failed (%s)", key, token, err.Error())
 		return err
 	}
-
 	c.mutex.Unlock()
 	return nil
 }
 
 // AuthToken implements the Channel AuthToken method.
-func (c *OuterChannel) AuthToken(token string, key string) error {
+func (c *SeqChannel) AuthToken(key, token string) bool {
+	if !Conf.Auth {
+		return true
+	}
 	c.mutex.Lock()
 	if err := c.token.Auth(token); err != nil {
-		Log.Error("user_key:\"%s\" auth token failed (%s)", key, err.Error())
 		c.mutex.Unlock()
-		return err
+		Log.Error("user_key:\"%s\" c.token.Auth(\"%s\") failed (%s)", key, token, err.Error())
+		return false
 	}
-
 	c.mutex.Unlock()
-	return nil
+	return true
 }
 
 // PushMsg implements the Channel PushMsg method.
-func (c *OuterChannel) PushMsg(m *Message, key string) error {
+func (c *SeqChannel) PushMsg(m *Message, key string) error {
 	c.mutex.Lock()
-	defer c.mutex.Unlock()
 	// private message need persistence
 	if m.GroupID != myrpc.PublicGroupID {
 		// rewrite message id
@@ -84,11 +80,13 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 		args := &myrpc.MessageSaveArgs{MsgID: m.MsgID, Msg: m.Msg, Expire: m.Expire, Key: key}
 		reply := retOK
 		if err := MsgRPC.Call("MessageRPC.Save", args, &reply); err != nil {
+			c.mutex.Unlock()
 			Log.Error("MessageRPC.Save failed (%s)", err.Error())
 			return err
 		}
-
+		// message save failed
 		if reply != retOK {
+			c.mutex.Unlock()
 			Log.Error("MessageRPC.Save failed (ret=%d)", reply)
 			return ErrMessageSave
 		}
@@ -96,6 +94,7 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 	// send message to each conn when message id > conn last message id
 	b, err := m.Bytes()
 	if err != nil {
+		c.mutex.Unlock()
 		Log.Error("message.Bytes() failed (%s)", err.Error())
 		return err
 	}
@@ -107,52 +106,41 @@ func (c *OuterChannel) PushMsg(m *Message, key string) error {
 			Log.Error("conn.Write() failed (%s)", err.Error())
 			continue
 		} else {
-			Log.Debug("PushMsg conn.Write %d bytes (%v)", n, b)
+			Log.Debug("conn.Write %d bytes (%v)", n, b)
 		}
-
 		Log.Info("user_key:\"%s\" push message \"%s\":%d", key, m.Msg, m.MsgID)
 	}
-
+	c.mutex.Unlock()
 	return nil
 }
 
 // AddConn implements the Channel AddConn method.
-func (c *OuterChannel) AddConn(conn net.Conn, key string) (*list.Element, error) {
+func (c *SeqChannel) AddConn(conn net.Conn, key string) (*list.Element, error) {
 	c.mutex.Lock()
-	if c.conn.Len()+1 > Conf.MaxSubscriberPerKey {
+	if c.conn.Len()+1 > Conf.MaxSubscriberPerChannel {
+		c.mutex.Unlock()
 		Log.Error("user_key:\"%s\" exceed conn", key)
 		return nil, ErrMaxConn
 	}
-
 	e := c.conn.PushBack(conn)
 	c.mutex.Unlock()
-	Log.Debug("user_key:\"%s\" add conn", key)
 	ConnStat.IncrAdd()
+	Log.Debug("user_key:\"%s\" add conn", key)
 	return e, nil
 }
 
 // RemoveConn implements the Channel RemoveConn method.
-func (c *OuterChannel) RemoveConn(e *list.Element, key string) error {
+func (c *SeqChannel) RemoveConn(e *list.Element, key string) error {
 	c.mutex.Lock()
 	c.conn.Remove(e)
 	c.mutex.Unlock()
-	Log.Debug("user_key:\"%s\" remove conn", key)
 	ConnStat.IncrRemove()
+	Log.Debug("user_key:\"%s\" remove conn", key)
 	return nil
 }
 
-// SetDeadline implements the Channel SetDeadline method.
-func (c *OuterChannel) SetDeadline(d int64) {
-	c.expire = d
-}
-
-// Timeout implements the Channel Timeout method.
-func (c *OuterChannel) Timeout() bool {
-	return time.Now().UnixNano() > c.expire
-}
-
 // Close implements the Channel Close method.
-func (c *OuterChannel) Close() error {
+func (c *SeqChannel) Close() error {
 	c.mutex.Lock()
 	for e := c.conn.Front(); e != nil; e = e.Next() {
 		conn, _ := e.Value.(net.Conn)
@@ -161,7 +149,6 @@ func (c *OuterChannel) Close() error {
 			Log.Warn("conn.Close() failed (%s)", err.Error())
 		}
 	}
-
 	c.mutex.Unlock()
 	return nil
 }

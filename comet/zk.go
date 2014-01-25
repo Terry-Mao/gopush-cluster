@@ -2,9 +2,9 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"launchpad.net/gozk/zookeeper"
 	"strings"
-	"time"
 )
 
 var (
@@ -15,12 +15,11 @@ type ZK struct {
 	conn *zookeeper.Conn
 }
 
-func NewZookeeper(addr string, timeout int) (*ZK, error) {
-	zk, session, err := zookeeper.Dial(addr, time.Duration(timeout)*1e9)
+func newZookeeper() (*ZK, error) {
+	zk, session, err := zookeeper.Dial(Conf.ZookeeperAddr, Conf.ZookeeperTimeout)
 	if err != nil {
 		return nil, err
 	}
-
 	go func() {
 		for {
 			event := <-session
@@ -33,15 +32,14 @@ func NewZookeeper(addr string, timeout int) (*ZK, error) {
 			}
 		}
 	}()
-
 	return &ZK{conn: zk}, nil
 }
 
 // Create the persistence node in zookeeper
-func (zk *ZK) Create(path string, node string) error {
+func (zk *ZK) create() error {
 	// create zk root path
 	tpath := ""
-	for _, str := range strings.Split(path, "/")[1:] {
+	for _, str := range strings.Split(Conf.ZookeeperPath, "/")[1:] {
 		tpath += "/" + str
 		Log.Debug("create zookeeper path:%s", tpath)
 		_, err := zk.conn.Create(tpath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
@@ -54,9 +52,8 @@ func (zk *ZK) Create(path string, node string) error {
 			}
 		}
 	}
-
 	// create node path
-	fpath := path + "/" + node
+	fpath := fmt.Sprintf("%s/%s", Conf.ZookeeperPath, Conf.ZookeeperNode)
 	Log.Debug("create zookeeper path:%s", fpath)
 	_, err := zk.conn.Create(fpath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
 	if err != nil {
@@ -67,19 +64,17 @@ func (zk *ZK) Create(path string, node string) error {
 			return err
 		}
 	}
-
 	return nil
 }
 
-// Register register a node in zookeeper, when comet exit the node will remove
-func (zk *ZK) Register(path string, node string, val string) error {
-	fpath := path + "/" + node + "/"
-	tpath, err := zk.conn.Create(fpath, val, zookeeper.EPHEMERAL|zookeeper.SEQUENCE, zookeeper.WorldACL(zookeeper.PERM_ALL))
+// register register a node in zookeeper, when comet exit the node will remove
+func (zk *ZK) register() error {
+	fpath := fmt.Sprintf("%s/%s/", Conf.ZookeeperPath, Conf.ZookeeperNode)
+	tpath, err := zk.conn.Create(fpath, Conf.ZookeeperData, zookeeper.EPHEMERAL|zookeeper.SEQUENCE, zookeeper.WorldACL(zookeeper.PERM_ALL))
 	if err != nil {
-		Log.Error("zk.Create(\"%s\", \"%s\", zookeeper.EPHEMERAL|zookeeper.SEQUENCE) failed (%s)", path, val, err.Error())
+		Log.Error("zk.Create(\"%s\", \"%s\", zookeeper.EPHEMERAL|zookeeper.SEQUENCE) failed (%s)", fpath, Conf.ZookeeperData, err.Error())
 		return err
 	}
-
 	Log.Debug("create a zookeeper node:%s", tpath)
 	return nil
 }
@@ -88,29 +83,23 @@ func (zk *ZK) Close() error {
 	return zk.conn.Close()
 }
 
-// InitZookeeper init the zk path and register node in zk
+// InitZookeeper init the node path and register node in zookeeper.
 func InitZookeeper() (*ZK, error) {
 	// create a zk conn
-	zk, err := NewZookeeper(Conf.ZookeeperAddr, Conf.ZookeeperTimeout)
+	zk, err := newZookeeper()
 	if err != nil {
-		Log.Error("NewZookeeper() failed (%s)", err.Error())
+		Log.Error("newZookeeper() failed (%s)", err.Error())
 		return nil, err
 	}
-
 	// init zk path
-	Log.Info("init zookeeper root path and node path")
-	if err = zk.Create(Conf.ZookeeperPath, Conf.Node); err != nil {
-		Log.Error("zk.Create(\"%s\") failed (%s)", Conf.ZookeeperPath, err.Error())
+	if err = zk.create(); err != nil {
+		Log.Error("zk.Create() failed (%s)", err.Error())
 		return nil, err
 	}
-
 	// register zk node, dns,adminaddr
-	data := Conf.DNS + "," + Conf.AdminAddr
-	Log.Info("register %s:%s in zookeeper:%s", Conf.Node, data, Conf.ZookeeperPath)
-	if err = zk.Register(Conf.ZookeeperPath, Conf.Node, data); err != nil {
-		Log.Error("zk.Register(\"%s\", \"%s\") failed (%s)", Conf.ZookeeperPath, Conf.DNS, err.Error())
+	if err = zk.register(); err != nil {
+		Log.Error("zk.register() failed (%s)", err.Error())
 		return nil, err
 	}
-
 	return zk, nil
 }

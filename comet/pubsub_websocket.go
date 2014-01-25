@@ -4,13 +4,10 @@ import (
 	"code.google.com/p/go.net/websocket"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"time"
-)
-
-var (
-	// websocket heartbeat
-	websocketHeartbeatReply = []byte(Heartbeat)
 )
 
 type KeepAliveListener struct {
@@ -23,7 +20,6 @@ func (l *KeepAliveListener) Accept() (c net.Conn, err error) {
 		Log.Error("Listener.Accept() failed (%s)", err.Error())
 		return
 	}
-
 	// set keepalive
 	if tc, ok := c.(*net.TCPConn); !ok {
 		Log.Crit("net.TCPConn assection type failed")
@@ -35,37 +31,37 @@ func (l *KeepAliveListener) Accept() (c net.Conn, err error) {
 			return
 		}
 	}
-
 	return
 }
 
-func StartHttp() error {
-	// set sub handler
-	http.Handle("/sub", websocket.Handler(SubscribeHandle))
-	if Conf.Debug == 1 {
-		//http.HandleFunc("/client", Client)
+// StartHttp start http listen.
+func StartHttp() {
+	for _, bind := range strings.Split(Conf.WebsocketBind, ",") {
+		Log.Info("start http listen addr:\"%s\"", bind)
+		go httpListen(bind)
 	}
+}
 
-	if Conf.TCPKeepAlive == 1 {
-		server := &http.Server{}
-		l, err := net.Listen("tcp", Conf.Addr)
+func httpListen(bind string) {
+	httpServeMux := http.NewServeMux()
+	httpServeMux.Handle("/sub", websocket.Handler(SubscribeHandle))
+	if Conf.TCPKeepalive {
+		server := &http.Server{Handler: httpServeMux}
+		l, err := net.Listen("tcp", bind)
 		if err != nil {
-			Log.Error("net.Listen(\"tcp\", \"%s\") failed (%s)", Conf.Addr, err.Error())
-			return err
+			Log.Error("net.Listen(\"tcp\", \"%s\") failed (%s)", bind, err.Error())
+			os.Exit(-1)
 		}
-
-		Log.Info("start listen addr:%s", Conf.Addr)
-		return server.Serve(&KeepAliveListener{Listener: l})
+		if err := server.Serve(&KeepAliveListener{Listener: l}); err != nil {
+			Log.Error("server.Serve(\"%s\") failed (%s)", bind, err.Error())
+			os.Exit(-1)
+		}
 	} else {
-		Log.Info("start listen addr:%s", Conf.Addr)
-		if err := http.ListenAndServe(Conf.Addr, nil); err != nil {
-			Log.Error("http.ListenAdServe(\"%s\") failed (%s)", Conf.Addr, err.Error())
-			return err
+		if err := http.ListenAndServe(bind, httpServeMux); err != nil {
+			Log.Error("http.ListenAdServe(\"%s\") failed (%s)", bind, err.Error())
+			os.Exit(-1)
 		}
 	}
-
-	// nerve here
-	return nil
 }
 
 // Subscriber Handle is the websocket handle for sub request.
@@ -74,63 +70,53 @@ func SubscribeHandle(ws *websocket.Conn) {
 	// get subscriber key
 	key := params.Get("key")
 	if key == "" {
+		ws.Write(ParamReply)
 		Log.Warn("client:%s key param error", ws.Request().RemoteAddr)
 		return
 	}
-
 	// get heartbeat second
-	heartbeat := Conf.HeartbeatSec
 	heartbeatStr := params.Get("heartbeat")
-	if heartbeatStr != "" {
-		i, err := strconv.Atoi(heartbeatStr)
-		if err != nil {
-			Log.Error("user_key:\"%s\" heartbeat argument error (%s)", key, err.Error())
-			return
-		}
-
-		heartbeat = i
+	i, err := strconv.Atoi(heartbeatStr)
+	if err != nil {
+		ws.Write(ParamReply)
+		Log.Error("user_key:\"%s\" heartbeat argument error (%s)", key, err.Error())
+		return
 	}
-
-	heartbeat *= 2
-	if heartbeat <= 0 {
+	heartbeat := i * 2
+	if heartbeat <= minHearbeatSec {
+		ws.Write(ParamReply)
 		Log.Error("user_key \"%s\" heartbeat argument error, less than 0", key)
 		return
 	}
-
 	token := params.Get("token")
 	Log.Info("client:%s subscribe to key = %s, heartbeat = %d, token = %s", ws.Request().RemoteAddr, key, heartbeat, token)
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key)
 	if err != nil {
+		ws.Write(ChannelReply)
 		Log.Error("user_key:\"%s\" can't get a channel (%s)", key, err.Error())
 		return
 	}
-
 	// auth token
-	if Conf.Auth == 1 {
-		if err = c.AuthToken(token, key); err != nil {
-			Log.Error("user_key:\"%s\" auth token failed (%s)", key, err.Error())
-			return
-		}
+	if ok := c.AuthToken(key, token); !ok {
+		ws.Write(AuthReply)
+		Log.Error("user_key:\"%s\" auth token \"%s\" failed", key, token)
+		return
 	}
-
 	// add a conn to the channel
 	connElem, err := c.AddConn(ws, key)
 	if err != nil {
 		Log.Error("user_key:\"%s\" add conn failed (%s)", key, err.Error())
 		return
 	}
-
 	// send first heartbeat to tell client service is ready for accept heartbeat
-	if _, err = ws.Write(websocketHeartbeatReply); err != nil {
+	if _, err = ws.Write(HeartbeatReply); err != nil {
 		Log.Error("user_key:\"%s\" write first heartbeat to client failed (%s)", key, err.Error())
 		if err := c.RemoveConn(connElem, key); err != nil {
 			Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err.Error())
 		}
-
 		return
 	}
-
 	// blocking wait client heartbeat
 	reply := ""
 	begin := time.Now().UnixNano()
@@ -142,34 +128,27 @@ func SubscribeHandle(ws *websocket.Conn) {
 				Log.Error("user_key:\"%s\" websocket.SetReadDeadline() failed (%s)", key, err.Error())
 				break
 			}
-
 			begin = end
 		}
-
 		if err = websocket.Message.Receive(ws, &reply); err != nil {
 			Log.Error("user_key:\"%s\" websocket.Message.Receive() failed (%s)", key, err.Error())
 			break
 		}
-
 		if reply == Heartbeat {
-			if _, err = ws.Write(websocketHeartbeatReply); err != nil {
+			if _, err = ws.Write(HeartbeatReply); err != nil {
 				Log.Error("user_key:\"%s\" write heartbeat to client failed (%s)", key, err.Error())
 				break
 			}
-
 			Log.Debug("user_key:\"%s\" receive heartbeat", key)
 		} else {
 			Log.Warn("user_key:\"%s\" unknown heartbeat protocol", key)
 			break
 		}
-
 		end = time.Now().UnixNano()
 	}
-
 	// remove exists conn
 	if err := c.RemoveConn(connElem, key); err != nil {
 		Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err.Error())
 	}
-
 	return
 }

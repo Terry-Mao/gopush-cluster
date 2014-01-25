@@ -23,6 +23,5 @@ func (t *TimeID) ID() int64 {
 			return s
 		}
 	}
-
 	return 0
 }

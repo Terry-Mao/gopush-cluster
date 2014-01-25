@@ -1,99 +1,246 @@
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"github.com/Terry-Mao/goconf"
 	"github.com/Terry-Mao/gopush-cluster/log"
-	"io/ioutil"
 	"runtime"
-	"strings"
+	"time"
 )
 
 var (
-	Conf     *Config
-	ConfFile string
+	Conf               *Config
+	ConfFile           string
+	ErrNoConfigSection = errors.New("no config section")
 )
 
 func init() {
-	flag.StringVar(&ConfFile, "c", "./gopush2.conf", " set gopush2 config file path")
+	flag.StringVar(&ConfFile, "c", "./comet.conf", " set gopush-cluster comet config file path")
 }
 
 type Config struct {
-	Node                string `json:"node"`
-	DNS                 string `json:"dns"`
-	Addr                string `json:"addr"`
-	AdminAddr           string `json:"admin_addr"`
-	PprofAddr           string `json:"pprof_addr"`
-	RPCAddr             string `json:"rpc_addr"`
-	RPCHeartbeatSec     int    `json:"rpc_heartbeat_sec"`
-	RPCRetrySec         int    `json:"rpc_retry_sec"`
-	ZookeeperAddr       string `json:"zookeeper_addr"`
-	ZookeeperTimeout    int    `json:"zookeeper_timeout"`
-	ZookeeperPath       string `json:"zookeeper_path"`
-	Log                 string `json:"log"`
-	LogLevel            int    `json:"log_level"`
-	MaxProcs            int    `json:"max_procs"`
-	TCPKeepAlive        int    `json:"tcp_keepalive"`
-	HeartbeatSec        int    `json:"heartbeat_sec"`
-	MessageExpireSec    int64  `json:"message_expire_sec"`
-	ChannelExpireSec    int64  `json:"channel_expire_sec"`
-	MaxStoredMessage    int    `json:"max_stored_message"`
-	MaxSubscriberPerKey int    `json:"max_subscriber_per_key"`
-	ChannelBucket       int    `json:"channel_bucket"`
-	ReadBufInstance     int    `json:"read_buf_instance"`
-	ReadBufNumPerInst   int    `json:"read_buf_num_per_inst"`
-	ReadBufByte         int    `json:"read_buf_byte"`
-	WriteBufByte        int    `json:"write_buf_byte"`
-	Protocol            int    `json:"protocol"`
-	Debug               int    `json:"debug"`
-	Auth                int    `json:"auth"`
+	// base
+	User          string
+	PidFile       string
+	Dir           string
+	MaxProc       int
+	LogFile       string
+	LogLevel      string
+	TCPBind       string
+	WebsocketBind string
+	AdminBind     string
+	PprofBind     string
+	// zookeeper
+	ZookeeperAddr    string
+	ZookeeperTimeout time.Duration
+	ZookeeperPath    string
+	ZookeeperData    string
+	ZookeeperNode    string
+	// channel
+	SndbufSize              int
+	RcvbufSize              int
+	Proto                   string
+	BufioInstance           int
+	BufioNum                int
+	TCPKeepalive            bool
+	MaxSubscriberPerChannel int
+	ChannelBucket           int
+	Auth                    bool
+	TokenExpire             time.Duration
+	// rpc
+	RPCMessageAddr string
+	RPCHeartbeat   time.Duration
+	RPCRetry       time.Duration
 }
 
-// NewConfig get a config struct.
-func NewConfig(file string) (*Config, error) {
-	c, err := ioutil.ReadFile(file)
-	if err != nil {
-		fmt.Printf("ioutil.ReadFile(\"%s\") failed (%s)", file, err.Error())
-		return nil, err
-	}
-
+// InitConfig get a new Config struct.
+func InitConfig(file string) (*Config, error) {
 	cf := &Config{
-		Node:                "node1",
-		DNS:                 "localhost",
-		Addr:                "localhost:8080",
-		AdminAddr:           "localhost:8081",
-		PprofAddr:           "localhost:8082",
-		ZookeeperAddr:       "localhost:2181",
-		RPCAddr:             "localhost:8083",
-		RPCHeartbeatSec:     1,
-		RPCRetrySec:         3,
-		ZookeeperTimeout:    28800,
-		ZookeeperPath:       "/gopush-cluster",
-		Log:                 "./gopush.log",
-		LogLevel:            0,
-		MaxProcs:            runtime.NumCPU(),
-		TCPKeepAlive:        1,
-		HeartbeatSec:        30,
-		MessageExpireSec:    10800,  // 3 hour
-		ChannelExpireSec:    604800, // 24 * 7 hour
-		MaxStoredMessage:    20,
-		MaxSubscriberPerKey: 0, // no limit
-		ChannelBucket:       16,
-		ReadBufInstance:     runtime.NumCPU(),
-		ReadBufNumPerInst:   1024,
-		ReadBufByte:         512,
-		WriteBufByte:        512,
-		Protocol:            0,
-		Debug:               0,
-		Auth:                1,
+		User:                    "nobody nobody",
+		PidFile:                 "/var/run/gopush-cluster-comet.pid",
+		Dir:                     "./",
+		MaxProc:                 runtime.NumCPU(),
+		LogFile:                 "./comet.log",
+		LogLevel:                "ERROR",
+		WebsocketBind:           "localhost:6968",
+		TCPBind:                 "localhost:6969",
+		AdminBind:               "localhost:6970",
+		PprofBind:               "localhost:6971",
+		ZookeeperAddr:           "localhost:2181",
+		ZookeeperTimeout:        8 * time.Hour,
+		ZookeeperPath:           "/gopush-cluster",
+		ZookeeperData:           "ws://localhost:6968,tcp://localhost:6969",
+		ZookeeperNode:           "node1",
+		SndbufSize:              2048,
+		RcvbufSize:              256,
+		Proto:                   "tcp",
+		BufioInstance:           runtime.NumCPU(),
+		BufioNum:                128,
+		TCPKeepalive:            false,
+		TokenExpire:             30 * 24 * time.Hour,
+		MaxSubscriberPerChannel: 64,
+		ChannelBucket:           runtime.NumCPU(),
+		Auth:                    false,
+		RPCMessageAddr:          "localhost:6972",
+		RPCHeartbeat:            1 * time.Second,
+		RPCRetry:                1 * time.Second,
 	}
-
-	if err = json.Unmarshal(c, cf); err != nil {
-		log.DefaultLogger.Error("json.Unmarshal() failed (%s), config json: \"%s\"", err.Error(), string(c))
+	c := goconf.New()
+	if err := c.Parse(file); err != nil {
+		log.DefaultLogger.Error("goconf.Parse(\"%s\") failed (%s)", file, err.Error())
 		return nil, err
 	}
-
-	cf.ZookeeperPath = strings.TrimRight(cf.ZookeeperPath, "/")
+	// base section
+	baseSection := c.Get("base")
+	if baseSection == nil {
+		return nil, ErrNoConfigSection
+	}
+	if err := setConfigDefString(baseSection, "user", &cf.User); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefString(baseSection, "pidfile", &cf.PidFile); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefString(baseSection, "dir", &cf.Dir); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefInt(baseSection, "maxproc", &cf.MaxProc); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefString(baseSection, "logfile", &cf.LogFile); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefString(baseSection, "loglevel", &cf.LogLevel); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefString(baseSection, "tcp.bind", &cf.TCPBind); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefString(baseSection, "websocket.bind", &cf.WebsocketBind); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefString(baseSection, "pprof.bind", &cf.PprofBind); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefString(baseSection, "admin.bind", &cf.AdminBind); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefString(baseSection, "rpc.message.addr", &cf.RPCMessageAddr); err != nil {
+		return nil, err
+	}
+	// zookeeper section
+	zkSection := c.Get("zookeeper")
+	if zkSection == nil {
+		return nil, ErrNoConfigSection
+	}
+	if err := setConfigDefString(zkSection, "addr", &cf.ZookeeperAddr); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefDuration(zkSection, "timeout", &cf.ZookeeperTimeout); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefString(zkSection, "path", &cf.ZookeeperPath); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefString(zkSection, "data", &cf.ZookeeperData); err != nil {
+		return nil, err
+	}
+	cf.ZookeeperData = fmt.Sprintf("%s,%s", cf.ZookeeperData, cf.AdminBind)
+	if err := setConfigDefString(zkSection, "node", &cf.ZookeeperNode); err != nil {
+		return nil, err
+	}
+	// channel section
+	chSection := c.Get("channel")
+	if chSection == nil {
+		return nil, ErrNoConfigSection
+	}
+	if err := setConfigDefBool(chSection, "tcp.keepalive", &cf.TCPKeepalive); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefInt(chSection, "sndbuf.size", &cf.SndbufSize); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefInt(chSection, "rcvbuf.size", &cf.RcvbufSize); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefString(chSection, "proto", &cf.Proto); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefInt(chSection, "bufio.instance", &cf.BufioInstance); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefInt(chSection, "bufio.num", &cf.BufioNum); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefInt(chSection, "maxsubscriber", &cf.MaxSubscriberPerChannel); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefInt(chSection, "bucket", &cf.ChannelBucket); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefBool(chSection, "auth", &cf.Auth); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefDuration(chSection, "token.expire", &cf.TokenExpire); err != nil {
+		return nil, err
+	}
 	return cf, nil
+}
+
+func setConfigDefInt(s *goconf.Section, key string, val *int) error {
+	if tmp, err := s.Int(key); err != nil {
+		if err == goconf.ErrNoKey {
+			log.DefaultLogger.Warn("%s directive:\"%s\" not set, use default:\"%d\"", s.Name, key, *val)
+		} else {
+			log.DefaultLogger.Error("%s.Int(\"%s\") failed (%s)", s.Name, key, err.Error())
+			return err
+		}
+	} else {
+		*val = int(tmp)
+	}
+	return nil
+}
+
+func setConfigDefDuration(s *goconf.Section, key string, val *time.Duration) error {
+	if tmp, err := s.Duration(key); err != nil {
+		if err == goconf.ErrNoKey {
+			log.DefaultLogger.Warn("%s directive:\"%s\" not set, use default:\"%d\"", s.Name, key, *val)
+		} else {
+			log.DefaultLogger.Error("%s.Duration(\"%s\") failed (%s)", s.Name, key, err.Error())
+			return err
+		}
+	} else {
+		*val = tmp
+	}
+	return nil
+}
+
+func setConfigDefString(s *goconf.Section, key string, val *string) error {
+	if tmp, err := s.String(key); err != nil {
+		if err == goconf.ErrNoKey {
+			log.DefaultLogger.Warn("%s directive:\"%s\" not set, use default:\"%s\"", s.Name, key, *val)
+		} else {
+			log.DefaultLogger.Error("%s.String(\"%s\") failed (%s)", s.Name, key, err.Error())
+			return err
+		}
+	} else {
+		*val = tmp
+	}
+	return nil
+}
+
+func setConfigDefBool(s *goconf.Section, key string, val *bool) error {
+	if tmp, err := s.Bool(key); err != nil {
+		if err == goconf.ErrNoKey {
+			log.DefaultLogger.Warn("%s directive:\"%s\" not set, use default:\"%s\"", s.Name, key, *val)
+		} else {
+			log.DefaultLogger.Error("%s.Bool(\"%s\") failed (%s)", s.Name, key, err.Error())
+			return err
+		}
+	} else {
+		*val = tmp
+	}
+	return nil
 }

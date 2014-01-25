@@ -43,17 +43,21 @@ var (
    each generated log line. The file argument defines the write log file path.
    if any error the os.Stdout will return
 */
-func New(file string, level int) (*Logger, error) {
+func New(file string, levelStr string) (*Logger, error) {
+    level := defaultLogLevel
+    for lv, str := range errLevels {
+        if str == levelStr {
+            level = lv
+        }
+    }
 	if file != "" {
 		f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			return DefaultLogger, err
 		}
-
 		logger := log.New(f, "", log.LstdFlags)
 		return &Logger{log: logger, file: f, level: level}, nil
 	}
-
 	return DefaultLogger, nil
 }
 
@@ -62,7 +66,6 @@ func (l *Logger) Close() error {
 	if l.file != nil {
 		return l.file.Close()
 	}
-
 	return nil
 }
 
@@ -87,14 +90,14 @@ func (l *Logger) Info(format string, args ...interface{}) {
 	}
 }
 
-// Warn use the argument level write data
+// Warn use the Warn level write data
 func (l *Logger) Warn(format string, args ...interface{}) {
 	if l.level >= Warn {
 		l.logCore(Warn, format, args...)
 	}
 }
 
-// Crit use the argument level write data
+// Crit use the Crit level write data
 func (l *Logger) Crit(format string, args ...interface{}) {
 	if l.level >= Crit {
 		l.logCore(Crit, format, args...)
@@ -108,13 +111,11 @@ func (l *Logger) logCore(level int, format string, args ...interface{}) {
 		line int
 		ok   bool
 	)
-
 	_, file, line, ok = runtime.Caller(2)
 	if !ok {
 		file = "???"
 		line = 0
 	}
-
 	short := file
 	for i := len(file) - 1; i > 0; i-- {
 		if file[i] == '/' {
@@ -122,7 +123,6 @@ func (l *Logger) logCore(level int, format string, args ...interface{}) {
 			break
 		}
 	}
-
 	file = short
 	l.log.Print(fmt.Sprintf("%s:%d [%s] %s", file, line, errLevels[level], fmt.Sprintf(format, args...)))
 }

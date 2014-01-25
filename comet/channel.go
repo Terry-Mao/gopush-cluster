@@ -6,18 +6,10 @@ import (
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	"net"
 	"sync"
-	"time"
-)
-
-const (
-	Second           = int64(time.Second)
-	InnerChannelType = 1
-	OuterChannelType = 2
 )
 
 var (
 	ErrChannelNotExist = errors.New("Channle not exist")
-	ErrChannelExpired  = errors.New("Channel expired")
 )
 
 var (
@@ -30,18 +22,15 @@ type Channel interface {
 	PushMsg(m *Message, key string) error
 	// Add a token for one subscriber
 	// The request token not equal the subscriber token will return errors.
-	AddToken(token string, expire int64, key string) error
+	AddToken(key, token string) error
 	// Auth auth the access token.
 	// The request token not match the subscriber token will return errors.
-	AuthToken(token string, key string) error
+	AuthToken(key, token string) bool
 	// AddConn add a connection for the subscriber.
 	// Exceed the max number of subscribers per key will return errors.
 	AddConn(conn net.Conn, key string) (*list.Element, error)
 	// RemoveConn remove a connection for the  subscriber.
 	RemoveConn(e *list.Element, key string) error
-	// SetDeadline set the channel deadline unixnano.
-	SetDeadline(d int64)
-	Timeout() bool
 	// Expire expire the channle and clean data.
 	Close() error
 }
@@ -77,10 +66,8 @@ func NewChannelList() *ChannelList {
 			Data:  map[string]Channel{},
 			mutex: &sync.Mutex{},
 		}
-
 		l.Channels = append(l.Channels, c)
 	}
-
 	return l
 }
 
@@ -90,7 +77,6 @@ func (l *ChannelList) Count() int {
 	for i := 0; i < Conf.ChannelBucket; i++ {
 		c += len(l.Channels[i].Data)
 	}
-
 	return c
 }
 
@@ -108,19 +94,17 @@ func (l *ChannelList) New(key string) (Channel, error) {
 	// get a channel bucket
 	b := l.bucket(key)
 	b.Lock()
-	defer b.Unlock()
-
 	if c, ok := b.Data[key]; ok {
-		// refresh the expire time
-		Log.Debug("user_key:\"%s\" refresh channel bucket expire time", key)
-		c.SetDeadline(time.Now().UnixNano() + Conf.ChannelExpireSec*Second)
+		b.Unlock()
 		ChStat.IncrAccess()
+		Log.Info("user_key:\"%s\" refresh channel bucket expire time", key)
 		return c, nil
 	} else {
-		Log.Debug("user_key:\"%s\" create a new channel", key)
-		c = NewOuterChannel()
-		ChStat.IncrCreate()
+		c = NewSeqChannel()
 		b.Data[key] = c
+		b.Unlock()
+		ChStat.IncrCreate()
+		Log.Info("user_key:\"%s\" create a new channel", key)
 		return c, nil
 	}
 }
@@ -130,37 +114,23 @@ func (l *ChannelList) Get(key string) (Channel, error) {
 	// get a channel bucket
 	b := l.bucket(key)
 	b.Lock()
-	defer b.Unlock()
-
 	if c, ok := b.Data[key]; !ok {
-		if Conf.Auth == 0 {
-			Log.Debug("user_key:\"%s\" create a new channel", key)
-			c = NewOuterChannel()
-			c.SetDeadline(time.Now().UnixNano() + Conf.ChannelExpireSec*Second)
-			ChStat.IncrCreate()
+		if !Conf.Auth {
+			c = NewSeqChannel()
 			b.Data[key] = c
+			b.Unlock()
+			ChStat.IncrCreate()
+			Log.Info("user_key:\"%s\" create a new channel", key)
 			return c, nil
+		} else {
+			b.Unlock()
+			Log.Warn("user_key:\"%s\" channle not exists", key)
+			return nil, ErrChannelNotExist
 		}
-
-		Log.Warn("user_key:\"%s\" channle not exists", key)
-		return nil, ErrChannelNotExist
 	} else {
-		// check expired
-		if c.Timeout() {
-			Log.Warn("user_key:\"%s\" channle expired", key)
-			delete(b.Data, key)
-			if err := c.Close(); err != nil {
-				Log.Error("user_key:\"%s\" channel close failed (%s)", key, err.Error())
-				return nil, err
-			}
-
-			ChStat.IncrExpire()
-			return nil, ErrChannelExpired
-		}
-
-		Log.Debug("user_key:\"%s\" refresh channel bucket expire time", key)
-		c.SetDeadline(time.Now().UnixNano() + Conf.ChannelExpireSec*Second)
+		b.Unlock()
 		ChStat.IncrAccess()
+		Log.Info("user_key:\"%s\" refresh channel bucket expire time", key)
 		return c, nil
 	}
 }
@@ -170,16 +140,15 @@ func (l *ChannelList) Delete(key string) (Channel, error) {
 	// get a channel bucket
 	b := l.bucket(key)
 	b.Lock()
-
 	if c, ok := b.Data[key]; !ok {
-		Log.Warn("user_key:\"%s\" channle not exists", key)
 		b.Unlock()
+		Log.Warn("user_key:\"%s\" channle not exists", key)
 		return nil, ErrChannelNotExist
 	} else {
-		Log.Info("user_key:\"%s\" delete channel", key)
 		delete(b.Data, key)
-		ChStat.IncrDelete()
 		b.Unlock()
+		ChStat.IncrDelete()
+		Log.Info("user_key:\"%s\" delete channel", key)
 		return c, nil
 	}
 }
