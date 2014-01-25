@@ -8,10 +8,11 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 )
 
-// AdminPush handle for push message
-func AdminPush(rw http.ResponseWriter, r *http.Request) {
+// AdminPush handle for push private message
+func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 	var (
 		ret    = InternalErr
 		result = make(map[string]interface{})
@@ -30,7 +31,83 @@ func AdminPush(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(date))
 
-		Log.Info("request:push, quest_url:%s, ret:%d", r.URL.String(), ret)
+		Log.Info("request:push_private, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+	}()
+
+	// Get params
+	param := r.URL.Query()
+	key := param.Get("key")
+	if key == "" {
+		ret = ParamErr
+		return
+	}
+
+	groupID, err := strconv.Atoi(param.Get("gid"))
+	if err != nil {
+		ret = ParamErr
+		return
+	}
+
+	mid, err := strconv.ParseInt(param.Get("mid"), 10, 64)
+	if err != nil {
+		ret = ParamErr
+		return
+	}
+
+	expire, err := strconv.ParseInt(param.Get("expire"), 10, 64)
+	if err != nil {
+		ret = ParamErr
+		return
+	}
+
+	// Get message
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		Log.Error("ioutil.ReadAll() quest_url:\"%s\" error(%v)", r.URL.String(), err)
+		ret = InternalErr
+		return
+	}
+
+	// Match a push-server with the value computed through ketama algorithm
+	svrInfo := GetNode(CometHash.Node(key))
+	if svrInfo == nil {
+		Log.Debug("no node:\"%s\"", CometHash.Node(key))
+		ret = NoNodeErr
+		return
+	}
+
+	// RPC call publish interface
+	args := &myrpc.ChannelPushPrivateArgs{GroupID: groupID, MsgID: mid, Msg: string(body), Expire: expire, Key: key}
+	if err := svrInfo.PubRPC.Call("ChannelRPC.PushPrivate", args, &ret); err != nil {
+		Log.Error("RPC.Call(\"ChannelRPC.PushPrivate\") server:\"%v\" error(%v)", svrInfo.SubAddr, err)
+		ret = InternalErr
+		return
+	}
+
+	return
+}
+
+// AdminPushPub handle for push public message
+func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
+	var (
+		ret    = InternalErr
+		result = make(map[string]interface{})
+	)
+
+	if r.Method != "POST" {
+		http.Error(rw, "Method Not Allowed", 405)
+		return
+	}
+
+	// Final response operation
+	defer func() {
+		result["msg"] = GetErrMsg(ret)
+		result["ret"] = ret
+		date, _ := json.Marshal(result)
+
+		io.WriteString(rw, string(date))
+
+		Log.Info("request:push_public, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
 
 	// Get params
@@ -55,7 +132,17 @@ func AdminPush(rw http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log.Error("ioutil.ReadAll() error quest_url:%s (%v)", r.URL.String(), err)
+		Log.Error("ioutil.ReadAll() quest_url:\"%s\" error(%v)", r.URL.String(), err)
+		ret = InternalErr
+		return
+	}
+
+	// Save public message
+	expire = time.Now().Add(time.Duration(expire) * time.Second).UnixNano()
+	reply, err := MessageRPCSave(key, string(body), mid, expire)
+	// Message save failed
+	if reply != OK {
+		Log.Error("RPC.Call(\"MessageRPC.Save\") error (ret:\"%d\") key:\"%s\"", reply, key)
 		ret = InternalErr
 		return
 	}
@@ -63,14 +150,15 @@ func AdminPush(rw http.ResponseWriter, r *http.Request) {
 	// Match a push-server with the value computed through ketama algorithm
 	svrInfo := GetNode(CometHash.Node(key))
 	if svrInfo == nil {
+		Log.Debug("no node:\"%s\"", CometHash.Node(key))
 		ret = NoNodeErr
 		return
 	}
 
 	// RPC call publish interface
-	args := &myrpc.ChannelPublishArgs{MsgID: mid, Msg: string(body), Expire: expire, Key: key}
-	if err := svrInfo.PubRPC.Call("ChannelRPC.Publish", args, &ret); err != nil {
-		Log.Error("RPC.Call(\"ChannelRPC.Publish\") error server:%s (%v)", svrInfo.SubAddr, err)
+	args := &myrpc.ChannelPushPublicArgs{MsgID: mid, Msg: string(body)}
+	if err := svrInfo.PubRPC.Call("ChannelRPC.PushPublic", args, &ret); err != nil {
+		Log.Error("RPC.Call(\"ChannelRPC.PushPublic\") server:\"%v\" error(%v)", svrInfo.SubAddr, err)
 		ret = InternalErr
 		return
 	}
@@ -98,13 +186,13 @@ func AdminNodeAdd(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(date))
 
-		Log.Info("request:push, quest_url:%s, ret:%d", r.URL.String(), ret)
+		Log.Info("request:push, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
 
 	// Get params
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log.Error("ioutil.ReadAll() error quest_url:%s (%v)", r.URL.String(), err)
+		Log.Error("ioutil.ReadAll() quest_url:\"%s\" error(%v)", r.URL.String(), err)
 		ret = InternalErr
 		return
 	}
@@ -129,7 +217,7 @@ func AdminNodeAdd(rw http.ResponseWriter, r *http.Request) {
 			ret = InternalErr
 		}
 
-		Log.Error("add node error (%v)", err)
+		Log.Error("add node:\"%s\" error(%v)", node, err)
 		return
 	}
 
@@ -157,13 +245,13 @@ func AdminNodeDel(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(date))
 
-		Log.Info("request:push, quest_url:%s, ret:%d", r.URL.String(), ret)
+		Log.Info("request:push, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
 
 	// Get params
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log.Error("ioutil.ReadAll() error quest_url:%s (%v)", r.URL.String(), err)
+		Log.Error("ioutil.ReadAll() quest_url:\"%s\" error(%v)", r.URL.String(), err)
 		ret = InternalErr
 		return
 	}
@@ -181,8 +269,9 @@ func AdminNodeDel(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add a watch for node
+	Log.Debug("del node:\"%s\"", node)
 	if err := DelNode(node); err != nil {
-		Log.Error("del node error (%v)", err)
+		Log.Error("del node error(%v)", err)
 		ret = InternalErr
 		return
 	}

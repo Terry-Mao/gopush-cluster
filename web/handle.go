@@ -31,14 +31,22 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 		result["msg"] = GetErrMsg(ret)
 		date, _ := json.Marshal(result)
 
-		Log.Info("request:Get server, quest_url:%s, ret:%d", r.URL.String(), ret)
+		Log.Info("request:Get server, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 
 		io.WriteString(rw, string(date))
 	}()
 
 	// Get params
-	key := r.URL.Query().Get("key")
+	param := r.URL.Query()
+	key := param.Get("key")
+
 	if key == "" {
+		ret = ParamErr
+		return
+	}
+
+	protoI, err := strconv.Atoi(param.Get("proto"))
+	if err != nil {
 		ret = ParamErr
 		return
 	}
@@ -52,7 +60,12 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 
 	// Fill the server infomation into response json
 	data := &ServerGetData{}
-	data.Server = svrInfo.SubAddr
+	addr := svrInfo.SubAddr[protoI]
+	if addr == "" {
+		ret = UnknownProtocol
+		return
+	}
+	data.Server = addr
 
 	result["data"] = data
 	ret = OK
@@ -79,7 +92,7 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		result["msg"] = GetErrMsg(ret)
 		date, _ := json.Marshal(result)
 
-		Log.Info("request:Get messages, quest_url:%s, ret:%d", r.URL.String(), ret)
+		Log.Info("request:Get messages, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 
 		io.WriteString(rw, string(date))
 	}()
@@ -114,8 +127,13 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 	// RPC get offline messages
 	reply, err := MessageRPCGet(key, midI, pMidI)
 	if err != nil {
-		Log.Error("RPC.Call(\"MessageRPC.Get\")  Key:%s, MsgID:%d error(%v)", midI, key, err)
+		Log.Error("RPC.Call(\"MessageRPC.Get\")  Key:\"%s\", MsgID:\"%d\" error(%v)", key, midI, err)
 		ret = InternalErr
+		return
+	}
+
+	if len(reply.Msgs) == 0 && len(reply.Msgs) == 0 {
+		ret = OK
 		return
 	}
 

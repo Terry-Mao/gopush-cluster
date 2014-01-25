@@ -28,9 +28,20 @@ var (
 var ErrNoNode = errors.New("zookeeper children is nil")
 var ErrNodeExist = errors.New("node already exist")
 
+// Protocol of Comet subcription
+const (
+	ProtocolUnknown = 0
+	ProtocolWS      = 1
+	ProtocolWSStr   = "ws"
+	ProtocolTCP     = 2
+	ProtocolTCPStr  = "tcp"
+	ProtocolRPC     = 3
+	ProtocolRPCStr  = "rpc"
+)
+
 type NodeInfo struct {
-	// The addr for subscribe
-	SubAddr string
+	// The addr for subscribe, format like:map[Protocol]Addr
+	SubAddr map[int]string
 	// The connection for publish RPC
 	PubRPC *rpc.Client
 }
@@ -48,7 +59,7 @@ func InitWatch() error {
 	for {
 		event := <-session
 		if event.State < zookeeper.STATE_CONNECTING {
-			return errors.New(fmt.Sprintf("connect zookeeper fail, event: %v", event))
+			return errors.New(fmt.Sprintf("connect zookeeper fail, event:\"%v\"", event))
 		} else if event.State == zookeeper.STATE_CONNECTING {
 			time.Sleep(time.Second)
 			continue
@@ -64,6 +75,7 @@ func InitWatch() error {
 func BeginWatchNode() error {
 	nodes, err := getNodes(Conf.ZKRootPath)
 	if err != nil {
+		Log.Error("getNodes(\"%s\") error(%v)", Conf.ZKRootPath, err)
 		return err
 	}
 
@@ -162,17 +174,17 @@ func ChannelRPCMigrate(nodes []string, nodeInfoMap map[string]*NodeInfo) error {
 		if svrInfo != nil && svrInfo.PubRPC != nil {
 			args := &myrpc.ChannelMigrateArgs{Nodes: nodes, Vnode: 255}
 			if err := svrInfo.PubRPC.Call("ChannelRPC.Migrate", args, &ret); err != nil {
-				Log.Error("RPC.Call(\"ChannelRPC.Migrate\") error node:%s (%v)", n, err)
+				Log.Error("RPC.Call(\"ChannelRPC.Migrate\") error node:\"%s\" error(%v)", n, err)
 				return err
 			}
 
 			if ret != OK {
 				err := errors.New(fmt.Sprintf("ret:%d", ret))
-				Log.Error("RPC.Call(\"ChannelRPC.Migrate\") error node:%s (%v)", n, err)
+				Log.Error("RPC.Call(\"ChannelRPC.Migrate\") error node:\"%s\" error(%v)", n, err)
 				return err
 			}
 
-			Log.Debug("RPC.Call(\"ChannelRPC.Migrate\") success node:%s", n)
+			Log.Debug("RPC.Call(\"ChannelRPC.Migrate\") success node:\"%s\"", n)
 		}
 	}
 
@@ -183,7 +195,6 @@ func ChannelRPCMigrate(nodes []string, nodeInfoMap map[string]*NodeInfo) error {
 func getNodes(path string) ([]string, error) {
 	children, _, err := zk.Children(path)
 	if err != nil {
-		Log.Error("zk.Children(%s) error", path)
 		return nil, err
 	}
 
@@ -198,7 +209,6 @@ func getNodes(path string) ([]string, error) {
 func getNodesW(path string) ([]string, <-chan zookeeper.Event, error) {
 	children, _, watch, err := zk.ChildrenW(path)
 	if err != nil {
-		Log.Error("zk.Children(%s) error", path)
 		return nil, nil, err
 	}
 
@@ -223,7 +233,7 @@ func watchFirstServer(node string) {
 	for {
 		subNodes, watch, err := getNodesW(path)
 		if err != nil {
-			Log.Error("watch node:%s error (%v)", node, err)
+			Log.Error("getNodesW node:\"%s\" error(%v), recheck after 10 seconds", node, err)
 			time.Sleep(10 * time.Second)
 			continue
 		}
@@ -233,15 +243,15 @@ func watchFirstServer(node string) {
 			sort.Strings(subNodes)
 			data, _, err := zk.Get(fmt.Sprintf("%s/%s", path, subNodes[0]))
 			if err != nil {
-				Log.Error("watch node:%s, subNode:%s, error (%v)", node, subNodes[0], err)
+				Log.Error("watch node:\"%s\", subNode:\"%s\", error(%v)", node, subNodes[0], err)
 				time.Sleep(10 * time.Second)
 				continue
 			}
 
-			// Fecth push server info
-			datas := strings.Split(data, ",")
-			if len(datas) < 2 {
-				Log.Error("get subNode data error node:%s, subNode:%s, data:%s", node, subNodes[0], data)
+			// Fecth push server connection info
+			subAddr, err := parseZKData(data)
+			if err != nil {
+				Log.Error("get subNode data error node:\"%s\", subNode:\"%s\", error(%v)", node, subNodes[0], err)
 				time.Sleep(10 * time.Second)
 				continue
 			}
@@ -249,24 +259,30 @@ func watchFirstServer(node string) {
 			NodeInfoMapLock.RLock()
 			info, ok := NodeInfoMap[node]
 			if ok {
-				info.SubAddr = datas[0]
+				info.SubAddr = subAddr
 				if info.PubRPC != nil {
 					info.PubRPC.Close()
 				}
 			} else {
-				info = &NodeInfo{SubAddr: datas[0]}
+				info = &NodeInfo{SubAddr: subAddr}
 			}
 			NodeInfoMapLock.RUnlock()
 
 			// ReDial RPC
-			r, err := rpc.Dial(Conf.CometNetwork, datas[1])
-			if err != nil {
-				Log.Error("rpc.Dial(%s, %s) error node:%s, subNode:%s", Conf.CometNetwork, datas[1], node, subNodes[0])
-				time.Sleep(10 * time.Second)
-				continue
+			addr, ok := subAddr[ProtocolRPC]
+			if ok {
+				r, err := rpc.Dial(Conf.CometNetwork, addr)
+				if err != nil {
+					Log.Error("rpc.Dial(%s, %s) error node:\"%s\", subNode:\"%s\", recheck after 10 seconds", Conf.CometNetwork, addr, node, subNodes[0])
+					time.Sleep(10 * time.Second)
+					continue
+				}
+
+				info.PubRPC = r
+			} else {
+				Log.Error("rpc.Dial(%s, %s) error node:\"%s\", subNode:\"%s\" error(no rpc address)", Conf.CometNetwork, addr, node, subNodes[0])
 			}
 
-			info.PubRPC = r
 			NodeInfoMapLock.Lock()
 			NodeInfoMap[node] = info
 			NodeInfoMapLock.Unlock()
@@ -274,16 +290,45 @@ func watchFirstServer(node string) {
 			NodeInfoMapLock.Lock()
 			NodeInfoMap[node] = nil
 			NodeInfoMapLock.Unlock()
+			Log.Error("no service under node:\"%s\"", node)
 		}
 
-		Log.Warn("begin to watch node:%s", node)
+		Log.Warn("begin to watch node:\"%s\"", node)
 		event := <-watch
 		if event.Type == zookeeper.EVENT_DELETED {
-			Log.Warn("stop to watch node:%s", node)
+			Log.Warn("stop to watch node:\"%s\"", node)
 			DelNode(node)
 			break
 		}
 
-		Log.Warn("end to watch node:%s event:%v, try to watch repeated", node, event)
+		Log.Warn("end to watch node:\"%s\" event:\"%v\", try to watch repeated", node, event)
+	}
+}
+
+// parseZKData parse the protocol data, the data format like: ws://ip:port1,tcp://ip:port2,rpc://ip:port3
+func parseZKData(zkData string) (map[int]string, error) {
+	res := make(map[int]string)
+	data := strings.Split(zkData, ",")
+	for i := 0; i < len(data); i++ {
+		addr := strings.Split(data[i], "://")
+		if len(addr) != 2 {
+			return nil, fmt.Errorf("data:\"%s\" format error", data)
+		}
+
+		res[getProtocolInt(addr[0])] = addr[1]
+	}
+
+	return res, nil
+}
+
+func getProtocolInt(protocol string) int {
+	if protocol == ProtocolWSStr {
+		return ProtocolWS
+	} else if protocol == ProtocolTCPStr {
+		return ProtocolTCP
+	} else if protocol == ProtocolRPCStr {
+		return ProtocolRPC
+	} else {
+		return ProtocolUnknown
 	}
 }

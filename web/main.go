@@ -22,14 +22,14 @@ func main() {
 	flag.Parse()
 	Conf, err = NewConfig(ConfFile)
 	if err != nil {
-		Log.Error("NewConfig(\"ConfigPath\":%s) failed(%v)", ConfFile, err)
+		panic(err)
 		os.Exit(-1)
 	}
 
 	// Load log
 	Log, err = log.New(Conf.LogPath, Conf.LogLevel)
 	if err != nil {
-		Log.Error("log.New(\"LogPath\":%s) failed(%v)", Conf.LogPath, err)
+		Log.Error("log.New(\"%s\") failed(%v)", Conf.LogPath, err)
 		os.Exit(-1)
 	}
 
@@ -59,20 +59,21 @@ func main() {
 	go func() {
 		adminServeMux := http.NewServeMux()
 
-		adminServeMux.HandleFunc("/admin/push", AdminPush)
+		adminServeMux.HandleFunc("/admin/push", AdminPushPrivate)
+		adminServeMux.HandleFunc("/admin/push/public", AdminPushPublic)
 		adminServeMux.HandleFunc("/admin/node/add", AdminNodeAdd)
 		adminServeMux.HandleFunc("/admin/node/del", AdminNodeDel)
 
 		err := http.ListenAndServe(Conf.AdminAddr, adminServeMux)
 		if err != nil {
-			Log.Error("http.ListenAndServe(%s) failed(%v)", Conf.AdminAddr, err)
+			Log.Error("http.ListenAndServe(\"%s\") failed(%v)", Conf.AdminAddr, err)
 			os.Exit(-1)
 		}
 	}()
 
 	// Start service
 	if err := http.ListenAndServe(Conf.Addr, nil); err != nil {
-		Log.Error("http.ListenAndServe(%s) failed(%v)", Conf.Addr, err)
+		Log.Error("http.ListenAndServe(\"%s\") failed(%v)", Conf.Addr, err)
 		os.Exit(-1)
 	}
 }

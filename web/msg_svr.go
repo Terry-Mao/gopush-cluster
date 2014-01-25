@@ -54,3 +54,13 @@ func MessageRPCGet(key string, mid, pMid int64) (*myrpc.MessageGetResp, error) {
 
 	return &reply, nil
 }
+
+func MessageRPCSave(key, msg string, mid, expire int64) (int, error) {
+	reply := OK
+	args := &myrpc.MessageSaveArgs{MsgID: mid, Msg: msg, Expire: expire, Key: key}
+	if err := MsgSvrClient.Call("MessageRPC.Save", args, &reply); err != nil {
+		return InternalErr, err
+	}
+
+	return reply, nil
+}

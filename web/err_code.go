@@ -6,11 +6,12 @@ package main
 // 1001  不存在节点
 
 const (
-	OK          = 0
-	NoNodeErr   = 1001
-	NodeExist   = 1002
-	ParamErr    = 65534
-	InternalErr = 65535
+	OK              = 0
+	NoNodeErr       = 1001
+	NodeExist       = 1002
+	UnknownProtocol = 1003
+	ParamErr        = 65534
+	InternalErr     = 65535
 
 	OKMsg               = "ok"
 	NoNodeErrMsg        = "node is not alive"
