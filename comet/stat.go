@@ -56,12 +56,12 @@ type MessageStat struct {
 	Failed  uint64 // total push message failed count
 }
 
-func (s *MessageStat) IncrSucceed() {
-	atomic.AddUint64(&s.Succeed, 1)
+func (s *MessageStat) IncrSucceed(delta uint64) {
+	atomic.AddUint64(&s.Succeed, delta)
 }
 
-func (s *MessageStat) IncrFailed() {
-	atomic.AddUint64(&s.Failed, 1)
+func (s *MessageStat) IncrFailed(delta uint64) {
+	atomic.AddUint64(&s.Failed, delta)
 }
 
 // Stat get the message stat info

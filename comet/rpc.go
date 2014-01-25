@@ -156,16 +156,18 @@ func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) e
 	// use the channel push message
 	if err = ch.PushMsg(args.Key, &Message{Msg: args.Msg, Expire: time.Now().UnixNano() + expire*Second, MsgID: args.MsgID, GroupID: args.GroupID}); err != nil {
 		*ret = retPushMsgErr
-		MsgStat.IncrFailed()
+		MsgStat.IncrFailed(1)
 		return nil
 	}
 	*ret = retOK
-	MsgStat.IncrSucceed()
+	MsgStat.IncrSucceed(1)
 	return nil
 }
 
 // PushPublic expored a method for publishing a public message for the channel
-func (c *ChannelRPC) PushPublish(args *myrpc.ChannelPushPublicArgs, ret *int) error {
+func (c *ChannelRPC) PushPublic(args *myrpc.ChannelPushPublicArgs, ret *int) error {
+	succeed := uint64(0)
+	failed := uint64(0)
 	// get all the channel lock
 	m := &Message{Msg: args.Msg, MsgID: args.MsgID, GroupID: myrpc.PublicGroupID}
 	for _, c := range UserChannel.Channels {
@@ -173,13 +175,15 @@ func (c *ChannelRPC) PushPublish(args *myrpc.ChannelPushPublicArgs, ret *int) er
 		for k, v := range c.Data {
 			if err := v.PushMsg(k, m); err != nil {
 				// *ret = retPushMsgErr
-				MsgStat.IncrFailed()
+				failed++
 				continue
 			}
-			MsgStat.IncrSucceed()
+			succeed++
 		}
 		c.Unlock()
 	}
+	MsgStat.IncrFailed(failed)
+	MsgStat.IncrSucceed(succeed)
 	*ret = retOK
 	return nil
 }
