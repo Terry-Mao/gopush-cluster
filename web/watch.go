@@ -16,7 +16,7 @@ import (
 var (
 	// Zookeeper connection
 	zk *zookeeper.Conn
-	// Ketama algorithm for comet
+	// Ketama algorithm for Comet
 	CometHash *hash.Ketama
 	// Store the first alive server of every node
 	// If there is no alive server under the node, the value will be nil, but key is exist in map
@@ -38,7 +38,7 @@ type NodeInfo struct {
 // InitWatch initialize watch module
 func InitWatch() error {
 	// Initialize zookeeper connection
-	zkTmp, session, err := zookeeper.Dial(Conf.Zookeeper.Addr, time.Duration(Conf.Zookeeper.Timeout)*1e9)
+	zkTmp, session, err := zookeeper.Dial(Conf.ZKAddr, Conf.ZKTimeout)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func InitWatch() error {
 
 // BeginWatchNode start watch all of nodes
 func BeginWatchNode() error {
-	nodes, err := getNodes(Conf.Zookeeper.RootPath)
+	nodes, err := getNodes(Conf.ZKRootPath)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func GetNode(node string) *NodeInfo {
 	return NodeInfoMap[node]
 }
 
-// AddNode add a node and watch it
+// AddNode add a node and watch it, and notice Comet to migrate node
 func AddNode(node string) error {
 	NodeInfoMapLock.RLock()
 	defer NodeInfoMapLock.RUnlock()
@@ -97,26 +97,34 @@ func AddNode(node string) error {
 
 	nodes = append(nodes, node)
 
-	// Notice comet to migrate node
+	// Notice Comet to migrate node
 	if err := ChannelRPCMigrate(nodes, NodeInfoMap); err != nil {
 		return err
 	}
 
+	// Watch the node
 	go watchFirstServer(node)
 
+	// Update Comet hash, because of nodes are changed
 	CometHash = hash.NewKetama2(nodes, 255)
 
 	return nil
 }
 
-// DelNode disconnect and delete a node
+// DelNode disconnect and delete a node, and notice Comet to migrate node
 func DelNode(node string) error {
 	var (
 		nodes []string
 		info  *NodeInfo
 	)
+
 	NodeInfoMapLock.Lock()
 	defer NodeInfoMapLock.Unlock()
+
+	if _, ok := NodeInfoMap[node]; !ok {
+		return nil
+	}
+
 	for n, c := range NodeInfoMap {
 		if n == node {
 			info = c
@@ -126,8 +134,10 @@ func DelNode(node string) error {
 		nodes = append(nodes, n)
 	}
 
+	// Update Comet hash, cause nodes are changed
 	CometHash = hash.NewKetama2(nodes, 255)
 
+	// Delete node from map before call Migrate RPC interface of Comet, cause needn`t to notice deleted node
 	delete(NodeInfoMap, node)
 
 	if info != nil && info.PubRPC != nil {
@@ -135,7 +145,7 @@ func DelNode(node string) error {
 		info.PubRPC = nil
 	}
 
-	// Notice comet to migrate node
+	// Notice Comet to migrate node
 	if err := ChannelRPCMigrate(nodes, NodeInfoMap); err != nil {
 		return err
 	}
@@ -146,9 +156,7 @@ func DelNode(node string) error {
 // RPC Migrate interface
 // Migrate the lost connections after changed node
 func ChannelRPCMigrate(nodes []string, nodeInfoMap map[string]*NodeInfo) error {
-	var (
-		ret int
-	)
+	ret := OK
 
 	for n, svrInfo := range nodeInfoMap {
 		if svrInfo != nil && svrInfo.PubRPC != nil {
@@ -211,7 +219,7 @@ func watchNodes(nodes []string) {
 // watchNodes watch the first server under the node, and keep rpc with publish RPC
 // the first server must be alive
 func watchFirstServer(node string) {
-	path := fmt.Sprintf("%s/%s", Conf.Zookeeper.RootPath, node)
+	path := fmt.Sprintf("%s/%s", Conf.ZKRootPath, node)
 	for {
 		subNodes, watch, err := getNodesW(path)
 		if err != nil {
@@ -251,9 +259,9 @@ func watchFirstServer(node string) {
 			NodeInfoMapLock.RUnlock()
 
 			// ReDial RPC
-			r, err := rpc.Dial(Conf.Push.Network, datas[1])
+			r, err := rpc.Dial(Conf.CometNetwork, datas[1])
 			if err != nil {
-				Log.Error("rpc.Dial(%s, %s) error node:%s, subNode:%s", Conf.Push.Network, datas[1], node, subNodes[0])
+				Log.Error("rpc.Dial(%s, %s) error node:%s, subNode:%s", Conf.CometNetwork, datas[1], node, subNodes[0])
 				time.Sleep(10 * time.Second)
 				continue
 			}

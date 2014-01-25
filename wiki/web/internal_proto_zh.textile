@@ -1,9 +1,11 @@
 <h3>Terry-Mao/gopush-cluster Web http协议文档</h3>
-Web内部接口文档，用于推送消息等
+Web内部接口文档，用于推送消息、节点管理等
 
 <h3>接口汇总</h3>
 (head). | 接口名 | URL | 访问方式 |
-| "推送消息":AdminPush| /admin/push | POST |
+| "推送消息":AdminPush   | /admin/push     | POST |
+| "添加节点":AdminNodeAdd| /admin/node/add | POST |
+| "删除节点":AdminNodeDel| /admin/node/del | POST |
 
 <h3>公共返回码</h3>
 
@@ -28,7 +30,7 @@ Web内部接口文档，用于推送消息等
 | key    | string | 订阅key |
 | mid    | int64  | 消息ID  |
 | expire | int64  | 消息过期时间，单位：秒(s)|
-注: 消息体存放到body中
+注: 消息体存放到body中，以上参数为URL参数
 
  * 返回码
 
@@ -41,5 +43,38 @@ Web内部接口文档，用于推送消息等
 }
 </pre>
 
+<h3>添加节点</h3>
+ * 请求参数
+
+(head). | 参数 | 类型 | 描述 |
+| node | string | 节点名称 |
+
+ * 返回码
+
+<pre>
+{
+    "ret": 0,
+    "msg": "ok"
+}
+</pre>
+
+<h3>删除节点</h3>
+注：删除节点不会主动断开该节点与客户端的订阅长链接
+ * 请求参数
+
+(head). | 参数 | 类型 | 描述 |
+| node | string | 节点名称 |
+
+ * 返回码
+
+<pre>
+{
+    "ret": 0,
+    "msg": "ok"
+}
+</pre>
+
 
 [AdminPush]#推送消息
+[AdminNodeAdd]#添加节点
+[AdminNodeDel]#删除节点

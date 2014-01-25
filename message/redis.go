@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	"github.com/garyburd/redigo/redis"
-	"time"
 )
 
 const (
@@ -25,20 +24,19 @@ type DelMessageInfo struct {
 	Msgs []string
 }
 
-// Initialize redis pool, Initialize consistent hash ring
+// Initialize redis pool, Initialize consistency hash ring
 func InitRedis() {
 	// Redis pool
-	for n, c := range Conf.Redis {
+	for n, addr := range Conf.RedisAddrs {
 		// WARN: closures use
-		tc := c
 		redisPool[n] = &redis.Pool{
-			MaxIdle:     tc.MaxIdle,
-			MaxActive:   tc.MaxActive,
-			IdleTimeout: time.Duration(tc.IdleTimeout) * time.Second,
+			MaxIdle:     Conf.RedisMaxIdle,
+			MaxActive:   Conf.RedisMaxActive,
+			IdleTimeout: Conf.RedisIdleTimeout,
 			Dial: func() (redis.Conn, error) {
-				conn, err := redis.Dial(tc.Network, tc.Addr)
+				conn, err := redis.Dial(Conf.RedisNetwork, addr)
 				if err != nil {
-					Log.Error("redis.Dial(\"%s\", \"%s\") failed (%v)", tc.Network, tc.Addr, err)
+					Log.Error("redis.Dial(\"%s\", \"%s\") failed (%v)", Conf.RedisNetwork, addr, err)
 				}
 				return conn, err
 			},
@@ -69,7 +67,7 @@ func SaveMessage(key, msg string, mid int64) error {
 	return nil
 }
 
-// GetMessages et all of offline messages which larger than mid
+// GetMessages get all of offline messages which larger than mid
 func GetMessages(key string, mid int64) ([]string, error) {
 	conn := getRedisConn(key)
 	if conn == nil {

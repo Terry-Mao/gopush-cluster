@@ -21,7 +21,7 @@ func main() {
 	flag.Parse()
 	Conf, err = NewConfig(ConfFile)
 	if err != nil {
-		Log.Error("NewConfig(\"ConfigPath\":%s) failed(%v)", ConfFile, err)
+		panic(err)
 		os.Exit(-1)
 	}
 
