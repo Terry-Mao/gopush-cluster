@@ -91,8 +91,11 @@ func (zk *ZK) register() error {
 	return nil
 }
 
-func (zk *ZK) Close() error {
-	return zk.conn.Close()
+// Close close zookeeper connection.
+func (zk *ZK) Close() {
+	if err := zk.conn.Close(); err != nil {
+		Log.Error("zk.conn.Close() failed (%s)", err.Error())
+	}
 }
 
 // InitZookeeper init the node path and register node in zookeeper.

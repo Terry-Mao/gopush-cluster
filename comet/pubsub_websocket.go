@@ -61,6 +61,7 @@ func httpListen(bind string) {
 			os.Exit(-1)
 		}
 	}
+	// svr.Serve will close the listener if process exit
 }
 
 // Subscriber Handle is the websocket handle for sub request.

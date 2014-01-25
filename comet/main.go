@@ -33,21 +33,20 @@ func main() {
 		Log.Error("log.New(\"%s\", %s) failed (%s)", Conf.LogFile, Conf.LogLevel, err.Error())
 		os.Exit(-1)
 	}
+	// if process exit, close log
 	defer Log.Close()
 	Log.Info("gopush2 start")
-	StartStats()
-	if zk, err := InitZookeeper(); err != nil {
+	zk, err := InitZookeeper()
+	if err != nil {
 		Log.Error("InitZookeeper() failed (%s)", err.Error())
 		os.Exit(-1)
-	} else {
-		defer func() {
-			if err = zk.Close(); err != nil {
-				Log.Error("zk.Close() failed (%s)", err.Error())
-			}
-		}()
 	}
+	// if process exit, close zk
+	defer zk.Close()
 	// create channel
 	UserChannel = NewChannelList()
+	defer UserChannel.Close()
+	// if process exit, close channel
 	// start stats
 	StartStats()
 	// start pprof http
@@ -58,7 +57,7 @@ func main() {
 	InitMessageRPC()
 	// start rpc
 	StartRPC()
-	// init signals
+	// init signals, then block wait signals
 	InitSignal()
 	// exit
 	Log.Info("gopush2 stop")

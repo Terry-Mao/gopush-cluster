@@ -37,41 +37,39 @@ var (
 	MsgRPC *rpc.Client
 )
 
-//
-func InitMessageRPC() error {
-	var err error
-	MsgRPC, err = rpc.Dial("tcp", Conf.RPCMessageAddr)
-	if err != nil {
-		Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCMessageAddr, err.Error())
-		return err
-	}
-	defer func() {
-		if err := MsgRPC.Close(); err != nil {
-			Log.Error("rpc.Close() failed (%s)", err.Error())
-		}
-	}()
-	// rpc Ping
+// InitMessageRPC init the message rpc connection.
+func InitMessageRPC() {
 	go func() {
-		for {
-			reply := 0
-			if err := MsgRPC.Call("MessageRPC.Ping", 0, &reply); err != nil {
-				Log.Error("rpc.Call(\"MessageRPC.Ping\") failed (%s)", err.Error())
-				rpcTmp, err := rpc.Dial("tcp", Conf.RPCMessageAddr)
-				if err != nil {
-					Log.Error("rpc.Dial(\"tcp\", %s) failed (%s), reconnect retry after %d second", Conf.RPCMessageAddr, err.Error(), int64(Conf.RPCRetry)/Second)
-					time.Sleep(Conf.RPCRetry)
-					continue
-				} else {
-					Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCMessageAddr)
-					MsgRPC = rpcTmp
+		var err error
+		// if process exit, then close message rpc
+		defer func() {
+			if MsgRPC != nil {
+				if err := MsgRPC.Close(); err != nil {
+					Log.Error("MsgRPC.Close() failed (%s)", err.Error())
 				}
 			}
-			// every one second send a heartbeat ping
-			Log.Debug("rpc ping ok")
-			time.Sleep(Conf.RPCPing)
+		}()
+		for {
+			if MsgRPC != nil {
+				reply := 0
+				if err := MsgRPC.Call("MessageRPC.Ping", 0, &reply); err != nil {
+					Log.Error("rpc.Call(\"MessageRPC.Ping\") failed (%s)", err.Error())
+				} else {
+					// every one second send a heartbeat ping
+					Log.Debug("rpc ping ok")
+					time.Sleep(Conf.RPCPing)
+					continue
+				}
+			}
+			// reconnect(init) message rpc
+			if MsgRPC, err = rpc.Dial("tcp", Conf.RPCMessageAddr); err != nil {
+				Log.Error("rpc.Dial(\"tcp\", %s) failed (%s), reconnect retry after %d second", Conf.RPCMessageAddr, err.Error(), int64(Conf.RPCRetry)/Second)
+				time.Sleep(Conf.RPCRetry)
+				continue
+			}
+			Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCMessageAddr)
 		}
 	}()
-	return nil
 }
 
 // StartRPC start rpc listen.
@@ -90,6 +88,7 @@ func rpcListen(bind string) {
 		Log.Error("net.Listen(\"tcp\", \"%s\") failed (%s)", bind, err.Error())
 		os.Exit(-1)
 	}
+	// if process exit, then close the rpc bind
 	defer func() {
 		if err := l.Close(); err != nil {
 			Log.Error("listener.Close() failed (%s)", err.Error())

@@ -22,4 +22,5 @@ func StartPprof() {
 			}
 		}()
 	}
+	// svr.Serve will close the listener if process exit
 }
