@@ -69,10 +69,22 @@ func (zk *ZK) create() error {
 
 // register register a node in zookeeper, when comet exit the node will remove
 func (zk *ZK) register() error {
+	// tcp, websocket and rpc bind address store in the zk
+	data := ""
+	for _, addr := range Conf.TCPBind {
+		data += fmt.Sprintf("tcp://%s,", addr)
+	}
+	for _, addr := range Conf.WebsocketBind {
+		data += fmt.Sprintf("ws://%s,", addr)
+	}
+	for _, addr := range Conf.RPCBind {
+		data += fmt.Sprintf("rpc://%s,", addr)
+	}
+	data = strings.TrimRight(data, ",")
 	fpath := fmt.Sprintf("%s/%s/", Conf.ZookeeperPath, Conf.ZookeeperNode)
-	tpath, err := zk.conn.Create(fpath, Conf.ZookeeperData, zookeeper.EPHEMERAL|zookeeper.SEQUENCE, zookeeper.WorldACL(zookeeper.PERM_ALL))
+	tpath, err := zk.conn.Create(fpath, data, zookeeper.EPHEMERAL|zookeeper.SEQUENCE, zookeeper.WorldACL(zookeeper.PERM_ALL))
 	if err != nil {
-		Log.Error("zk.Create(\"%s\", \"%s\", zookeeper.EPHEMERAL|zookeeper.SEQUENCE) failed (%s)", fpath, Conf.ZookeeperData, err.Error())
+		Log.Error("zk.Create(\"%s\", \"%s\", zookeeper.EPHEMERAL|zookeeper.SEQUENCE) failed (%s)", fpath, data, err.Error())
 		return err
 	}
 	Log.Debug("create a zookeeper node:%s", tpath)

@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/rpc"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -59,9 +58,8 @@ func InitMessageRPC() error {
 				Log.Error("rpc.Call(\"MessageRPC.Ping\") failed (%s)", err.Error())
 				rpcTmp, err := rpc.Dial("tcp", Conf.RPCMessageAddr)
 				if err != nil {
-					Log.Error("rpc.Dial(\"tcp\", %s) failed (%s)", Conf.RPCMessageAddr, err.Error())
+					Log.Error("rpc.Dial(\"tcp\", %s) failed (%s), reconnect retry after %d second", Conf.RPCMessageAddr, err.Error(), int64(Conf.RPCRetry)/Second)
 					time.Sleep(Conf.RPCRetry)
-					Log.Warn("rpc reconnect \"%s\" after %d second", Conf.RPCMessageAddr, Conf.RPCRetry)
 					continue
 				} else {
 					Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCMessageAddr)
@@ -80,7 +78,7 @@ func InitMessageRPC() error {
 func StartRPC() {
 	c := &ChannelRPC{}
 	rpc.Register(c)
-	for _, bind := range strings.Split(Conf.AdminBind, ",") {
+	for _, bind := range Conf.RPCBind {
 		Log.Info("start listen rpc addr:\"%s\"", bind)
 		go rpcListen(bind)
 	}
@@ -142,8 +140,8 @@ func (c *ChannelRPC) Close(key *string, ret *int) error {
 	return nil
 }
 
-// Publish expored a method for publishing a message for the channel
-func (c *ChannelRPC) Publish(args *myrpc.ChannelPublishArgs, ret *int) error {
+// PushPrivate expored a method for publishing a user private message for the channel
+func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) error {
 	if args == nil || args.Key == "" || args.Msg == "" {
 		*ret = retParamErr
 		return nil
@@ -163,6 +161,26 @@ func (c *ChannelRPC) Publish(args *myrpc.ChannelPublishArgs, ret *int) error {
 	}
 	*ret = retOK
 	MsgStat.IncrSucceed()
+	return nil
+}
+
+// PushPublic expored a method for publishing a public message for the channel
+func (c *ChannelRPC) PushPublish(args *myrpc.ChannelPushPublicArgs, ret *int) error {
+	// get all the channel lock
+	m := &Message{Msg: args.Msg, MsgID: args.MsgID, GroupID: myrpc.PublicGroupID}
+	for _, c := range UserChannel.Channels {
+		c.Lock()
+		for k, v := range c.Data {
+			if err := v.PushMsg(k, m); err != nil {
+				// *ret = retPushMsgErr
+				MsgStat.IncrFailed()
+				continue
+			}
+			MsgStat.IncrSucceed()
+		}
+		c.Unlock()
+	}
+	*ret = retOK
 	return nil
 }
 

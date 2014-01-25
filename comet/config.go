@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"flag"
-	"fmt"
 	"github.com/Terry-Mao/goconf"
 	"github.com/Terry-Mao/gopush-cluster/log"
 	"runtime"
@@ -28,16 +27,19 @@ type Config struct {
 	MaxProc       int
 	LogFile       string
 	LogLevel      string
-	TCPBind       string
-	WebsocketBind string
-	AdminBind     string
-	PprofBind     string
+	TCPBind       []string
+	WebsocketBind []string
+	RPCBind       []string
+	PprofBind     []string
 	// zookeeper
 	ZookeeperAddr    string
 	ZookeeperTimeout time.Duration
 	ZookeeperPath    string
-	ZookeeperData    string
 	ZookeeperNode    string
+	// rpc
+	RPCMessageAddr string
+	RPCPing        time.Duration
+	RPCRetry       time.Duration
 	// channel
 	SndbufSize              int
 	RcvbufSize              int
@@ -49,30 +51,32 @@ type Config struct {
 	ChannelBucket           int
 	Auth                    bool
 	TokenExpire             time.Duration
-	// rpc
-	RPCMessageAddr string
-	RPCPing        time.Duration
-	RPCRetry       time.Duration
 }
 
 // InitConfig get a new Config struct.
 func InitConfig(file string) (*Config, error) {
 	cf := &Config{
-		User:                    "nobody nobody",
-		PidFile:                 "/var/run/gopush-cluster-comet.pid",
-		Dir:                     "./",
-		MaxProc:                 runtime.NumCPU(),
-		LogFile:                 "./comet.log",
-		LogLevel:                "ERROR",
-		WebsocketBind:           "localhost:6968",
-		TCPBind:                 "localhost:6969",
-		AdminBind:               "localhost:6970",
-		PprofBind:               "localhost:6971",
-		ZookeeperAddr:           "localhost:2181",
-		ZookeeperTimeout:        8 * time.Hour,
-		ZookeeperPath:           "/gopush-cluster",
-		ZookeeperData:           "ws://localhost:6968,tcp://localhost:6969",
-		ZookeeperNode:           "node1",
+		// base
+		User:          "nobody nobody",
+		PidFile:       "/var/run/gopush-cluster-comet.pid",
+		Dir:           "./",
+		MaxProc:       runtime.NumCPU(),
+		LogFile:       "./comet.log",
+		LogLevel:      "ERROR",
+		WebsocketBind: []string{"localhost:6968"},
+		TCPBind:       []string{"localhost:6969"},
+		RPCBind:       []string{"localhost:6970"},
+		PprofBind:     []string{"localhost:6971"},
+		// zookeeper
+		ZookeeperAddr:    "localhost:2181",
+		ZookeeperTimeout: 8 * time.Hour,
+		ZookeeperPath:    "/gopush-cluster",
+		ZookeeperNode:    "node1",
+		// rpc
+		RPCMessageAddr: "localhost:6972",
+		RPCPing:        1 * time.Second,
+		RPCRetry:       1 * time.Second,
+		// channel
 		SndbufSize:              2048,
 		RcvbufSize:              256,
 		Proto:                   "tcp",
@@ -83,9 +87,6 @@ func InitConfig(file string) (*Config, error) {
 		MaxSubscriberPerChannel: 64,
 		ChannelBucket:           runtime.NumCPU(),
 		Auth:                    false,
-		RPCMessageAddr:          "localhost:6972",
-		RPCPing:                 1 * time.Second,
-		RPCRetry:                1 * time.Second,
 	}
 	c := goconf.New()
 	if err := c.Parse(file); err != nil {
@@ -115,16 +116,16 @@ func InitConfig(file string) (*Config, error) {
 	if err := setConfigDefString(baseSection, "loglevel", &cf.LogLevel); err != nil {
 		return nil, err
 	}
-	if err := setConfigDefString(baseSection, "tcp.bind", &cf.TCPBind); err != nil {
+	if err := setConfigDefStrings(baseSection, "tcp.bind", ",", cf.TCPBind); err != nil {
 		return nil, err
 	}
-	if err := setConfigDefString(baseSection, "websocket.bind", &cf.WebsocketBind); err != nil {
+	if err := setConfigDefStrings(baseSection, "websocket.bind", ",", cf.WebsocketBind); err != nil {
 		return nil, err
 	}
-	if err := setConfigDefString(baseSection, "pprof.bind", &cf.PprofBind); err != nil {
+	if err := setConfigDefStrings(baseSection, "pprof.bind", ",", cf.PprofBind); err != nil {
 		return nil, err
 	}
-	if err := setConfigDefString(baseSection, "admin.bind", &cf.AdminBind); err != nil {
+	if err := setConfigDefStrings(baseSection, "rpc.bind", ",", cf.RPCBind); err != nil {
 		return nil, err
 	}
 	// zookeeper section
@@ -141,11 +142,21 @@ func InitConfig(file string) (*Config, error) {
 	if err := setConfigDefString(zkSection, "path", &cf.ZookeeperPath); err != nil {
 		return nil, err
 	}
-	if err := setConfigDefString(zkSection, "data", &cf.ZookeeperData); err != nil {
+	if err := setConfigDefString(zkSection, "node", &cf.ZookeeperNode); err != nil {
 		return nil, err
 	}
-	cf.ZookeeperData = fmt.Sprintf("%s,%s", cf.ZookeeperData, cf.AdminBind)
-	if err := setConfigDefString(zkSection, "node", &cf.ZookeeperNode); err != nil {
+	// rpc section
+	rpcSection := c.Get("rpc")
+	if rpcSection == nil {
+		return nil, ErrNoConfigSection
+	}
+	if err := setConfigDefString(rpcSection, "message.addr", &cf.RPCMessageAddr); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefDuration(rpcSection, "ping", &cf.RPCPing); err != nil {
+		return nil, err
+	}
+	if err := setConfigDefDuration(rpcSection, "retry", &cf.RPCRetry); err != nil {
 		return nil, err
 	}
 	// channel section
@@ -181,19 +192,6 @@ func InitConfig(file string) (*Config, error) {
 		return nil, err
 	}
 	if err := setConfigDefDuration(chSection, "token.expire", &cf.TokenExpire); err != nil {
-		return nil, err
-	}
-	rpcSection := c.Get("rpc")
-	if rpcSection == nil {
-		return nil, ErrNoConfigSection
-	}
-	if err := setConfigDefString(rpcSection, "message.addr", &cf.RPCMessageAddr); err != nil {
-		return nil, err
-	}
-	if err := setConfigDefDuration(rpcSection, "ping", &cf.RPCPing); err != nil {
-		return nil, err
-	}
-	if err := setConfigDefDuration(rpcSection, "retry", &cf.RPCRetry); err != nil {
 		return nil, err
 	}
 	return cf, nil
@@ -237,6 +235,20 @@ func setConfigDefString(s *goconf.Section, key string, val *string) error {
 		}
 	} else {
 		*val = tmp
+	}
+	return nil
+}
+
+func setConfigDefStrings(s *goconf.Section, key, delim string, val []string) error {
+	if tmp, err := s.Strings(key, delim); err != nil {
+		if err == goconf.ErrNoKey {
+			log.DefaultLogger.Warn("%s directive:\"%s\" not set, use default:\"%v\"", s.Name, key, val)
+		} else {
+			log.DefaultLogger.Error("%s.Strings(\"%s\") failed (%s)", s.Name, key, err.Error())
+			return err
+		}
+	} else {
+		val = tmp
 	}
 	return nil
 }

@@ -7,7 +7,6 @@ import (
 	"net"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -70,7 +69,7 @@ func putBufioReader(c chan *bufio.Reader, r *bufio.Reader) {
 
 // StartTCP Start tcp listen.
 func StartTCP() {
-	for _, bind := range strings.Split(Conf.TCPBind, ",") {
+	for _, bind := range Conf.TCPBind {
 		Log.Info("start tcp listen addr:\"%s\"", bind)
 		go tcpListen(bind)
 	}

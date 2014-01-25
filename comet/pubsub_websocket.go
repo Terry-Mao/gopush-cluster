@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -36,7 +35,7 @@ func (l *KeepAliveListener) Accept() (c net.Conn, err error) {
 
 // StartHttp start http listen.
 func StartHttp() {
-	for _, bind := range strings.Split(Conf.WebsocketBind, ",") {
+	for _, bind := range Conf.WebsocketBind {
 		Log.Info("start http listen addr:\"%s\"", bind)
 		go httpListen(bind)
 	}
