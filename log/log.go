@@ -124,5 +124,5 @@ func (l *Logger) logCore(level int, format string, args ...interface{}) {
 		}
 	}
 	file = short
-	l.log.Print(fmt.Sprintf("%s:%d [%s] %s", file, line, errLevels[level], fmt.Sprintf(format, args...)))
+	l.log.Print(fmt.Sprintf("[%s] %s:%d %s", errLevels[level], file, line, fmt.Sprintf(format, args...)))
 }
