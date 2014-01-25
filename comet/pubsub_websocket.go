@@ -104,7 +104,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 		return
 	}
 	// add a conn to the channel
-	connElem, err := c.AddConn(ws, key)
+	connElem, err := c.AddConn(key, ws)
 	if err != nil {
 		Log.Error("user_key:\"%s\" add conn failed (%s)", key, err.Error())
 		return
@@ -112,7 +112,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	// send first heartbeat to tell client service is ready for accept heartbeat
 	if _, err = ws.Write(HeartbeatReply); err != nil {
 		Log.Error("user_key:\"%s\" write first heartbeat to client failed (%s)", key, err.Error())
-		if err := c.RemoveConn(connElem, key); err != nil {
+		if err := c.RemoveConn(key, connElem); err != nil {
 			Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err.Error())
 		}
 		return
@@ -147,7 +147,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 		end = time.Now().UnixNano()
 	}
 	// remove exists conn
-	if err := c.RemoveConn(connElem, key); err != nil {
+	if err := c.RemoveConn(key, connElem); err != nil {
 		Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err.Error())
 	}
 	return

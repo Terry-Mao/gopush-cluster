@@ -19,7 +19,7 @@ var (
 // The subscriber interface.
 type Channel interface {
 	// PushMsg push a message to the subscriber.
-	PushMsg(m *Message, key string) error
+	PushMsg(key string, m *Message) error
 	// Add a token for one subscriber
 	// The request token not equal the subscriber token will return errors.
 	AddToken(key, token string) error
@@ -28,9 +28,9 @@ type Channel interface {
 	AuthToken(key, token string) bool
 	// AddConn add a connection for the subscriber.
 	// Exceed the max number of subscribers per key will return errors.
-	AddConn(conn net.Conn, key string) (*list.Element, error)
+	AddConn(key string, conn net.Conn) (*list.Element, error)
 	// RemoveConn remove a connection for the  subscriber.
-	RemoveConn(e *list.Element, key string) error
+	RemoveConn(key string, e *list.Element) error
 	// Expire expire the channle and clean data.
 	Close() error
 }

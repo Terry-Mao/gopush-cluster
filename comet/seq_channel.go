@@ -70,7 +70,7 @@ func (c *SeqChannel) AuthToken(key, token string) bool {
 }
 
 // PushMsg implements the Channel PushMsg method.
-func (c *SeqChannel) PushMsg(m *Message, key string) error {
+func (c *SeqChannel) PushMsg(key string, m *Message) error {
 	c.mutex.Lock()
 	// private message need persistence
 	if m.GroupID != myrpc.PublicGroupID {
@@ -115,7 +115,7 @@ func (c *SeqChannel) PushMsg(m *Message, key string) error {
 }
 
 // AddConn implements the Channel AddConn method.
-func (c *SeqChannel) AddConn(conn net.Conn, key string) (*list.Element, error) {
+func (c *SeqChannel) AddConn(key string, conn net.Conn) (*list.Element, error) {
 	c.mutex.Lock()
 	if c.conn.Len()+1 > Conf.MaxSubscriberPerChannel {
 		c.mutex.Unlock()
@@ -130,7 +130,7 @@ func (c *SeqChannel) AddConn(conn net.Conn, key string) (*list.Element, error) {
 }
 
 // RemoveConn implements the Channel RemoveConn method.
-func (c *SeqChannel) RemoveConn(e *list.Element, key string) error {
+func (c *SeqChannel) RemoveConn(key string, e *list.Element) error {
 	c.mutex.Lock()
 	c.conn.Remove(e)
 	c.mutex.Unlock()
