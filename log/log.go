@@ -32,8 +32,8 @@ type Logger struct {
 }
 
 var (
-	defaultLogLevel = Error
-	DefaultLogger   = &Logger{log: log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile), file: nil, level: defaultLogLevel}
+	defaultLogLevel = Debug
+	DefaultLogger   = &Logger{log: log.New(os.Stdout, "", log.LstdFlags), file: nil, level: defaultLogLevel}
 	errLevels       = []string{"EMERG", "ALERT", "CRIT", "ERROR", "WARN", "NOTIC", "INFO", "DEBUG"}
 )
 

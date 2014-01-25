@@ -11,9 +11,9 @@ import (
 func main() {
 	cmd := "sub"
 	key := "Terry-Mao"
-	heartbeat := 10
+	heartbeat := 30
 
-	addr, err := net.ResolveTCPAddr("tcp", "10.33.18.33:8080")
+	addr, err := net.ResolveTCPAddr("tcp", "10.33.13.175:6969")
 	if err != nil {
 		panic(err)
 	}

@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	Log *log.Logger
+	Log = log.DefaultLogger
 )
 
 func main() {
@@ -18,22 +18,22 @@ func main() {
 	// init config
 	Conf, err = InitConfig(ConfFile)
 	if err != nil {
-		log.DefaultLogger.Error("NewConfig(\"%s\") failed (%s)", ConfFile, err.Error())
+		Log.Error("NewConfig(\"%s\") failed (%s)", ConfFile, err.Error())
 		os.Exit(-1)
 	}
 	// Set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
-	// init log
-	if Log, err = log.New(Conf.LogFile, Conf.LogLevel); err != nil {
-		log.DefaultLogger.Error("log.New(\"%s\", %d) failed (%s)", Conf.LogFile, Conf.LogLevel, err.Error())
-		os.Exit(-1)
-	}
-	defer Log.Close()
 	// init process
 	if err = InitProcess(); err != nil {
 		Log.Error("InitProcess() failed (%s)", err.Error())
 		os.Exit(-1)
 	}
+	// init log
+	if Log, err = log.New(Conf.LogFile, Conf.LogLevel); err != nil {
+		Log.Error("log.New(\"%s\", %s) failed (%s)", Conf.LogFile, Conf.LogLevel, err.Error())
+		os.Exit(-1)
+	}
+	defer Log.Close()
 	Log.Info("gopush2 start")
 	StartStats()
 	if zk, err := InitZookeeper(); err != nil {

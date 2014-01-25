@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"strings"
 	"time"
 )
 
@@ -33,8 +32,7 @@ var (
 
 // StartListen start accept client.
 func StartComet() {
-	for _, proto := range strings.Split(Conf.Proto, ",") {
-		proto = strings.TrimSpace(proto)
+	for _, proto := range Conf.Proto {
 		if proto == WebsocketProtocol {
 			// Start http push service
 			go StartHttp()

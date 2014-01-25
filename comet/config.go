@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"github.com/Terry-Mao/goconf"
-	"github.com/Terry-Mao/gopush-cluster/log"
 	"runtime"
 	"time"
 )
@@ -43,7 +42,7 @@ type Config struct {
 	// channel
 	SndbufSize              int
 	RcvbufSize              int
-	Proto                   string
+	Proto                   []string
 	BufioInstance           int
 	BufioNum                int
 	TCPKeepalive            bool
@@ -58,7 +57,7 @@ func InitConfig(file string) (*Config, error) {
 	cf := &Config{
 		// base
 		User:          "nobody nobody",
-		PidFile:       "/var/run/gopush-cluster-comet.pid",
+		PidFile:       "/tmp/gopush-cluster-comet.pid",
 		Dir:           "./",
 		MaxProc:       runtime.NumCPU(),
 		LogFile:       "./comet.log",
@@ -79,7 +78,7 @@ func InitConfig(file string) (*Config, error) {
 		// channel
 		SndbufSize:              2048,
 		RcvbufSize:              256,
-		Proto:                   "tcp",
+		Proto:                   []string{"tcp", "websocket"},
 		BufioInstance:           runtime.NumCPU(),
 		BufioNum:                128,
 		TCPKeepalive:            false,
@@ -90,7 +89,7 @@ func InitConfig(file string) (*Config, error) {
 	}
 	c := goconf.New()
 	if err := c.Parse(file); err != nil {
-		log.DefaultLogger.Error("goconf.Parse(\"%s\") failed (%s)", file, err.Error())
+		Log.Error("goconf.Parse(\"%s\") failed (%s)", file, err.Error())
 		return nil, err
 	}
 	// base section
@@ -116,16 +115,16 @@ func InitConfig(file string) (*Config, error) {
 	if err := setConfigDefString(baseSection, "loglevel", &cf.LogLevel); err != nil {
 		return nil, err
 	}
-	if err := setConfigDefStrings(baseSection, "tcp.bind", ",", cf.TCPBind); err != nil {
+	if err := setConfigDefStrings(baseSection, "tcp.bind", ",", &cf.TCPBind); err != nil {
 		return nil, err
 	}
-	if err := setConfigDefStrings(baseSection, "websocket.bind", ",", cf.WebsocketBind); err != nil {
+	if err := setConfigDefStrings(baseSection, "websocket.bind", ",", &cf.WebsocketBind); err != nil {
 		return nil, err
 	}
-	if err := setConfigDefStrings(baseSection, "pprof.bind", ",", cf.PprofBind); err != nil {
+	if err := setConfigDefStrings(baseSection, "pprof.bind", ",", &cf.PprofBind); err != nil {
 		return nil, err
 	}
-	if err := setConfigDefStrings(baseSection, "rpc.bind", ",", cf.RPCBind); err != nil {
+	if err := setConfigDefStrings(baseSection, "rpc.bind", ",", &cf.RPCBind); err != nil {
 		return nil, err
 	}
 	// zookeeper section
@@ -173,7 +172,7 @@ func InitConfig(file string) (*Config, error) {
 	if err := setConfigDefInt(chSection, "rcvbuf.size", &cf.RcvbufSize); err != nil {
 		return nil, err
 	}
-	if err := setConfigDefString(chSection, "proto", &cf.Proto); err != nil {
+	if err := setConfigDefStrings(chSection, "proto", ",", &cf.Proto); err != nil {
 		return nil, err
 	}
 	if err := setConfigDefInt(chSection, "bufio.instance", &cf.BufioInstance); err != nil {
@@ -200,9 +199,9 @@ func InitConfig(file string) (*Config, error) {
 func setConfigDefInt(s *goconf.Section, key string, val *int) error {
 	if tmp, err := s.Int(key); err != nil {
 		if err == goconf.ErrNoKey {
-			log.DefaultLogger.Warn("%s directive:\"%s\" not set, use default:\"%d\"", s.Name, key, *val)
+			Log.Warn("%s directive:\"%s\" not set, use default:\"%d\"", s.Name, key, *val)
 		} else {
-			log.DefaultLogger.Error("%s.Int(\"%s\") failed (%s)", s.Name, key, err.Error())
+			Log.Error("%s.Int(\"%s\") failed (%s)", s.Name, key, err.Error())
 			return err
 		}
 	} else {
@@ -214,9 +213,9 @@ func setConfigDefInt(s *goconf.Section, key string, val *int) error {
 func setConfigDefDuration(s *goconf.Section, key string, val *time.Duration) error {
 	if tmp, err := s.Duration(key); err != nil {
 		if err == goconf.ErrNoKey {
-			log.DefaultLogger.Warn("%s directive:\"%s\" not set, use default:\"%d\"", s.Name, key, *val)
+			Log.Warn("%s directive:\"%s\" not set, use default:\"%d\"", s.Name, key, *val)
 		} else {
-			log.DefaultLogger.Error("%s.Duration(\"%s\") failed (%s)", s.Name, key, err.Error())
+			Log.Error("%s.Duration(\"%s\") failed (%s)", s.Name, key, err.Error())
 			return err
 		}
 	} else {
@@ -228,9 +227,9 @@ func setConfigDefDuration(s *goconf.Section, key string, val *time.Duration) err
 func setConfigDefString(s *goconf.Section, key string, val *string) error {
 	if tmp, err := s.String(key); err != nil {
 		if err == goconf.ErrNoKey {
-			log.DefaultLogger.Warn("%s directive:\"%s\" not set, use default:\"%s\"", s.Name, key, *val)
+			Log.Warn("%s directive:\"%s\" not set, use default:\"%s\"", s.Name, key, *val)
 		} else {
-			log.DefaultLogger.Error("%s.String(\"%s\") failed (%s)", s.Name, key, err.Error())
+			Log.Error("%s.String(\"%s\") failed (%s)", s.Name, key, err.Error())
 			return err
 		}
 	} else {
@@ -239,16 +238,16 @@ func setConfigDefString(s *goconf.Section, key string, val *string) error {
 	return nil
 }
 
-func setConfigDefStrings(s *goconf.Section, key, delim string, val []string) error {
+func setConfigDefStrings(s *goconf.Section, key, delim string, val *[]string) error {
 	if tmp, err := s.Strings(key, delim); err != nil {
 		if err == goconf.ErrNoKey {
-			log.DefaultLogger.Warn("%s directive:\"%s\" not set, use default:\"%v\"", s.Name, key, val)
+			Log.Warn("%s directive:\"%s\" not set, use default:\"%v\"", s.Name, key, *val)
 		} else {
-			log.DefaultLogger.Error("%s.Strings(\"%s\") failed (%s)", s.Name, key, err.Error())
+			Log.Error("%s.Strings(\"%s\") failed (%s)", s.Name, key, err.Error())
 			return err
 		}
 	} else {
-		val = tmp
+		*val = tmp
 	}
 	return nil
 }
@@ -256,9 +255,9 @@ func setConfigDefStrings(s *goconf.Section, key, delim string, val []string) err
 func setConfigDefBool(s *goconf.Section, key string, val *bool) error {
 	if tmp, err := s.Bool(key); err != nil {
 		if err == goconf.ErrNoKey {
-			log.DefaultLogger.Warn("%s directive:\"%s\" not set, use default:\"%s\"", s.Name, key, *val)
+			Log.Warn("%s directive:\"%s\" not set, use default:\"%s\"", s.Name, key, *val)
 		} else {
-			log.DefaultLogger.Error("%s.Bool(\"%s\") failed (%s)", s.Name, key, err.Error())
+			Log.Error("%s.Bool(\"%s\") failed (%s)", s.Name, key, err.Error())
 			return err
 		}
 	} else {
