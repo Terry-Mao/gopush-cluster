@@ -58,6 +58,7 @@ Web外部接口文档，用于获取Subcribe节点,获取离线消息等
 | pmid | int64  | 最新接收收的公共消息ID |
 
  * 返回参数说明
+
 (head). | 参数 | 类型 | 描述 |
 | msgs  | string数组 | 私有离线消息 |
 | pmsgs | string数组 | 公共离线消息 |

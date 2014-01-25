@@ -52,6 +52,7 @@ Web内部接口文档，用于推送消息、节点管理等
 | key    | string | 公共消息key |
 | mid    | int64  | 消息ID  |
 | expire | int64  | 消息过期时间，单位：秒(s)|
+
 注: 1.消息体存放到body中，以上参数为URL参数。
     2.key保证与配置中pkey参数指定的值相同。
 
