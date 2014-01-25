@@ -54,6 +54,8 @@ func main() {
 	StartPprof()
 	// start comet
 	StartComet()
+	// init message rpc
+	InitMessageRPC()
 	// start rpc
 	StartRPC()
 	// init signals
