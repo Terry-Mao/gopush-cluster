@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net"
-	"os"
 	"strconv"
 	"time"
 )
@@ -79,15 +78,16 @@ func tcpListen(bind string) {
 	addr, err := net.ResolveTCPAddr("tcp", bind)
 	if err != nil {
 		Log.Error("net.ResolveTCPAddr(\"tcp\"), %s) failed (%s)", bind, err.Error())
-		os.Exit(-1)
+		panic(err)
 	}
 	l, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		Log.Error("net.ListenTCP(\"tcp4\", \"%s\") failed (%s)", bind, err.Error())
-		os.Exit(-1)
+		panic(err)
 	}
 	// free the listener resource
 	defer func() {
+		Log.Info("tcp addr: \"%s\" close", bind)
 		if err := l.Close(); err != nil {
 			Log.Error("listener.Close() failed (%s)", err.Error())
 		}

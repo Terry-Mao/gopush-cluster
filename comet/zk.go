@@ -93,6 +93,7 @@ func (zk *ZK) register() error {
 
 // Close close zookeeper connection.
 func (zk *ZK) Close() {
+	Log.Info("zookeeper addr: \"%s\" close", Conf.ZookeeperAddr)
 	if err := zk.conn.Close(); err != nil {
 		Log.Error("zk.conn.Close() failed (%s)", err.Error())
 	}

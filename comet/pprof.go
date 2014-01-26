@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 	"net/http/pprof"
-	"os"
 )
 
 // StartPprof start http pprof.
@@ -18,9 +17,8 @@ func StartPprof() {
 			Log.Info("start pprof listen addr:\"%s\"", addr)
 			if err := http.ListenAndServe(addr, pprofServeMux); err != nil {
 				Log.Error("http.ListenAdServe(\"%s\") failed (%s)", addr, err.Error())
-				os.Exit(-1)
+				panic(err)
 			}
 		}()
 	}
-	// svr.Serve will close the listener if process exit
 }

@@ -155,13 +155,19 @@ func (l *ChannelList) Delete(key string) (Channel, error) {
 
 // Close close all channel.
 func (l *ChannelList) Close() {
-	for _, c := range UserChannel.Channels {
+	Log.Info("channel close")
+	chs := make([]Channel, 0, l.Count())
+	for _, c := range l.Channels {
 		c.Lock()
-		for k, c := range c.Data {
-			if err := c.Close(); err != nil {
-				Log.Error("user_key:\"%s\" c.Close() failed (%s)", k, err.Error())
-			}
+		for _, c := range c.Data {
+			chs = append(chs, c)
 		}
 		c.Unlock()
+	}
+	// close all channels
+	for _, c := range chs {
+		if err := c.Close(); err != nil {
+			Log.Error("c.Close() failed (%s)", err.Error())
+		}
 	}
 }

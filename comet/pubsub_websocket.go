@@ -4,7 +4,6 @@ import (
 	"code.google.com/p/go.net/websocket"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 )
@@ -49,19 +48,18 @@ func httpListen(bind string) {
 		l, err := net.Listen("tcp", bind)
 		if err != nil {
 			Log.Error("net.Listen(\"tcp\", \"%s\") failed (%s)", bind, err.Error())
-			os.Exit(-1)
+			panic(err)
 		}
 		if err := server.Serve(&KeepAliveListener{Listener: l}); err != nil {
 			Log.Error("server.Serve(\"%s\") failed (%s)", bind, err.Error())
-			os.Exit(-1)
+			panic(err)
 		}
 	} else {
 		if err := http.ListenAndServe(bind, httpServeMux); err != nil {
 			Log.Error("http.ListenAdServe(\"%s\") failed (%s)", bind, err.Error())
-			os.Exit(-1)
+			panic(err)
 		}
 	}
-	// svr.Serve will close the listener if process exit
 }
 
 // Subscriber Handle is the websocket handle for sub request.

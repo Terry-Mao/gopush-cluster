@@ -35,10 +35,10 @@ func StartComet() {
 	for _, proto := range Conf.Proto {
 		if proto == WebsocketProtocol {
 			// Start http push service
-			go StartHttp()
+			StartHttp()
 		} else if proto == TCPProtocol {
-			// Start http push service
-			go StartTCP()
+			// Start tcp push service
+			StartTCP()
 		} else {
 			Log.Warn("unknown gopush-cluster protocol %s, (\"websocket\" or \"tcp\")", proto)
 		}

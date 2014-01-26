@@ -15,6 +15,7 @@ func main() {
 	var err error
 	// parse cmd-line arguments
 	flag.Parse()
+	signalCH := InitSignal()
 	// init config
 	Conf, err = InitConfig(ConfFile)
 	if err != nil {
@@ -35,7 +36,22 @@ func main() {
 	}
 	// if process exit, close log
 	defer Log.Close()
-	Log.Info("gopush2 start")
+	Log.Info("comet start")
+	// create channel
+	UserChannel = NewChannelList()
+	// if process exit, close channel
+	defer UserChannel.Close()
+	// start stats
+	StartStats()
+	// start pprof http
+	StartPprof()
+	// init message rpc, block until message rpc init.
+	InitMessageRPC()
+	// start rpc
+	StartRPC()
+	// start comet
+	StartComet()
+	// init zookeeper
 	zk, err := InitZookeeper()
 	if err != nil {
 		Log.Error("InitZookeeper() failed (%s)", err.Error())
@@ -43,22 +59,8 @@ func main() {
 	}
 	// if process exit, close zk
 	defer zk.Close()
-	// create channel
-	UserChannel = NewChannelList()
-	defer UserChannel.Close()
-	// if process exit, close channel
-	// start stats
-	StartStats()
-	// start pprof http
-	StartPprof()
-	// start comet
-	StartComet()
-	// init message rpc
-	InitMessageRPC()
-	// start rpc
-	StartRPC()
-	// init signals, then block wait signals
-	InitSignal()
+	// init signals, block wait signals
+	HandleSignal(signalCH)
 	// exit
-	Log.Info("gopush2 stop")
+	Log.Info("comet stop")
 }

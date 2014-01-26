@@ -11,6 +11,7 @@ import (
 var (
 	ErrMessageSave = errors.New("Message set failed")
 	ErrMessageGet  = errors.New("Message get failed")
+	ErrMessageRPC  = errors.New("Message RPC not init")
 )
 
 // Sequence Channel struct.
@@ -71,6 +72,9 @@ func (c *SeqChannel) AuthToken(key, token string) bool {
 
 // PushMsg implements the Channel PushMsg method.
 func (c *SeqChannel) PushMsg(key string, m *Message) error {
+	if MsgRPC == nil {
+		return ErrMessageRPC
+	}
 	c.mutex.Lock()
 	// private message need persistence
 	if m.GroupID != myrpc.PublicGroupID {

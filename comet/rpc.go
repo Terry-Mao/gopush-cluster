@@ -5,7 +5,6 @@ import (
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"net/rpc"
-	"os"
 	"time"
 )
 
@@ -40,34 +39,40 @@ var (
 // InitMessageRPC init the message rpc connection.
 func InitMessageRPC() {
 	go func() {
-		var err error
+		failed := false
 		// if process exit, then close message rpc
 		defer func() {
 			if MsgRPC != nil {
+				Log.Error("message rpc close")
 				if err := MsgRPC.Close(); err != nil {
 					Log.Error("MsgRPC.Close() failed (%s)", err.Error())
 				}
 			}
 		}()
 		for {
-			if MsgRPC != nil {
+			if !failed && MsgRPC != nil {
 				reply := 0
 				if err := MsgRPC.Call("MessageRPC.Ping", 0, &reply); err != nil {
 					Log.Error("rpc.Call(\"MessageRPC.Ping\") failed (%s)", err.Error())
+					failed = true
 				} else {
 					// every one second send a heartbeat ping
+					failed = false
 					Log.Debug("rpc ping ok")
 					time.Sleep(Conf.RPCPing)
 					continue
 				}
 			}
 			// reconnect(init) message rpc
-			if MsgRPC, err = rpc.Dial("tcp", Conf.RPCMessageAddr); err != nil {
+			if rpcTmp, err := rpc.Dial("tcp", Conf.RPCMessageAddr); err != nil {
 				Log.Error("rpc.Dial(\"tcp\", %s) failed (%s), reconnect retry after %d second", Conf.RPCMessageAddr, err.Error(), int64(Conf.RPCRetry)/Second)
 				time.Sleep(Conf.RPCRetry)
 				continue
+			} else {
+				MsgRPC = rpcTmp
+				failed = false
+				Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCMessageAddr)
 			}
-			Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCMessageAddr)
 		}
 	}()
 }
@@ -86,10 +91,11 @@ func rpcListen(bind string) {
 	l, err := net.Listen("tcp", bind)
 	if err != nil {
 		Log.Error("net.Listen(\"tcp\", \"%s\") failed (%s)", bind, err.Error())
-		os.Exit(-1)
+		panic(err)
 	}
 	// if process exit, then close the rpc bind
 	defer func() {
+		Log.Info("rpc addr: \"%s\" close", bind)
 		if err := l.Close(); err != nil {
 			Log.Error("listener.Close() failed (%s)", err.Error())
 		}
