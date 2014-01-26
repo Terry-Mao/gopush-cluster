@@ -23,7 +23,6 @@ type Config struct {
 	PKey             string            `goconf:"base:pkey"`
 	LogPath          string            `goconf:"log:path"`
 	LogLevel         string            `goconf:"log:level"`
-	RedisNetwork     string            `goconf:"redis:network"`
 	RedisIdleTimeout time.Duration     `goconf:"redis:idletimeout:time"`
 	RedisMaxIdle     int               `goconf:"redis:maxidle"`
 	RedisMaxActive   int               `goconf:"redis:maxactive"`
@@ -42,7 +41,6 @@ func NewConfig(fileName string) (*Config, error) {
 		PKey:             "gopushpkey",
 		LogPath:          "./message.log",
 		LogLevel:         "DEBUG",
-		RedisNetwork:     "tcp",
 		RedisIdleTimeout: 28800 * time.Second,
 		RedisMaxIdle:     50,
 		RedisMaxActive:   1000,

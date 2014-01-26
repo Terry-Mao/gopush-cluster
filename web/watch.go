@@ -271,16 +271,16 @@ func watchFirstServer(node string) {
 			// ReDial RPC
 			addr, ok := subAddr[ProtocolRPC]
 			if ok {
-				r, err := rpc.Dial(Conf.CometNetwork, addr)
+				r, err := rpc.Dial("tcp", addr)
 				if err != nil {
-					Log.Error("rpc.Dial(%s, %s) error node:\"%s\", subNode:\"%s\", recheck after 10 seconds", Conf.CometNetwork, addr, node, subNodes[0])
+					Log.Error("rpc.Dial(\"tcp\", \"%s\") error node:\"%s\", subNode:\"%s\", recheck after 10 seconds", addr, node, subNodes[0])
 					time.Sleep(10 * time.Second)
 					continue
 				}
 
 				info.PubRPC = r
 			} else {
-				Log.Error("rpc.Dial(%s, %s) error node:\"%s\", subNode:\"%s\" error(no rpc address)", Conf.CometNetwork, addr, node, subNodes[0])
+				Log.Error("rpc.Dial(\"tcp\", \"%s\") error node:\"%s\", subNode:\"%s\" error(no rpc address)", addr, node, subNodes[0])
 			}
 
 			NodeInfoMapLock.Lock()
