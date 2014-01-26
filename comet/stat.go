@@ -166,7 +166,7 @@ func ServerStats() []byte {
 	res["pid"] = os.Getpid()
 	res["pagesize"] = os.Getpagesize()
 	if usr, err := user.Current(); err != nil {
-		Log.Error("user.Current() failed (%s)", err.Error())
+		Log.Error("user.Current() error(%v)", err)
 		res["group"] = ""
 		res["user"] = ""
 	} else {
@@ -180,7 +180,7 @@ func ServerStats() []byte {
 func ConfigInfo() []byte {
 	byteJson, err := json.MarshalIndent(Conf, "", "    ")
 	if err != nil {
-		Log.Error("json.MarshalIndent(\"%v\", \"\", \"    \") failed", Conf)
+		Log.Error("json.MarshalIndent(\"%v\", \"\", \"    \") error(%v)", Conf, err)
 		return []byte{}
 	}
 	return byteJson
@@ -190,7 +190,7 @@ func ConfigInfo() []byte {
 func jsonRes(res map[string]interface{}) []byte {
 	byteJson, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
-		Log.Error("json.MarshalIndent(\"%v\", \"\", \"    \") failed", res)
+		Log.Error("json.MarshalIndent(\"%v\", \"\", \"    \") error(%v)", res, err)
 		return []byte{}
 	}
 	return byteJson
@@ -224,6 +224,6 @@ func StatHandle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Not Found", 404)
 	}
 	if _, err := w.Write(res); err != nil {
-		Log.Error("w.Write(\"%s\") failed (%s)", string(res), err.Error())
+		Log.Error("w.Write(\"%s\") error(%v)", string(res), err)
 	}
 }

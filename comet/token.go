@@ -42,7 +42,7 @@ func (t *Token) Add(ticket string) error {
 		e = t.lru.PushBack(&TokenData{Ticket: ticket, Expire: time.Now().Add(Conf.TokenExpire)})
 		t.token[ticket] = e
 	} else {
-		Log.Error("token \"%s\" exist", ticket)
+		Log.Warn("token \"%s\" exist", ticket)
 		return ErrTokenExist
 	}
 	t.clean()
@@ -52,7 +52,7 @@ func (t *Token) Add(ticket string) error {
 // Auth auth a token is valid
 func (t *Token) Auth(ticket string) error {
 	if e, ok := t.token[ticket]; !ok {
-		Log.Error("token \"%s\" not exist", ticket)
+		Log.Warn("token \"%s\" not exist", ticket)
 		return ErrTokenNotExist
 	} else {
 		td, _ := e.Value.(*TokenData)

@@ -45,7 +45,7 @@ func InitMessageRPC() {
 			if MsgRPC != nil {
 				Log.Error("message rpc close")
 				if err := MsgRPC.Close(); err != nil {
-					Log.Error("MsgRPC.Close() failed (%s)", err.Error())
+					Log.Error("MsgRPC.Close() error(%v)", err)
 				}
 			}
 		}()
@@ -53,7 +53,7 @@ func InitMessageRPC() {
 			if !failed && MsgRPC != nil {
 				reply := 0
 				if err := MsgRPC.Call("MessageRPC.Ping", 0, &reply); err != nil {
-					Log.Error("rpc.Call(\"MessageRPC.Ping\") failed (%s)", err.Error())
+					Log.Error("rpc.Call(\"MessageRPC.Ping\") error(%v)", err)
 					failed = true
 				} else {
 					// every one second send a heartbeat ping
@@ -65,7 +65,7 @@ func InitMessageRPC() {
 			}
 			// reconnect(init) message rpc
 			if rpcTmp, err := rpc.Dial("tcp", Conf.RPCMessageAddr); err != nil {
-				Log.Error("rpc.Dial(\"tcp\", %s) failed (%s), reconnect retry after %d second", Conf.RPCMessageAddr, err.Error(), int64(Conf.RPCRetry)/Second)
+				Log.Error("rpc.Dial(\"tcp\", %s) error(%s), reconnect retry after %d second", Conf.RPCMessageAddr, err, int64(Conf.RPCRetry)/Second)
 				time.Sleep(Conf.RPCRetry)
 				continue
 			} else {
@@ -90,14 +90,14 @@ func StartRPC() {
 func rpcListen(bind string) {
 	l, err := net.Listen("tcp", bind)
 	if err != nil {
-		Log.Error("net.Listen(\"tcp\", \"%s\") failed (%s)", bind, err.Error())
+		Log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
 		panic(err)
 	}
 	// if process exit, then close the rpc bind
 	defer func() {
 		Log.Info("rpc addr: \"%s\" close", bind)
 		if err := l.Close(); err != nil {
-			Log.Error("listener.Close() failed (%s)", err.Error())
+			Log.Error("listener.Close() error(%v)", err)
 		}
 	}()
 	rpc.Accept(l)
@@ -237,7 +237,7 @@ func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
 	Log.Info("close all the migrate channels")
 	for _, channel := range channels {
 		if err := channel.Close(); err != nil {
-			Log.Error("channel.Close() failed (%s)", err.Error())
+			Log.Error("channel.Close() error(%v)", err)
 			continue
 		}
 	}

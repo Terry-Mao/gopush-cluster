@@ -34,7 +34,7 @@ func InitProcess() error {
 	gid := 0
 	ui, err := user.Lookup(usr)
 	if err != nil {
-		Log.Error("user.Lookup(\"%s\") failed (%s)", err.Error())
+		Log.Error("user.Lookup(\"%s\") error(%v)", err)
 		return err
 	}
 	uid, _ = strconv.Atoi(ui.Uid)
@@ -49,7 +49,7 @@ func InitProcess() error {
 	}
 	Log.Debug("set user: %v", ui)
 	if err := syscall.Setuid(uid); err != nil {
-		Log.Error("syscall.Setuid(%d) failed (%s)", uid, err.Error())
+		Log.Error("syscall.Setuid(%d) error(%v)", uid, err)
 		return err
 	}
 	//if err := syscall.Setgid(gid); err != nil {
@@ -59,12 +59,12 @@ func InitProcess() error {
 	// change working dir
 	Log.Debug("set gid: %d", gid)
 	if err := os.Chdir(Conf.Dir); err != nil {
-		Log.Error("os.Chdir(\"%s\") failed (%s)", "", err.Error())
+		Log.Error("os.Chdir(\"%s\") error(%v)", "", err)
 		return err
 	}
 	// create pid file
 	if err := ioutil.WriteFile(Conf.PidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644); err != nil {
-		Log.Error("ioutil.WriteFile(\"%s\") failed (%s)", "", err.Error())
+		Log.Error("ioutil.WriteFile(\"%s\") error(%v)", "", err)
 		return err
 	}
 	return nil

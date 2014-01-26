@@ -167,7 +167,7 @@ func (l *ChannelList) Close() {
 	// close all channels
 	for _, c := range chs {
 		if err := c.Close(); err != nil {
-			Log.Error("c.Close() failed (%s)", err.Error())
+			Log.Error("c.Close() error(%v)", err)
 		}
 	}
 }

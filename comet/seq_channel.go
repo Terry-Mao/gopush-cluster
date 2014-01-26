@@ -48,7 +48,7 @@ func (c *SeqChannel) AddToken(key, token string) error {
 	c.mutex.Lock()
 	if err := c.token.Add(token); err != nil {
 		c.mutex.Unlock()
-		Log.Error("user_key:\"%s\" c.token.Add(\"%s\") failed (%s)", key, token, err.Error())
+		Log.Error("user_key:\"%s\" c.token.Add(\"%s\") error(%v)", key, token, err)
 		return err
 	}
 	c.mutex.Unlock()
@@ -63,7 +63,7 @@ func (c *SeqChannel) AuthToken(key, token string) bool {
 	c.mutex.Lock()
 	if err := c.token.Auth(token); err != nil {
 		c.mutex.Unlock()
-		Log.Error("user_key:\"%s\" c.token.Auth(\"%s\") failed (%s)", key, token, err.Error())
+		Log.Error("user_key:\"%s\" c.token.Auth(\"%s\") error(%v)", key, token, err)
 		return false
 	}
 	c.mutex.Unlock()
@@ -85,13 +85,13 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 		reply := retOK
 		if err := MsgRPC.Call("MessageRPC.Save", args, &reply); err != nil {
 			c.mutex.Unlock()
-			Log.Error("MessageRPC.Save failed (%s)", err.Error())
+			Log.Error("MessageRPC.Save error(%v)", err)
 			return err
 		}
 		// message save failed
 		if reply != retOK {
 			c.mutex.Unlock()
-			Log.Error("MessageRPC.Save failed (ret=%d)", reply)
+			Log.Error("MessageRPC.Save error(ret=%d)", reply)
 			return ErrMessageSave
 		}
 	}
@@ -99,7 +99,7 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 	b, err := m.Bytes()
 	if err != nil {
 		c.mutex.Unlock()
-		Log.Error("message.Bytes() failed (%s)", err.Error())
+		Log.Error("message.Bytes() error(%v)", err)
 		return err
 	}
 	// push message
@@ -107,10 +107,10 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 		conn, _ := e.Value.(net.Conn)
 		// do something with e.Value
 		if n, err := conn.Write(b); err != nil {
-			Log.Error("conn.Write() failed (%s)", err.Error())
+			Log.Error("conn.Write() error(%v)", err)
 			continue
 		} else {
-			Log.Debug("conn.Write %d bytes (%v)", n, b)
+			Log.Debug("conn.Write %d bytes", n)
 		}
 		Log.Info("user_key:\"%s\" push message \"%s\":%d", key, m.Msg, m.MsgID)
 	}
@@ -150,7 +150,7 @@ func (c *SeqChannel) Close() error {
 		conn, _ := e.Value.(net.Conn)
 		if err := conn.Close(); err != nil {
 			// ignore close error
-			Log.Warn("conn.Close() failed (%s)", err.Error())
+			Log.Warn("conn.Close() error(%v)", err)
 		}
 	}
 	c.mutex.Unlock()

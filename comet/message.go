@@ -21,7 +21,7 @@ type Message struct {
 func (m *Message) Bytes() ([]byte, error) {
 	byteJson, err := json.Marshal(m)
 	if err != nil {
-		Log.Error("json.Marshal(%v) failed (%s)", m, err.Error())
+		Log.Error("json.Marshal(%v) error(%v)", m, err)
 		return nil, err
 	}
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(byteJson), string(byteJson))), nil

@@ -15,9 +15,11 @@ type ZK struct {
 	conn *zookeeper.Conn
 }
 
+// newZookeeper dial zookeeper cluster.
 func newZookeeper() (*ZK, error) {
 	zk, session, err := zookeeper.Dial(Conf.ZookeeperAddr, Conf.ZookeeperTimeout)
 	if err != nil {
+		Log.Error("zookeeper.Dial(\"%s\", %d) error(%v)", Conf.ZookeeperAddr, Conf.ZookeeperTimeout, err)
 		return nil, err
 	}
 	go func() {
@@ -45,9 +47,9 @@ func (zk *ZK) create() error {
 		_, err := zk.conn.Create(tpath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
 		if err != nil {
 			if zookeeper.IsError(err, zookeeper.ZNODEEXISTS) {
-				Log.Warn("zk.Create(\"%s\") exists", tpath)
+				Log.Warn("zk.create(\"%s\") exists", tpath)
 			} else {
-				Log.Error("zk.Create(\"%s\") failed (%s)", tpath, err.Error())
+				Log.Error("zk.create(\"%s\") error(%v)", tpath, err)
 				return err
 			}
 		}
@@ -60,7 +62,7 @@ func (zk *ZK) create() error {
 		if zookeeper.IsError(err, zookeeper.ZNODEEXISTS) {
 			Log.Warn("zk.Create(\"%s\") exists", fpath)
 		} else {
-			Log.Error("zk.Create(\"%s\") failed (%s)", fpath, err.Error())
+			Log.Error("zk.Create(\"%s\") error(%v)", fpath, err)
 			return err
 		}
 	}
@@ -84,7 +86,7 @@ func (zk *ZK) register() error {
 	fpath := fmt.Sprintf("%s/%s/", Conf.ZookeeperPath, Conf.ZookeeperNode)
 	tpath, err := zk.conn.Create(fpath, data, zookeeper.EPHEMERAL|zookeeper.SEQUENCE, zookeeper.WorldACL(zookeeper.PERM_ALL))
 	if err != nil {
-		Log.Error("zk.Create(\"%s\", \"%s\", zookeeper.EPHEMERAL|zookeeper.SEQUENCE) failed (%s)", fpath, data, err.Error())
+		Log.Error("zk.conn.Create(\"%s\", \"%s\", zookeeper.EPHEMERAL|zookeeper.SEQUENCE) error(%v)", fpath, data, err)
 		return err
 	}
 	Log.Debug("create a zookeeper node:%s", tpath)
@@ -95,7 +97,7 @@ func (zk *ZK) register() error {
 func (zk *ZK) Close() {
 	Log.Info("zookeeper addr: \"%s\" close", Conf.ZookeeperAddr)
 	if err := zk.conn.Close(); err != nil {
-		Log.Error("zk.conn.Close() failed (%s)", err.Error())
+		Log.Error("zk.conn.Close() error(%v)", err)
 	}
 }
 
@@ -104,17 +106,17 @@ func InitZookeeper() (*ZK, error) {
 	// create a zk conn
 	zk, err := newZookeeper()
 	if err != nil {
-		Log.Error("newZookeeper() failed (%s)", err.Error())
+		Log.Error("newZookeeper() error(%v)", err)
 		return nil, err
 	}
 	// init zk path
 	if err = zk.create(); err != nil {
-		Log.Error("zk.Create() failed (%s)", err.Error())
+		Log.Error("zk.create() error(%v)", err)
 		return nil, err
 	}
 	// register zk node, dns,adminaddr
 	if err = zk.register(); err != nil {
-		Log.Error("zk.register() failed (%s)", err.Error())
+		Log.Error("zk.register() error(%v)", err)
 		return nil, err
 	}
 	return zk, nil

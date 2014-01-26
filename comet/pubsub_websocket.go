@@ -15,7 +15,7 @@ type KeepAliveListener struct {
 func (l *KeepAliveListener) Accept() (c net.Conn, err error) {
 	c, err = l.Listener.Accept()
 	if err != nil {
-		Log.Error("Listener.Accept() failed (%s)", err.Error())
+		Log.Error("Listener.Accept() error(%v)", err)
 		return
 	}
 	// set keepalive
@@ -25,7 +25,7 @@ func (l *KeepAliveListener) Accept() (c net.Conn, err error) {
 	} else {
 		err = tc.SetKeepAlive(true)
 		if err != nil {
-			Log.Error("tc.SetKeepAlive(true) failed (%s)", err.Error())
+			Log.Error("tc.SetKeepAlive(true) error(%v)", err)
 			return
 		}
 	}
@@ -47,16 +47,16 @@ func httpListen(bind string) {
 		server := &http.Server{Handler: httpServeMux}
 		l, err := net.Listen("tcp", bind)
 		if err != nil {
-			Log.Error("net.Listen(\"tcp\", \"%s\") failed (%s)", bind, err.Error())
+			Log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
 			panic(err)
 		}
 		if err := server.Serve(&KeepAliveListener{Listener: l}); err != nil {
-			Log.Error("server.Serve(\"%s\") failed (%s)", bind, err.Error())
+			Log.Error("server.Serve(\"%s\") error(%v)", bind, err)
 			panic(err)
 		}
 	} else {
 		if err := http.ListenAndServe(bind, httpServeMux); err != nil {
-			Log.Error("http.ListenAdServe(\"%s\") failed (%s)", bind, err.Error())
+			Log.Error("http.ListenAdServe(\"%s\") error(%v)", bind, err)
 			panic(err)
 		}
 	}
@@ -77,7 +77,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	i, err := strconv.Atoi(heartbeatStr)
 	if err != nil {
 		ws.Write(ParamReply)
-		Log.Error("user_key:\"%s\" heartbeat argument error (%s)", key, err.Error())
+		Log.Error("user_key:\"%s\" heartbeat argument error(%s)", key, err)
 		return
 	}
 	heartbeat := i * 2
@@ -92,7 +92,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	c, err := UserChannel.Get(key)
 	if err != nil {
 		ws.Write(ChannelReply)
-		Log.Error("user_key:\"%s\" can't get a channel (%s)", key, err.Error())
+		Log.Error("user_key:\"%s\" can't get a channel error(%s)", key, err)
 		return
 	}
 	// auth token
@@ -104,14 +104,14 @@ func SubscribeHandle(ws *websocket.Conn) {
 	// add a conn to the channel
 	connElem, err := c.AddConn(key, ws)
 	if err != nil {
-		Log.Error("user_key:\"%s\" add conn failed (%s)", key, err.Error())
+		Log.Error("user_key:\"%s\" add conn error(%s)", key, err)
 		return
 	}
 	// send first heartbeat to tell client service is ready for accept heartbeat
 	if _, err = ws.Write(HeartbeatReply); err != nil {
-		Log.Error("user_key:\"%s\" write first heartbeat to client failed (%s)", key, err.Error())
+		Log.Error("user_key:\"%s\" write first heartbeat to client error(%s)", key, err)
 		if err := c.RemoveConn(key, connElem); err != nil {
-			Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err.Error())
+			Log.Error("user_key:\"%s\" remove conn error(%v)", key, err)
 		}
 		return
 	}
@@ -123,18 +123,18 @@ func SubscribeHandle(ws *websocket.Conn) {
 		// more then 1 sec, reset the timer
 		if end-begin >= Second {
 			if err = ws.SetReadDeadline(time.Now().Add(time.Second * time.Duration(heartbeat))); err != nil {
-				Log.Error("user_key:\"%s\" websocket.SetReadDeadline() failed (%s)", key, err.Error())
+				Log.Error("user_key:\"%s\" websocket.SetReadDeadline() error(%s)", key, err)
 				break
 			}
 			begin = end
 		}
 		if err = websocket.Message.Receive(ws, &reply); err != nil {
-			Log.Error("user_key:\"%s\" websocket.Message.Receive() failed (%s)", key, err.Error())
+			Log.Error("user_key:\"%s\" websocket.Message.Receive() error(%s)", key, err)
 			break
 		}
 		if reply == Heartbeat {
 			if _, err = ws.Write(HeartbeatReply); err != nil {
-				Log.Error("user_key:\"%s\" write heartbeat to client failed (%s)", key, err.Error())
+				Log.Error("user_key:\"%s\" write heartbeat to client error(%s)", key, err)
 				break
 			}
 			Log.Debug("user_key:\"%s\" receive heartbeat", key)
@@ -146,7 +146,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	}
 	// remove exists conn
 	if err := c.RemoveConn(key, connElem); err != nil {
-		Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err.Error())
+		Log.Error("user_key:\"%s\" remove conn error(%s)", key, err)
 	}
 	return
 }

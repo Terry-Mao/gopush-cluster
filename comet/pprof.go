@@ -16,7 +16,7 @@ func StartPprof() {
 		go func() {
 			Log.Info("start pprof listen addr:\"%s\"", addr)
 			if err := http.ListenAndServe(addr, pprofServeMux); err != nil {
-				Log.Error("http.ListenAdServe(\"%s\") failed (%s)", addr, err.Error())
+				Log.Error("http.ListenAdServe(\"%s\") error(%v)", addr, err)
 				panic(err)
 			}
 		}()

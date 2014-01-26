@@ -89,11 +89,11 @@ func InitConfig(file string) (*Config, error) {
 	}
 	c := goconf.New()
 	if err := c.Parse(file); err != nil {
-		Log.Error("goconf.Parse(\"%s\") failed (%s)", file, err.Error())
+		Log.Error("goconf.Parse(\"%s\") error(%v)", file, err)
 		return nil, err
 	}
 	if err := c.Unmarshal(cf); err != nil {
-		Log.Error("gocong.Unmarshall() failed (%s)", err.Error())
+		Log.Error("gocong.Unmarshall() error(%v)", err)
 	}
 	return cf, nil
 }
