@@ -8,36 +8,42 @@ import (
 )
 
 var (
-	Log *log.Logger
+	Log = log.DefaultLogger
 )
 
 func main() {
 	var err error
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	// Load config
-	InitConfig()
+	signalCH := InitSignal()
+	// parse cmd-line arguments
 	flag.Parse()
-	Conf, err = NewConfig(ConfFile)
+	Conf, err = InitConfig(ConfFile)
 	if err != nil {
-		panic(err)
+		Log.Error("InitConfig() error(%v)", err)
 		os.Exit(-1)
 	}
-
+	// Set max routine
+	runtime.GOMAXPROCS(Conf.MaxProc)
+	// init process
+	if err = InitProcess(); err != nil {
+		Log.Error("InitProcess() error(%v)", err)
+		os.Exit(-1)
+	}
 	// Load log
-	Log, err = log.New(Conf.LogPath, Conf.LogLevel)
+	Log, err = log.New(Conf.LogFile, Conf.LogLevel)
 	if err != nil {
-		Log.Error("log.New(\"%s\") failed(%v)", Conf.LogPath, err)
+		Log.Error("log.New(\"%s\") error(%v)", Conf.LogFile, err)
 		os.Exit(-1)
 	}
-
+	Log.Info("message start")
 	// Initialize redis
 	InitRedis()
-
 	// Start rpc
 	if err := StartRPC(); err != nil {
 		Log.Error("StartRPC() error(%v)", err)
 		os.Exit(-1)
 	}
+	// init signals, block wait signals
+	HandleSignal(signalCH)
+	// exit
+	Log.Info("message stop")
 }

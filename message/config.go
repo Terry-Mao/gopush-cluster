@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/Terry-Mao/goconf"
+	"runtime"
 	"time"
 )
 
@@ -12,8 +13,7 @@ var (
 	ConfFile string
 )
 
-// InitConfig initialize config file path
-func InitConfig() {
+func init() {
 	flag.StringVar(&ConfFile, "c", "./message.conf", " set message config file path")
 }
 
@@ -21,8 +21,12 @@ func InitConfig() {
 type Config struct {
 	Addr             string            `goconf:"base:addr"`
 	PKey             string            `goconf:"base:pkey"`
-	LogPath          string            `goconf:"log:path"`
-	LogLevel         string            `goconf:"log:level"`
+	User             string            `goconf:"base:user"`
+	PidFile          string            `goconf:"base:pidfile"`
+	Dir              string            `goconf:"base:dir"`
+	MaxProc          int               `goconf:"base:maxproc"`
+	LogFile          string            `goconf:"base:logfile"`
+	LogLevel         string            `goconf:"base:loglevel"`
 	RedisIdleTimeout time.Duration     `goconf:"redis:idletimeout:time"`
 	RedisMaxIdle     int               `goconf:"redis:maxidle"`
 	RedisMaxActive   int               `goconf:"redis:maxactive"`
@@ -30,16 +34,21 @@ type Config struct {
 }
 
 // Initialize config
-func NewConfig(fileName string) (*Config, error) {
+func InitConfig(fileName string) (*Config, error) {
 	gconf := goconf.New()
 	if err := gconf.Parse(fileName); err != nil {
+		Log.Error("goconf.Parse(\"%s\") error(%v)", fileName, err)
 		return nil, err
 	}
 
 	conf := &Config{
 		Addr:             ":8070",
 		PKey:             "gopushpkey",
-		LogPath:          "./message.log",
+		User:             "nobody nobody",
+		PidFile:          "/tmp/gopush-cluster-comet.pid",
+		Dir:              "./",
+		MaxProc:          runtime.NumCPU(),
+		LogFile:          "./message.log",
 		LogLevel:         "DEBUG",
 		RedisIdleTimeout: 28800 * time.Second,
 		RedisMaxIdle:     50,
@@ -47,6 +56,7 @@ func NewConfig(fileName string) (*Config, error) {
 		RedisAddrs:       make(map[string]string),
 	}
 	if err := gconf.Unmarshal(conf); err != nil {
+		Log.Error("goconf.Unmarshal() error(%v)", err)
 		return nil, err
 	}
 
