@@ -11,34 +11,35 @@ var (
 )
 
 func InitMsgSvrClient() error {
-	var err error
-	MsgSvrClient, err = rpc.Dial(Conf.MsgNetwork, Conf.MsgAddr)
-	if err != nil {
-		return err
-	}
-
-	// rpc Ping
 	go func() {
-		for {
-			reply := 0
-			if err := MsgSvrClient.Call("MessageRPC.Ping", 0, &reply); err != nil {
-				Log.Error("rpc.Call(\"MessageRPC.Ping\") failed (%v)", err)
-				rpcTmp, err := rpc.Dial("tcp", Conf.MsgAddr)
-				if err != nil {
-					Log.Error("rpc.Dial(\"tcp\", %s) failed (%v)", Conf.MsgAddr, err)
-					time.Sleep(Conf.MsgRetry)
-					Log.Warn("rpc reconnect \"%s\" after %s", Conf.MsgAddr, Conf.MsgRetry)
-				} else {
-					Log.Info("rpc client reconnect \"%s\" ok", Conf.MsgAddr)
-					MsgSvrClient = rpcTmp
+		var err error
+		// If process exit, then close Message rpc
+		defer func() {
+			if MsgSvrClient != nil {
+				if err := MsgSvrClient.Close(); err != nil {
+					Log.Error("MsgSvrClient.Close() error(%v)", err)
 				}
-
+			}
+		}()
+		for {
+			if MsgSvrClient != nil {
+				reply := 0
+				if err := MsgSvrClient.Call("MessageRPC.Ping", 0, &reply); err != nil {
+					Log.Error("rpc.Call(\"MessageRPC.Ping\")  error(%v)", err)
+				} else {
+					// every one second send a heartbeat ping
+					Log.Debug("rpc ping ok")
+					time.Sleep(Conf.MsgPing)
+					continue
+				}
+			}
+			// reconnect(init) message rpc
+			if MsgSvrClient, err = rpc.Dial("tcp", Conf.MsgAddr); err != nil {
+				Log.Error("rpc.Dial(\"tcp\", \"%s\") error(%v), reconnect retry after \"%d\" second", Conf.MsgAddr, err, int64(Conf.MsgRetry)/int64(time.Second))
+				time.Sleep(Conf.MsgRetry)
 				continue
 			}
-
-			// every one second send a heartbeat ping
-			Log.Debug("rpc ping ok")
-			time.Sleep(Conf.MsgHeartbeat)
+			Log.Info("rpc client reconnect \"%s\" ok", Conf.MsgAddr)
 		}
 	}()
 

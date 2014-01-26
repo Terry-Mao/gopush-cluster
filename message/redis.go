@@ -33,9 +33,9 @@ func InitRedis() {
 			MaxActive:   Conf.RedisMaxActive,
 			IdleTimeout: Conf.RedisIdleTimeout,
 			Dial: func() (redis.Conn, error) {
-				conn, err := redis.Dial(Conf.RedisNetwork, addr)
+				conn, err := redis.Dial("tcp", addr)
 				if err != nil {
-					Log.Error("redis.Dial(\"%s\", \"%s\") failed(%v)", Conf.RedisNetwork, addr, err)
+					Log.Error("redis.Dial(\"tcp\", \"%s\") failed(%v)", addr, err)
 				}
 				return conn, err
 			},

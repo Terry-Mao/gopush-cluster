@@ -26,7 +26,7 @@ var (
 )
 
 var ErrNoNode = errors.New("zookeeper children is nil")
-var ErrNodeExist = errors.New("node already exist")
+var ErrNodeExist = errors.New("node exist")
 
 // Protocol of Comet subcription
 const (
@@ -56,6 +56,7 @@ func InitWatch() error {
 	zk = zkTmp
 	//defer zk.Close()
 
+	// Zookeeper client will reconnecting automatically
 	for {
 		event := <-session
 		if event.State < zookeeper.STATE_CONNECTING {
@@ -71,7 +72,7 @@ func InitWatch() error {
 	return nil
 }
 
-// BeginWatchNode start watch all of nodes
+// BeginWatchNode start watch all of nodes which registered in zookeeper
 func BeginWatchNode() error {
 	nodes, err := getNodes(Conf.ZKRootPath)
 	if err != nil {
@@ -79,7 +80,10 @@ func BeginWatchNode() error {
 		return err
 	}
 
+	// Update Comet hash, cause nodes are changed
 	CometHash = hash.NewKetama2(nodes, 255)
+
+	// Watch all of nodes
 	watchNodes(nodes)
 
 	return nil
@@ -110,12 +114,12 @@ func AddNode(node string) error {
 	nodes = append(nodes, node)
 
 	// Notice Comet to migrate node
-	if err := ChannelRPCMigrate(nodes, NodeInfoMap); err != nil {
+	if err := channelRPCMigrate(nodes, NodeInfoMap); err != nil {
 		return err
 	}
 
 	// Watch the node
-	go watchFirstServer(node)
+	go watchFirstService(node)
 
 	// Update Comet hash, because of nodes are changed
 	CometHash = hash.NewKetama2(nodes, 255)
@@ -158,7 +162,7 @@ func DelNode(node string) error {
 	}
 
 	// Notice Comet to migrate node
-	if err := ChannelRPCMigrate(nodes, NodeInfoMap); err != nil {
+	if err := channelRPCMigrate(nodes, NodeInfoMap); err != nil {
 		return err
 	}
 
@@ -167,7 +171,7 @@ func DelNode(node string) error {
 
 // RPC Migrate interface
 // Migrate the lost connections after changed node
-func ChannelRPCMigrate(nodes []string, nodeInfoMap map[string]*NodeInfo) error {
+func channelRPCMigrate(nodes []string, nodeInfoMap map[string]*NodeInfo) error {
 	ret := OK
 
 	for n, svrInfo := range nodeInfoMap {
@@ -222,13 +226,13 @@ func getNodesW(path string) ([]string, <-chan zookeeper.Event, error) {
 // watchNodes watch all of nodes
 func watchNodes(nodes []string) {
 	for i := 0; i < len(nodes); i++ {
-		go watchFirstServer(nodes[i])
+		go watchFirstService(nodes[i])
 	}
 }
 
-// watchNodes watch the first server under the node, and keep rpc with publish RPC
-// the first server must be alive
-func watchFirstServer(node string) {
+// watchNodes watch the first service under the node, and keep rpc connecting with Comet RPC,
+// the first service must be alive
+func watchFirstService(node string) {
 	path := fmt.Sprintf("%s/%s", Conf.ZKRootPath, node)
 	for {
 		subNodes, watch, err := getNodesW(path)
@@ -238,7 +242,7 @@ func watchFirstServer(node string) {
 			continue
 		}
 
-		// If exist server then set it into NodeInfoMap
+		// If exist service then set it into NodeInfoMap
 		if len(subNodes) != 0 {
 			sort.Strings(subNodes)
 			data, _, err := zk.Get(fmt.Sprintf("%s/%s", path, subNodes[0]))
@@ -248,14 +252,13 @@ func watchFirstServer(node string) {
 				continue
 			}
 
-			// Fecth push server connection info
+			// Fecth push service connection info
 			subAddr, err := parseZKData(data)
 			if err != nil {
 				Log.Error("get subNode data error node:\"%s\", subNode:\"%s\", error(%v)", node, subNodes[0], err)
 				time.Sleep(10 * time.Second)
 				continue
 			}
-
 			NodeInfoMapLock.RLock()
 			info, ok := NodeInfoMap[node]
 			if ok {
@@ -271,16 +274,16 @@ func watchFirstServer(node string) {
 			// ReDial RPC
 			addr, ok := subAddr[ProtocolRPC]
 			if ok {
-				r, err := rpc.Dial(Conf.CometNetwork, addr)
+				r, err := rpc.Dial("tcp", addr)
 				if err != nil {
-					Log.Error("rpc.Dial(%s, %s) error node:\"%s\", subNode:\"%s\", recheck after 10 seconds", Conf.CometNetwork, addr, node, subNodes[0])
+					Log.Error("rpc.Dial(\"tcp\", \"%s\") error(%v) node:\"%s\", subNode:\"%s\", recheck after 10 seconds", addr, err, node, subNodes[0])
 					time.Sleep(10 * time.Second)
 					continue
 				}
 
 				info.PubRPC = r
 			} else {
-				Log.Error("rpc.Dial(%s, %s) error node:\"%s\", subNode:\"%s\" error(no rpc address)", Conf.CometNetwork, addr, node, subNodes[0])
+				Log.Error("rpc.Dial(\"tcp\", \"%s\") error node:\"%s\", subNode:\"%s\" error(no rpc address)", addr, node, subNodes[0])
 			}
 
 			NodeInfoMapLock.Lock()
