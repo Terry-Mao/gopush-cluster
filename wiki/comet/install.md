@@ -1,7 +1,7 @@
 ## Terry-Mao/gopush-cluster comet 安装文档
 #### 通过go get 直接获取或者更新gopush-cluster
 ```sh
-$ go get -u github.com/Terry-Mao/gopush-cluster
+$ go get -u github.com/Terry-Mao/gopush-cluster/comet
 ```
 
 #### build或install comet模块
