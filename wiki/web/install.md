@@ -14,6 +14,8 @@ $ go build
 
 # install：会在${GOPATH}/bin目录编译生成web可执行文件
 $ go install
+
+# web模块依赖zookeeper，该服务端配置不在此详写，请参考：http://zookeeper.apache.org/releases.html
 ```
 
 #### 启动web
@@ -21,4 +23,5 @@ $ go install
 # 建议使用绝对路径，根据不同的方式（build，install）找到web可执行文件
 $  /usr/bin/nohup ./web -c=./web.conf > /tmp/panic.log 2>&1 &
 ```
+
 
