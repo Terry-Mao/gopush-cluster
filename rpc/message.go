@@ -8,6 +8,13 @@ type MessageSaveArgs struct {
 	Key    string // subscriber key
 }
 
+// Public Message Save Args
+type MessageSavePubArgs struct {
+	MsgID  int64  // message id
+	Msg    string // message content
+	Expire int64  // message expire second
+}
+
 // Message Get Args
 type MessageGetArgs struct {
 	MsgID    int64  // message id

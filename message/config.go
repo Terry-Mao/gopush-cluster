@@ -45,7 +45,7 @@ func InitConfig(fileName string) (*Config, error) {
 		Addr:             ":8070",
 		PKey:             "gopushpkey",
 		User:             "nobody nobody",
-		PidFile:          "/tmp/gopush-cluster-comet.pid",
+		PidFile:          "/tmp/gopush-cluster-message.pid",
 		Dir:              "./",
 		MaxProc:          runtime.NumCPU(),
 		LogFile:          "./message.log",

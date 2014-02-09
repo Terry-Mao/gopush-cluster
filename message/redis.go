@@ -35,7 +35,7 @@ func InitRedis() {
 			Dial: func() (redis.Conn, error) {
 				conn, err := redis.Dial("tcp", addr)
 				if err != nil {
-					Log.Error("redis.Dial(\"tcp\", \"%s\") failed(%v)", addr, err)
+					Log.Error("redis.Dial(\"tcp\", \"%s\") error(%v)", addr, err)
 				}
 				return conn, err
 			},
@@ -102,7 +102,6 @@ func DelMessages(info *DelMessageInfo) error {
 	if conn == nil {
 		return RedisNoConnErr
 	}
-
 	defer conn.Close()
 
 	for _, cmd := range commands {
@@ -113,6 +112,13 @@ func DelMessages(info *DelMessageInfo) error {
 
 	if err := conn.Flush(); err != nil {
 		return err
+	}
+
+	for _, _ = range commands {
+		_, err := conn.Receive()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -132,6 +138,6 @@ func getRedisConn(key string) redis.Conn {
 		return nil
 	}
 
-	Log.Debug("key:\"%s\", node:\"%s\"", key, node)
+	Log.Debug("key:\"%s\", hit node:\"%s\"", key, node)
 	return p.Get()
 }

@@ -60,7 +60,7 @@ func StartRPC() error {
 	return nil
 }
 
-// Store offline message interface
+// Store offline pravite message interface
 func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 	Log.Debug("save data %v", *m)
 	if m == nil || m.MsgID < 0 {
@@ -81,6 +81,27 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 	return nil
 }
 
+// Store offline public message interface
+func (r *MessageRPC) SavePub(m *myrpc.MessageSavePubArgs, ret *int) error {
+	Log.Debug("save data %v", *m)
+	if m == nil || m.MsgID < 0 {
+		*ret = ParamErr
+		return nil
+	}
+
+	// Json.Marshal and save the message
+	recordMsg := Message{Msg: m.Msg, Expire: m.Expire, MsgID: m.MsgID}
+	message, _ := json.Marshal(recordMsg)
+	if err := SaveMessage(Conf.PKey, string(message), m.MsgID); err != nil {
+		Log.Error("save message error(%v)", err)
+		*ret = InternalErr
+		return nil
+	}
+
+	*ret = OK
+	return nil
+}
+
 // Get offline message interface
 func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) error {
 	Log.Debug("request data %v", *m)
@@ -92,7 +113,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 		return nil
 	}
 
-	// Get public offline messages which larger than MsgID
+	// Get public offline messages which larger than PubMsgID
 	pMsgs, err := GetMessages(Conf.PKey, m.PubMsgID)
 	if err != nil {
 		Log.Error("get public messages error(%v)", err)
@@ -138,6 +159,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 			return nil
 		}
 		if tNow > msg.Expire {
+			Log.Debug("%d", msg.Expire)
 			delPMsgs = append(delPMsgs, pMsgs[i])
 			continue
 		}
@@ -154,10 +176,10 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 		DelChan <- &DelMessageInfo{Key: Conf.PKey, Msgs: delPMsgs}
 	}
 
-	Log.Debug("response data %v", *rw)
 	rw.Ret = OK
 	rw.Msgs = data
 	rw.PubMsgs = pData
+	Log.Debug("response data %v", *rw)
 
 	return nil
 }

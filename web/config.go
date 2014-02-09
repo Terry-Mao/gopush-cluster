@@ -17,16 +17,17 @@ func InitConfig() {
 }
 
 type Config struct {
-	Addr       string        `goconf:"base:addr"`
-	AdminAddr  string        `goconf:"base:adminaddr"`
-	LogPath    string        `goconf:"log:path"`
-	LogLevel   string        `goconf:"log:level"`
-	ZKAddr     string        `goconf:"zookeeper:addr"`
-	ZKTimeout  time.Duration `goconf:"zookeeper:timeout:time"`
-	ZKRootPath string        `goconf:"zookeeper:rootpath"`
-	MsgAddr    string        `goconf:"msg:addr"`
-	MsgPing    time.Duration `goconf:"msg:ping:time"`
-	MsgRetry   time.Duration `goconf:"msg:retry:time"`
+	Addr        string        `goconf:"base:addr"`
+	AdminAddr   string        `goconf:"base:adminaddr"`
+	LogPath     string        `goconf:"log:path"`
+	LogLevel    string        `goconf:"log:level"`
+	ZKAddr      string        `goconf:"zookeeper:addr"`
+	ZKTimeout   time.Duration `goconf:"zookeeper:timeout:time"`
+	ZKCometPath string        `goconf:"zookeeper:cometpath"`
+	ZKPIDPath   string        `goconf:"zookeeper:pidpath"`
+	MsgAddr     string        `goconf:"msg:addr"`
+	MsgPing     time.Duration `goconf:"msg:ping:time"`
+	MsgRetry    time.Duration `goconf:"msg:retry:time"`
 }
 
 // Initialize config
@@ -38,16 +39,17 @@ func NewConfig(file string) (*Config, error) {
 
 	// Default config
 	conf := &Config{
-		Addr:       ":80",
-		AdminAddr:  ":81",
-		LogPath:    "./web.log",
-		LogLevel:   "DEBUG",
-		ZKAddr:     ":2181",
-		ZKTimeout:  8 * time.Hour,
-		ZKRootPath: "/gopush-cluster",
-		MsgAddr:    ":8070",
-		MsgPing:    1 * time.Second,
-		MsgRetry:   3 * time.Second,
+		Addr:        ":80",
+		AdminAddr:   ":81",
+		LogPath:     "./web.log",
+		LogLevel:    "DEBUG",
+		ZKAddr:      ":2181",
+		ZKTimeout:   8 * time.Hour,
+		ZKCometPath: "/gopush-cluster",
+		ZKPIDPath:   "/gopush-pid",
+		MsgAddr:     ":8070",
+		MsgPing:     1 * time.Second,
+		MsgRetry:    3 * time.Second,
 	}
 
 	if err := gconf.Unmarshal(conf); err != nil {

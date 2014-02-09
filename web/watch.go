@@ -69,14 +69,38 @@ func InitWatch() error {
 		}
 	}
 
+	// Zookeeper create Public message subnode
+	if err := zkCreate(); err != nil {
+		return err
+	}
+
+	// Init public message mid-creater
+	PubMID = NewTimeID()
+
+	return nil
+}
+
+// zookeeper init subnode
+func zkCreate() error {
+	// Create zk root path
+	Log.Debug("create zookeeper path:%s", Conf.ZKPIDPath)
+	_, err := zk.Create(Conf.ZKPIDPath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
+	if err != nil {
+		if zookeeper.IsError(err, zookeeper.ZNODEEXISTS) {
+			Log.Warn("zk.create(\"%s\") exists", Conf.ZKPIDPath)
+		} else {
+			Log.Error("zk.create(\"%s\") error(%v)", Conf.ZKPIDPath, err)
+			return err
+		}
+	}
 	return nil
 }
 
 // BeginWatchNode start watch all of nodes which registered in zookeeper
 func BeginWatchNode() error {
-	nodes, err := getNodes(Conf.ZKRootPath)
+	nodes, err := getNodes(Conf.ZKCometPath)
 	if err != nil {
-		Log.Error("getNodes(\"%s\") error(%v)", Conf.ZKRootPath, err)
+		Log.Error("getNodes(\"%s\") error(%v)", Conf.ZKCometPath, err)
 		return err
 	}
 
@@ -233,7 +257,7 @@ func watchNodes(nodes []string) {
 // watchNodes watch the first service under the node, and keep rpc connecting with Comet RPC,
 // the first service must be alive
 func watchFirstService(node string) {
-	path := fmt.Sprintf("%s/%s", Conf.ZKRootPath, node)
+	path := fmt.Sprintf("%s/%s", Conf.ZKCometPath, node)
 	for {
 		subNodes, watch, err := getNodesW(path)
 		if err != nil {
@@ -252,7 +276,7 @@ func watchFirstService(node string) {
 				continue
 			}
 
-			// Fecth push service connection info
+			// Fecth and parse push service connection info
 			subAddr, err := parseZKData(data)
 			if err != nil {
 				Log.Error("get subNode data error node:\"%s\", subNode:\"%s\", error(%v)", node, subNodes[0], err)
@@ -324,6 +348,7 @@ func parseZKData(zkData string) (map[int]string, error) {
 	return res, nil
 }
 
+// getProtocolInt get the figure corresponding with protocol string
 func getProtocolInt(protocol string) int {
 	if protocol == ProtocolWSStr {
 		return ProtocolWS

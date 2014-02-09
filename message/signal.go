@@ -18,7 +18,7 @@ func HandleSignal(c chan os.Signal) {
 	// Block until a signal is received.
 	for {
 		s := <-c
-		Log.Info("get a signal %s", s.String())
+		Log.Info("get a signal %v", s)
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGSTOP, syscall.SIGINT:
 			return

@@ -65,3 +65,13 @@ func MessageRPCSave(key, msg string, mid, expire int64) (int, error) {
 
 	return reply, nil
 }
+
+func MessageRPCSavePub(msg string, mid, expire int64) (int, error) {
+	reply := OK
+	args := &myrpc.MessageSavePubArgs{MsgID: mid, Msg: msg, Expire: expire}
+	if err := MsgSvrClient.Call("MessageRPC.SavePub", args, &reply); err != nil {
+		return InternalErr, err
+	}
+
+	return reply, nil
+}

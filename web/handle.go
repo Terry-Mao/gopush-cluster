@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-
 	"io"
 	"net/http"
 	"strconv"
@@ -132,7 +131,7 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(reply.Msgs) == 0 && len(reply.Msgs) == 0 {
+	if len(reply.Msgs) == 0 && len(reply.PubMsgs) == 0 {
 		ret = OK
 		return
 	}
