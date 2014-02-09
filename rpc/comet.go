@@ -8,7 +8,6 @@ const (
 // Channel Push Private Message Args
 type ChannelPushPrivateArgs struct {
 	GroupID int    // message group id
-	MsgID   int64  // message id
 	Msg     string // message content
 	Expire  int64  // message expire second
 	Key     string // subscriber key
