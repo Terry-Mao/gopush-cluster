@@ -15,7 +15,8 @@ $ go build
 # install：会在${GOPATH}/bin目录编译生成web可执行文件
 $ go install
 
-# web模块依赖zookeeper，该服务端配置不在此详写，请参考：http://zookeeper.apache.org/releases.html
+# web模块依赖zookeeper，该服务端配置不在此详写.
+# 请参考：http://zookeeper.apache.org/releases.html,推荐下载3.4.5版本
 ```
 
 #### 启动web

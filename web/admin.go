@@ -48,12 +48,6 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mid, err := strconv.ParseInt(param.Get("mid"), 10, 64)
-	if err != nil {
-		ret = ParamErr
-		return
-	}
-
 	expire, err := strconv.ParseInt(param.Get("expire"), 10, 64)
 	if err != nil {
 		ret = ParamErr
@@ -77,7 +71,7 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// RPC call publish interface
-	args := &myrpc.ChannelPushPrivateArgs{GroupID: groupID, MsgID: mid, Msg: string(body), Expire: expire, Key: key}
+	args := &myrpc.ChannelPushPrivateArgs{GroupID: groupID, Msg: string(body), Expire: expire, Key: key}
 	if err := svrInfo.PubRPC.Call("ChannelRPC.PushPrivate", args, &ret); err != nil {
 		Log.Error("RPC.Call(\"ChannelRPC.PushPrivate\") server:\"%v\" error(%v)", svrInfo.SubAddr, err)
 		ret = InternalErr
