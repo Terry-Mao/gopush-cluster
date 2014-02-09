@@ -131,6 +131,12 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if reply.Ret != OK {
+		Log.Error("RPC.Call(\"MessageRPC.Get\")  Key:\"%s\", MsgID:\"%d\" errorCode(%d)", key, midI, reply.Ret)
+		ret = reply.Ret
+		return
+	}
+
 	if len(reply.Msgs) == 0 && len(reply.PubMsgs) == 0 {
 		ret = OK
 		return
