@@ -171,24 +171,31 @@ func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) e
 
 // PushPublic expored a method for publishing a public message for the channel
 func (c *ChannelRPC) PushPublic(args *myrpc.ChannelPushPublicArgs, ret *int) error {
-	succeed := uint64(0)
-	failed := uint64(0)
 	// get all the channel lock
 	m := &Message{Msg: args.Msg, MsgID: args.MsgID, GroupID: myrpc.PublicGroupID}
 	for _, c := range UserChannel.Channels {
 		c.Lock()
+        cm := make(map[string]Channel, len(c.Data))
 		for k, v := range c.Data {
-			if err := v.PushMsg(k, m); err != nil {
-				// *ret = retPushMsgErr
-				failed++
-				continue
-			}
-			succeed++
+            cm[k] = v
 		}
 		c.Unlock()
+        // multiple routine push message
+        go func() {
+            succeed := uint64(0)
+            failed := uint64(0)
+            for k, v := range cm {
+                if err := v.PushMsg(k, m); err != nil {
+                    // *ret = retPushMsgErr
+                    failed++
+                    continue
+                }
+                succeed++
+            }
+            MsgStat.IncrFailed(failed)
+            MsgStat.IncrSucceed(succeed)
+        }()
 	}
-	MsgStat.IncrFailed(failed)
-	MsgStat.IncrSucceed(succeed)
 	*ret = retOK
 	return nil
 }
