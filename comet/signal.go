@@ -24,7 +24,7 @@ func HandleSignal(c chan os.Signal) {
 			return
 		case syscall.SIGHUP:
 			// TODO reload
-			return
+			//return
 		default:
 			return
 		}
