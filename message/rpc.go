@@ -5,6 +5,7 @@ import (
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"net/rpc"
+	"os"
 	"time"
 )
 
@@ -35,7 +36,7 @@ type MessageRPC struct {
 }
 
 // StartRPC start accept rpc call
-func StartRPC() error {
+func StartRPC() {
 	DelChan = make(chan *DelMessageInfo, 10000)
 	msg := &MessageRPC{}
 	rpc.Register(msg)
@@ -46,7 +47,7 @@ func StartRPC() error {
 	l, err := net.Listen("tcp", Conf.Addr)
 	if err != nil {
 		Log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", Conf.Addr, err)
-		return err
+		os.Exit(-1)
 	}
 
 	defer func() {
@@ -57,7 +58,6 @@ func StartRPC() error {
 
 	Log.Info("start listen admin addr:\"%s\"", Conf.Addr)
 	rpc.Accept(l)
-	return nil
 }
 
 // Store offline pravite message interface
