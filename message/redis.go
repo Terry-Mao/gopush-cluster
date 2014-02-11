@@ -27,15 +27,16 @@ type DelMessageInfo struct {
 func InitRedis() {
 	// Redis pool
 	for n, addr := range Conf.RedisAddrs {
+		tmp := addr
 		// WARN: closures use
 		redisPool[n] = &redis.Pool{
 			MaxIdle:     Conf.RedisMaxIdle,
 			MaxActive:   Conf.RedisMaxActive,
 			IdleTimeout: Conf.RedisIdleTimeout,
 			Dial: func() (redis.Conn, error) {
-				conn, err := redis.Dial("tcp", addr)
+				conn, err := redis.Dial("tcp", tmp)
 				if err != nil {
-					Log.Error("redis.Dial(\"tcp\", \"%s\") error(%v)", addr, err)
+					Log.Error("redis.Dial(\"tcp\", \"%s\") error(%v)", tmp, err)
 				}
 				return conn, err
 			},
