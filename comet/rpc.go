@@ -175,26 +175,26 @@ func (c *ChannelRPC) PushPublic(args *myrpc.ChannelPushPublicArgs, ret *int) err
 	m := &Message{Msg: args.Msg, MsgID: args.MsgID, GroupID: myrpc.PublicGroupID}
 	for _, c := range UserChannel.Channels {
 		c.Lock()
-        cm := make(map[string]Channel, len(c.Data))
+		cm := make(map[string]Channel, len(c.Data))
 		for k, v := range c.Data {
-            cm[k] = v
+			cm[k] = v
 		}
 		c.Unlock()
-        // multiple routine push message
-        go func() {
-            succeed := uint64(0)
-            failed := uint64(0)
-            for k, v := range cm {
-                if err := v.PushMsg(k, m); err != nil {
-                    // *ret = retPushMsgErr
-                    failed++
-                    continue
-                }
-                succeed++
-            }
-            MsgStat.IncrFailed(failed)
-            MsgStat.IncrSucceed(succeed)
-        }()
+		// multiple routine push message
+		go func() {
+			succeed := uint64(0)
+			failed := uint64(0)
+			for k, v := range cm {
+				if err := v.PushMsg(k, m); err != nil {
+					// *ret = retPushMsgErr
+					failed++
+					continue
+				}
+				succeed++
+			}
+			MsgStat.IncrFailed(failed)
+			MsgStat.IncrSucceed(succeed)
+		}()
 	}
 	*ret = retOK
 	return nil
