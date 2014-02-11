@@ -1,8 +1,31 @@
 gopush-cluster
 ==============
-Golang实现的推送集群服务。
+`Terry-Mao/gopush-cluster` 是一个支持集群的comet服务（支持websocket，和tcp协议）。
 
-* 安装
+---------------------------------------
+  * [特性](#特性)
+  * [安装](#安装)
+  * [使用](#使用)
+  * [配置](#配置)
+  * [例子](#例子)
+  * [文档](#文档)
+  * [更多](#更多)
+
+---------------------------------------
+
+## 特性
+ * 轻量级
+ * 高性能
+ * 纯Golang实现
+ * 支持消息过期
+ * 支持离线消息存储
+ * 支持单个Key多个订阅者（可限制订阅者最大人数）
+ * 心跳支持（应用心跳和tcp keepalive）
+ * 支持安全验证（未授权用户不能订阅）
+ * 多协议支持（websocket，tcp）
+ * 详细的统计信息
+ * 可拓扑的架构（支持增加和删除comet节点，web节点，message节点）
+ * 利用Zookeeper支持故障转移
 
 ## 安装
 ### 一、搭建zookeeper
@@ -171,3 +194,39 @@ $ vim $GOPATH/src/launchpad.net/gozk/zookeeper/zk.go
 $ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 $ sudo ldconfig
 ```
+
+## 配置
+web节点的配置文件示例：
+
+[web](https://github.com/Terry-Mao/gopush-cluster/blob/master/web/web-example.conf)
+
+comet节点的配置文件示例：
+
+[comet](https://github.com/Terry-Mao/gopush-cluster/blob/master/comet/comet-example.conf)
+
+message节点的配置文件示例：
+
+[message](https://github.com/Terry-Mao/gopush-cluster/blob/master/message/message-example.conf)
+
+## 例子
+TODO
+
+## 文档
+web节点相关的文档：
+
+[内部协议](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/web/internal_proto_zh.textile)主要针对内部管理如推送消息、管理comet节点等。
+
+[客户端协议](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/web/external_proto_zh.textile)主要针对客户端使用，如获取节点、获取离线消息等。
+
+comet节点相关的文档：
+
+[客户端协议](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/comet/client_proto_zh.textile)主要针对客户端连接comet节点的协议说明。
+
+[内部RPC协议](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/comet/rpc_proto_zh.textile)主要针对内部RPC接口使用的说明。
+
+message节点的相关文档：
+
+[内部RPC协议](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/message/rpc_proto_zh.textile)主要针对内部RPC接口的使用说明。
+
+## 更多
+TODO
