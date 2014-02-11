@@ -131,7 +131,8 @@ func tcpListen(bind string) {
 
 // hanleTCPConn handle a long live tcp connection.
 func handleTCPConn(conn net.Conn, rc chan *bufio.Reader) {
-	Log.Debug("handleTcpConn routine start")
+	addr := conn.RemoteAddr().String()
+	Log.Debug("<%s> handleTcpConn routine start", addr)
 	rd := newBufioReader(rc, conn)
 	if args, err := parseCmd(rd); err == nil {
 		// return buffer bufio.Reader
@@ -142,79 +143,80 @@ func handleTCPConn(conn net.Conn, rc chan *bufio.Reader) {
 			break
 		default:
 			conn.Write(ParamReply)
-			Log.Warn("tcp:unknown cmd \"%s\"", args[0])
+			Log.Warn("<%s> unknown cmd \"%s\"", addr, args[0])
 			break
 		}
 	} else {
 		// return buffer bufio.Reader
 		putBufioReader(rc, rd)
-		Log.Error("parseCmd() error(%v)", err)
+		Log.Error("<%s> parseCmd() error(%v)", addr, err)
 	}
 	// close the connection
 	if err := conn.Close(); err != nil {
-		Log.Error("conn.Close() error(%v)", err)
+		Log.Error("<%s> conn.Close() error(%v)", addr, err)
 	}
-	Log.Debug("handleTcpConn routine stop")
+	Log.Debug("<%s> handleTcpConn routine stop", addr)
 	return
 }
 
 // SubscribeTCPHandle handle the subscribers's connection.
 func SubscribeTCPHandle(conn net.Conn, args []string) {
 	argLen := len(args)
+	addr := conn.RemoteAddr().String()
 	if argLen < 2 {
 		conn.Write(ParamReply)
-		Log.Error("subscriber missing argument")
+		Log.Error("<%s> subscriber missing argument", addr)
 		return
 	}
 	// key, heartbeat
 	key := args[0]
 	if key == "" {
 		conn.Write(ParamReply)
-		Log.Warn("client:%s key param error", conn.RemoteAddr)
+		Log.Warn("<%s> key param error", addr)
 		return
 	}
 	heartbeatStr := args[1]
 	i, err := strconv.Atoi(heartbeatStr)
 	if err != nil {
 		conn.Write(ParamReply)
-		Log.Error("user_key:\"%s\" heartbeat:\"%s\" argument error (%s)", key, heartbeatStr, err)
+		Log.Error("<%s> user_key:\"%s\" heartbeat:\"%s\" argument error (%s)", addr, key, heartbeatStr, err)
 		return
 	}
 	heartbeat := i * 2
 	if heartbeat < minHearbeatSec {
 		conn.Write(ParamReply)
-		Log.Warn("user_key:\"%s\" heartbeat argument error, less than %d", key, minHearbeatSec)
+		Log.Warn("<%s> user_key:\"%s\" heartbeat argument error, less than %d", addr, key, minHearbeatSec)
 		return
 	}
 	token := ""
 	if argLen > 2 {
 		token = args[2]
 	}
-	Log.Info("client:\"%s\" subscribe to key = %s, heartbeat = %d, token = %s", conn.RemoteAddr().String(), key, heartbeat, token)
+	Log.Info("<%s> subscribe to key = %s, heartbeat = %d, token = %s", addr, key, heartbeat, token)
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key)
 	if err != nil {
-		Log.Warn("user_key:\"%s\" can't get a channel (%s)", key, err)
+		Log.Warn("<%s> user_key:\"%s\" can't get a channel (%s)", addr, key, err)
 		conn.Write(ChannelReply)
 		return
 	}
 	// auth token
 	if ok := c.AuthToken(key, token); !ok {
 		conn.Write(AuthReply)
-		Log.Error("user_key:\"%s\" auth token \"%s\" failed", key, token)
+		Log.Error("<%s> user_key:\"%s\" auth token \"%s\" failed", addr, key, token)
 		return
 	}
 	// add a conn to the channel
 	connElem, err := c.AddConn(key, conn)
 	if err != nil {
-		Log.Error("user_key:\"%s\" add conn error(%v)", key, err)
+		Log.Error("<%s> user_key:\"%s\" add conn error(%v)", addr, key, err)
 		return
 	}
 	// send first heartbeat to tell client service is ready for accept heartbeat
 	if _, err := conn.Write(HeartbeatReply); err != nil {
-		Log.Error("user_key:\"%s\" write first heartbeat to client error(%v)", key, err)
+		Log.Error("<%s> user_key:\"%s\" write first heartbeat to client error(%v)", addr, key, err)
 		if err := c.RemoveConn(key, connElem); err != nil {
-			Log.Error("user_key:\"%s\" remove conn error(%v)", key, err)
+			Log.Error("<%s> user_key:\"%s\" remove conn error(%v)", addr, key, err)
 		}
 		return
 	}
@@ -226,35 +228,35 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		// more then 1 sec, reset the timer
 		if end-begin >= Second {
 			if err = conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(heartbeat))); err != nil {
-				Log.Error("user_key:\"%s\" conn.SetReadDeadLine() error(%v)", key, err)
+				Log.Error("<%s> user_key:\"%s\" conn.SetReadDeadLine() error(%v)", addr, key, err)
 				break
 			}
 			begin = end
 		}
 		if _, err = conn.Read(reply); err != nil {
 			if err != io.EOF {
-				Log.Warn("user_key:\"%s\" conn.Read() failed, read heartbeat timedout error(%v)", key, err)
+				Log.Warn("<%s> user_key:\"%s\" conn.Read() failed, read heartbeat timedout error(%v)", addr, key, err)
 			} else {
 				// client connection close
-				Log.Warn("user_key:\"%s\" client connection close (%s)", key, err)
+				Log.Warn("<%s> user_key:\"%s\" client connection close error(%s)", addr, key, err)
 			}
 			break
 		}
 		if string(reply) == Heartbeat {
 			if _, err = conn.Write(HeartbeatReply); err != nil {
-				Log.Error("user_key:\"%s\" conn.Write() failed, write heartbeat to client error(%v)", key, err)
+				Log.Error("<%s> user_key:\"%s\" conn.Write() failed, write heartbeat to client error(%v)", addr, key, err)
 				break
 			}
-			Log.Debug("user_key:\"%s\" receive heartbeat (%s)", key, reply)
+			Log.Debug("<%s> user_key:\"%s\" receive heartbeat (%s)", addr, key, reply)
 		} else {
-			Log.Warn("user_key:\"%s\" unknown heartbeat protocol (%s)", key, reply)
+			Log.Warn("<%s> user_key:\"%s\" unknown heartbeat protocol (%s)", addr, key, reply)
 			break
 		}
 		end = time.Now().UnixNano()
 	}
 	// remove exists conn
 	if err := c.RemoveConn(key, connElem); err != nil {
-		Log.Error("user_key:\"%s\" remove conn failed (%s)", key, err)
+		Log.Error("<%s> user_key:\"%s\" remove conn error(%s)", addr, key, err)
 	}
 	return
 }

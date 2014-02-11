@@ -64,12 +64,13 @@ func httpListen(bind string) {
 
 // Subscriber Handle is the websocket handle for sub request.
 func SubscribeHandle(ws *websocket.Conn) {
+	addr := ws.Request().RemoteAddr
 	params := ws.Request().URL.Query()
 	// get subscriber key
 	key := params.Get("key")
 	if key == "" {
 		ws.Write(ParamReply)
-		Log.Warn("client:%s key param error", ws.Request().RemoteAddr)
+		Log.Warn("<%s> key param error", addr)
 		return
 	}
 	// get heartbeat second
@@ -77,41 +78,41 @@ func SubscribeHandle(ws *websocket.Conn) {
 	i, err := strconv.Atoi(heartbeatStr)
 	if err != nil {
 		ws.Write(ParamReply)
-		Log.Error("user_key:\"%s\" heartbeat argument error(%s)", key, err)
+		Log.Error("<%s> user_key:\"%s\" heartbeat argument error(%s)", addr, key, err)
 		return
 	}
 	heartbeat := i * 2
 	if heartbeat <= minHearbeatSec {
 		ws.Write(ParamReply)
-		Log.Error("user_key \"%s\" heartbeat argument error, less than 0", key)
+		Log.Error("<%s> user_key \"%s\" heartbeat argument error, less than 0", addr, key)
 		return
 	}
 	token := params.Get("token")
-	Log.Info("client:%s subscribe to key = %s, heartbeat = %d, token = %s", ws.Request().RemoteAddr, key, heartbeat, token)
+	Log.Info("<%s> subscribe to key = %s, heartbeat = %d, token = %s", addr, key, heartbeat, token)
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key)
 	if err != nil {
 		ws.Write(ChannelReply)
-		Log.Error("user_key:\"%s\" can't get a channel error(%s)", key, err)
+		Log.Error("<%s> user_key:\"%s\" can't get a channel error(%s)", addr, key, err)
 		return
 	}
 	// auth token
 	if ok := c.AuthToken(key, token); !ok {
 		ws.Write(AuthReply)
-		Log.Error("user_key:\"%s\" auth token \"%s\" failed", key, token)
+		Log.Error("<%s> user_key:\"%s\" auth token \"%s\" failed", addr, key, token)
 		return
 	}
 	// add a conn to the channel
 	connElem, err := c.AddConn(key, ws)
 	if err != nil {
-		Log.Error("user_key:\"%s\" add conn error(%s)", key, err)
+		Log.Error("<%s> user_key:\"%s\" add conn error(%s)", addr, key, err)
 		return
 	}
 	// send first heartbeat to tell client service is ready for accept heartbeat
 	if _, err = ws.Write(HeartbeatReply); err != nil {
-		Log.Error("user_key:\"%s\" write first heartbeat to client error(%s)", key, err)
+		Log.Error("<%s> user_key:\"%s\" write first heartbeat to client error(%s)", addr, key, err)
 		if err := c.RemoveConn(key, connElem); err != nil {
-			Log.Error("user_key:\"%s\" remove conn error(%v)", key, err)
+			Log.Error("<%s> user_key:\"%s\" remove conn error(%v)", addr, key, err)
 		}
 		return
 	}
@@ -123,30 +124,30 @@ func SubscribeHandle(ws *websocket.Conn) {
 		// more then 1 sec, reset the timer
 		if end-begin >= Second {
 			if err = ws.SetReadDeadline(time.Now().Add(time.Second * time.Duration(heartbeat))); err != nil {
-				Log.Error("user_key:\"%s\" websocket.SetReadDeadline() error(%s)", key, err)
+				Log.Error("<%s> user_key:\"%s\" websocket.SetReadDeadline() error(%s)", addr, key, err)
 				break
 			}
 			begin = end
 		}
 		if err = websocket.Message.Receive(ws, &reply); err != nil {
-			Log.Error("user_key:\"%s\" websocket.Message.Receive() error(%s)", key, err)
+			Log.Error("<%s> user_key:\"%s\" websocket.Message.Receive() error(%s)", addr, key, err)
 			break
 		}
 		if reply == Heartbeat {
 			if _, err = ws.Write(HeartbeatReply); err != nil {
-				Log.Error("user_key:\"%s\" write heartbeat to client error(%s)", key, err)
+				Log.Error("<%s> user_key:\"%s\" write heartbeat to client error(%s)", addr, key, err)
 				break
 			}
-			Log.Debug("user_key:\"%s\" receive heartbeat", key)
+			Log.Debug("<%s> user_key:\"%s\" receive heartbeat", addr, key)
 		} else {
-			Log.Warn("user_key:\"%s\" unknown heartbeat protocol", key)
+			Log.Warn("<%s> user_key:\"%s\" unknown heartbeat protocol", addr, key)
 			break
 		}
 		end = time.Now().UnixNano()
 	}
 	// remove exists conn
 	if err := c.RemoveConn(key, connElem); err != nil {
-		Log.Error("user_key:\"%s\" remove conn error(%s)", key, err)
+		Log.Error("<%s> user_key:\"%s\" remove conn error(%s)", addr, key, err)
 	}
 	return
 }
