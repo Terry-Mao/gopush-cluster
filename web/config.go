@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/Terry-Mao/goconf"
+	"runtime"
 	"time"
 )
 
@@ -12,13 +13,14 @@ var (
 )
 
 // InitConfig initialize config file path
-func InitConfig() {
+func init() {
 	flag.StringVar(&ConfFile, "c", "./web.conf", " set web config file path")
 }
 
 type Config struct {
 	Addr        string        `goconf:"base:addr"`
 	AdminAddr   string        `goconf:"base:adminaddr"`
+	MaxProc     int           `goconf:"base:maxproc"`
 	LogPath     string        `goconf:"log:path"`
 	LogLevel    string        `goconf:"log:level"`
 	ZKAddr      string        `goconf:"zookeeper:addr"`
@@ -41,6 +43,7 @@ func NewConfig(file string) (*Config, error) {
 	conf := &Config{
 		Addr:        ":80",
 		AdminAddr:   ":81",
+		MaxProc:     runtime.NumCPU(),
 		LogPath:     "./web.log",
 		LogLevel:    "DEBUG",
 		ZKAddr:      ":2181",

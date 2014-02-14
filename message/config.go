@@ -34,7 +34,7 @@ type Config struct {
 }
 
 // Initialize config
-func InitConfig(fileName string) (*Config, error) {
+func NewConfig(fileName string) (*Config, error) {
 	gconf := goconf.New()
 	if err := gconf.Parse(fileName); err != nil {
 		Log.Error("goconf.Parse(\"%s\") error(%v)", fileName, err)

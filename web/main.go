@@ -14,23 +14,24 @@ var (
 
 func main() {
 	var err error
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	// Parse cmd-line arguments
 	flag.Parse()
 	signalCH := InitSignal()
 
 	// Load config
-	InitConfig()
 	Conf, err = NewConfig(ConfFile)
 	if err != nil {
 		panic(err)
 		os.Exit(-1)
 	}
 
+	// Set max routine
+	runtime.GOMAXPROCS(Conf.MaxProc)
+
 	// Load log
 	Log, err = log.New(Conf.LogPath, Conf.LogLevel)
 	if err != nil {
-		Log.Error("log.New(\"%s\") failed(%v)", Conf.LogPath, err)
+		panic(err)
 		os.Exit(-1)
 	}
 
@@ -81,11 +82,12 @@ func main() {
 	}()
 
 	// init signals, block wait signals
+	Log.Info("Web service start")
 	HandleSignal(signalCH)
 
 	// Clost message service client
 	MsgSvrClose()
 	// Stop watch
 	WatchStop()
-	Log.Warn("Service end")
+	Log.Warn("Web service end")
 }

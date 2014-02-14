@@ -13,27 +13,30 @@ var (
 
 func main() {
 	var err error
-	// parse cmd-line arguments
+	// Parse cmd-line arguments
 	flag.Parse()
 	signalCH := InitSignal()
-	Conf, err = InitConfig(ConfFile)
+
+	// Load config
+	Conf, err = NewConfig(ConfFile)
 	if err != nil {
-		Log.Error("InitConfig() error(%v)", err)
+		panic(err)
 		os.Exit(-1)
 	}
 
 	// Set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
-	// init process
-	if err = InitProcess(); err != nil {
-		Log.Error("InitProcess() error(%v)", err)
-		os.Exit(-1)
-	}
 
 	// Load log
 	Log, err = log.New(Conf.LogFile, Conf.LogLevel)
 	if err != nil {
-		Log.Error("log.New(\"%s\") error(%v)", Conf.LogFile, err)
+		panic(err)
+		os.Exit(-1)
+	}
+
+	// init process
+	if err = InitProcess(); err != nil {
+		Log.Error("InitProcess() error(%v)", err)
 		os.Exit(-1)
 	}
 
@@ -41,12 +44,12 @@ func main() {
 	InitRedis()
 
 	// Start rpc
-	Log.Info("message start")
+	Log.Info("Message service start")
 	go StartRPC()
 
 	// init signals, block wait signals
 	HandleSignal(signalCH)
 
 	// exit
-	Log.Info("message stop")
+	Log.Info("Message service end")
 }
