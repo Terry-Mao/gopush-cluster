@@ -10,6 +10,7 @@ var (
 	MsgSvrClient *rpc.Client
 )
 
+// InitMsgSvrClient initialize message service client
 func InitMsgSvrClient() error {
 	go func() {
 		var err error
@@ -46,6 +47,14 @@ func InitMsgSvrClient() error {
 	return nil
 }
 
+// MsgSvrClose close message service client
+func MsgSvrClose() {
+	if err := MsgSvrClient.Close(); err != nil {
+		Log.Error("MsgSvrClient.Close() error(%v)", err)
+	}
+}
+
+// Message service message-service get private and public messages RPC insterface
 func MessageRPCGet(key string, mid, pMid int64) (*myrpc.MessageGetResp, error) {
 	var reply myrpc.MessageGetResp
 	args := &myrpc.MessageGetArgs{MsgID: mid, PubMsgID: pMid, Key: key}
@@ -56,6 +65,7 @@ func MessageRPCGet(key string, mid, pMid int64) (*myrpc.MessageGetResp, error) {
 	return &reply, nil
 }
 
+// MessageRPCSave message-service save private message RPC insterface
 func MessageRPCSave(key, msg string, mid, expire int64) (int, error) {
 	reply := OK
 	args := &myrpc.MessageSaveArgs{MsgID: mid, Msg: msg, Expire: expire, Key: key}
@@ -66,6 +76,7 @@ func MessageRPCSave(key, msg string, mid, expire int64) (int, error) {
 	return reply, nil
 }
 
+// MessageRPCSavePub message-service save public message RPC insterface
 func MessageRPCSavePub(msg string, mid, expire int64) (int, error) {
 	reply := OK
 	args := &myrpc.MessageSavePubArgs{MsgID: mid, Msg: msg, Expire: expire}

@@ -76,4 +76,10 @@ func main() {
 		Log.Error("http.ListenAndServe(\"%s\") failed(%v)", Conf.Addr, err)
 		os.Exit(-1)
 	}
+
+	// Clost message service client
+	MsgSvrClose()
+	// Stop watch
+	WatchStop()
+	Log.Warn("Service end")
 }

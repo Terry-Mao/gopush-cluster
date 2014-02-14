@@ -49,6 +49,7 @@ type NodeInfo struct {
 // InitWatch initialize watch module
 func InitWatch() error {
 	// Initialize zookeeper connection
+	Log.Info("Start initialize zookeeper,zookeeper.Dial(\"%s\", \"%d\")", Conf.ZKAddr, Conf.ZKTimeout/1000000)
 	zkTmp, session, err := zookeeper.Dial(Conf.ZKAddr, Conf.ZKTimeout)
 	if err != nil {
 		return err
@@ -80,7 +81,14 @@ func InitWatch() error {
 	return nil
 }
 
-// zookeeper init subnode
+// WatchStop stop watch
+func WatchStop() {
+	if err := zk.Close(); err != nil {
+		Log.Error("zk.Close() error(%v)", err)
+	}
+}
+
+// zkCreate zookeeper init subnode
 func zkCreate() error {
 	// Create zk root path
 	Log.Debug("create zookeeper path:%s", Conf.ZKPIDPath)
