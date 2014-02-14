@@ -82,8 +82,10 @@ func InitWatch() error {
 
 // WatchStop stop watch
 func WatchStop() {
-	if err := zk.Close(); err != nil {
-		Log.Error("zk.Close() error(%v)", err)
+	if zk != nil {
+		if err := zk.Close(); err != nil {
+			Log.Error("zk.Close() error(%v)", err)
+		}
 	}
 }
 

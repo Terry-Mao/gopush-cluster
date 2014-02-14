@@ -49,8 +49,10 @@ func InitMsgSvrClient() error {
 
 // MsgSvrClose close message service client
 func MsgSvrClose() {
-	if err := MsgSvrClient.Close(); err != nil {
-		Log.Error("MsgSvrClient.Close() error(%v)", err)
+	if MsgSvrClient != nil {
+		if err := MsgSvrClient.Close(); err != nil {
+			Log.Error("MsgSvrClient.Close() error(%v)", err)
+		}
 	}
 }
 
