@@ -16,10 +16,11 @@ func main() {
 	var err error
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	flag.Parse()
+	signalCH := InitSignal()
 
 	// Load config
 	InitConfig()
-	flag.Parse()
 	Conf, err = NewConfig(ConfFile)
 	if err != nil {
 		panic(err)
@@ -72,10 +73,15 @@ func main() {
 	}()
 
 	// Start service
-	if err := http.ListenAndServe(Conf.Addr, nil); err != nil {
-		Log.Error("http.ListenAndServe(\"%s\") failed(%v)", Conf.Addr, err)
-		os.Exit(-1)
-	}
+	go func() {
+		if err := http.ListenAndServe(Conf.Addr, nil); err != nil {
+			Log.Error("http.ListenAndServe(\"%s\") failed(%v)", Conf.Addr, err)
+			os.Exit(-1)
+		}
+	}()
+
+	// init signals, block wait signals
+	HandleSignal(signalCH)
 
 	// Clost message service client
 	MsgSvrClose()

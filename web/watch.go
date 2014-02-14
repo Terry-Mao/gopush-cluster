@@ -55,7 +55,6 @@ func InitWatch() error {
 		return err
 	}
 	zk = zkTmp
-	//defer zk.Close()
 
 	// Zookeeper client will reconnecting automatically
 	for {
