@@ -25,7 +25,7 @@ var (
 	NodeInfoMapLock sync.RWMutex
 )
 
-var ErrNoNode = errors.New("zookeeper children is nil")
+var ErrNoChild = errors.New("zookeeper children is nil")
 var ErrNodeExist = errors.New("node exist")
 
 // Protocol of Comet subcription
@@ -49,7 +49,7 @@ type NodeInfo struct {
 // InitWatch initialize watch module
 func InitWatch() error {
 	// Initialize zookeeper connection
-	Log.Info("Start initialize zookeeper,zookeeper.Dial(\"%s\", \"%d\")", Conf.ZKAddr, Conf.ZKTimeout/1000000)
+	Log.Info("Initializing zookeeper,zookeeper.Dial(\"%s\", \"%dms\")", Conf.ZKAddr, Conf.ZKTimeout/1000000)
 	zkTmp, session, err := zookeeper.Dial(Conf.ZKAddr, Conf.ZKTimeout)
 	if err != nil {
 		return err
@@ -62,6 +62,7 @@ func InitWatch() error {
 		if event.State < zookeeper.STATE_CONNECTING {
 			return errors.New(fmt.Sprintf("connect zookeeper fail, event:\"%v\"", event))
 		} else if event.State == zookeeper.STATE_CONNECTING {
+			Log.Warn("Zookeeper connecting!")
 			time.Sleep(time.Second)
 			continue
 		} else {
@@ -73,6 +74,7 @@ func InitWatch() error {
 	if err := zkCreate(); err != nil {
 		return err
 	}
+	Log.Info("Initialize zookeeper OK")
 
 	// Init public message mid-creater
 	PubMID = NewTimeID()
@@ -236,7 +238,7 @@ func getNodes(path string) ([]string, error) {
 	}
 
 	if children == nil {
-		return nil, ErrNoNode
+		return nil, ErrNoChild
 	}
 
 	return children, nil
@@ -250,7 +252,7 @@ func getNodesW(path string) ([]string, <-chan zookeeper.Event, error) {
 	}
 
 	if children == nil {
-		return nil, nil, ErrNoNode
+		return nil, nil, ErrNoChild
 	}
 
 	return children, watch, nil
@@ -270,9 +272,14 @@ func watchFirstService(node string) {
 	for {
 		subNodes, watch, err := getNodesW(path)
 		if err != nil {
-			Log.Error("getNodesW node:\"%s\" error(%v), recheck after 10 seconds", node, err)
-			time.Sleep(10 * time.Second)
-			continue
+			if err == ErrNoChild {
+				Log.Warn("getNodesW node:\"%s\" error(%v), recheck after 10 seconds", node, err)
+				time.Sleep(10 * time.Second)
+				continue
+			}
+
+			Log.Error("getNodesW node:\"%s\" error(%v), stop watch", node, err)
+			return
 		}
 
 		// If exist service then set it into NodeInfoMap
