@@ -9,7 +9,6 @@ import (
 	"net/rpc"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -21,8 +20,6 @@ var (
 	// Store the first alive server of every node
 	// If there is no alive server under the node, the value will be nil, but key is exist in map
 	NodeInfoMap = make(map[string]*NodeInfo)
-	// Lock for NodeInfoMap
-	NodeInfoMapLock sync.RWMutex
 )
 
 var ErrNoChild = errors.New("zookeeper children is nil")
@@ -126,16 +123,11 @@ func BeginWatchNode() error {
 
 // GetNode get the node infomation under the node
 func GetNode(node string) *NodeInfo {
-	NodeInfoMapLock.RLock()
-	defer NodeInfoMapLock.RUnlock()
-
 	return NodeInfoMap[node]
 }
 
 // AddNode add a node and watch it, and notice Comet to migrate node
 func AddNode(node string) error {
-	NodeInfoMapLock.RLock()
-	defer NodeInfoMapLock.RUnlock()
 	_, ok := NodeInfoMap[node]
 	if ok {
 		return ErrNodeExist
@@ -169,9 +161,6 @@ func DelNode(node string) error {
 		info  *NodeInfo
 	)
 
-	NodeInfoMapLock.Lock()
-	defer NodeInfoMapLock.Unlock()
-
 	if _, ok := NodeInfoMap[node]; !ok {
 		return nil
 	}
@@ -189,11 +178,15 @@ func DelNode(node string) error {
 	CometHash = hash.NewKetama2(nodes, 255)
 
 	// Delete node from map before call Migrate RPC interface of Comet, cause needn`t to notice deleted node
-	delete(NodeInfoMap, node)
+	tmpMap := make(map[string]*NodeInfo)
+	for n, i := range NodeInfoMap {
+		tmpMap[n] = i
+	}
+	delete(tmpMap, node)
+	NodeInfoMap = tmpMap
 
 	if info != nil && info.PubRPC != nil {
 		info.PubRPC.Close()
-		info.PubRPC = nil
 	}
 
 	// Notice Comet to migrate node
@@ -272,79 +265,73 @@ func watchFirstService(node string) {
 	for {
 		subNodes, watch, err := getNodesW(path)
 		if err != nil {
+			// If no subNode, then recheck repeatedly
 			if err == ErrNoChild {
-				Log.Warn("getNodesW node:\"%s\" error(%v), recheck after 10 seconds", node, err)
+				Log.Warn("get service of node:\"%s\" error(%v), recheck after 10 seconds", node, err)
 				time.Sleep(10 * time.Second)
 				continue
 			}
 
-			Log.Error("getNodesW node:\"%s\" error(%v), stop watch", node, err)
-			return
-		}
-
-		// If exist service then set it into NodeInfoMap
-		if len(subNodes) != 0 {
-			sort.Strings(subNodes)
-			data, _, err := zk.Get(fmt.Sprintf("%s/%s", path, subNodes[0]))
-			if err != nil {
-				Log.Error("watch node:\"%s\", subNode:\"%s\", error(%v)", node, subNodes[0], err)
-				time.Sleep(10 * time.Second)
-				continue
-			}
-
-			// Fecth and parse push service connection info
-			subAddr, err := parseZKData(data)
-			if err != nil {
-				Log.Error("get subNode data error node:\"%s\", subNode:\"%s\", error(%v)", node, subNodes[0], err)
-				time.Sleep(10 * time.Second)
-				continue
-			}
-			NodeInfoMapLock.RLock()
-			info, ok := NodeInfoMap[node]
-			if ok {
-				info.SubAddr = subAddr
-				if info.PubRPC != nil {
-					info.PubRPC.Close()
-				}
-			} else {
-				info = &NodeInfo{SubAddr: subAddr}
-			}
-			NodeInfoMapLock.RUnlock()
-
-			// ReDial RPC
-			addr, ok := subAddr[ProtocolRPC]
-			if ok {
-				r, err := rpc.Dial("tcp", addr)
-				if err != nil {
-					Log.Error("rpc.Dial(\"tcp\", \"%s\") error(%v) node:\"%s\", subNode:\"%s\", recheck after 10 seconds", addr, err, node, subNodes[0])
-					time.Sleep(10 * time.Second)
-					continue
-				}
-
-				info.PubRPC = r
-			} else {
-				Log.Error("rpc.Dial(\"tcp\", \"%s\") error node:\"%s\", subNode:\"%s\" error(no rpc address)", addr, node, subNodes[0])
-			}
-
-			NodeInfoMapLock.Lock()
-			NodeInfoMap[node] = info
-			NodeInfoMapLock.Unlock()
-		} else {
-			NodeInfoMapLock.Lock()
-			NodeInfoMap[node] = nil
-			NodeInfoMapLock.Unlock()
-			Log.Error("no service under node:\"%s\"", node)
-		}
-
-		Log.Warn("begin to watch node:\"%s\"", node)
-		event := <-watch
-		if event.Type == zookeeper.EVENT_DELETED {
-			Log.Warn("stop to watch node:\"%s\"", node)
-			DelNode(node)
+			Log.Error("get service of node:\"%s\" error(%v), stop watching", node, err)
 			break
 		}
 
-		Log.Warn("end to watch node:\"%s\" event:\"%v\", try to watch repeated", node, event)
+		// Get service infomation
+		sort.Strings(subNodes)
+		data, _, err := zk.Get(fmt.Sprintf("%s/%s", path, subNodes[0]))
+		if err != nil {
+			Log.Error("watch node:\"%s\", subNode:\"%s\", error(%v)", node, subNodes[0], err)
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		// Fecth and parse push service connection info
+		subAddr, err := parseZKData(data)
+		if err != nil {
+			Log.Error("get subNode data error node:\"%s\", subNode:\"%s\", error(%v)", node, subNodes[0], err)
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		info := NodeInfoMap[node]
+		if info != nil {
+			info.SubAddr = subAddr
+			if info.PubRPC != nil {
+				info.PubRPC.Close()
+			}
+		} else {
+			info = &NodeInfo{SubAddr: subAddr}
+		}
+		tmpMap := make(map[string]*NodeInfo)
+		for n, i := range NodeInfoMap {
+			tmpMap[n] = i
+		}
+		tmpMap[node] = info
+		NodeInfoMap = tmpMap
+		// ReDial RPC
+		addr, ok := subAddr[ProtocolRPC]
+		if ok {
+			r, err := rpc.Dial("tcp", addr)
+			if err != nil {
+				Log.Error("rpc.Dial(\"tcp\", \"%s\") error(%v) node:\"%s\", subNode:\"%s\", recheck after 10 seconds", addr, err, node, subNodes[0])
+				time.Sleep(10 * time.Second)
+				continue
+			}
+
+			info.PubRPC = r
+		} else {
+			Log.Error("rpc.Dial(\"tcp\", \"%s\") error node:\"%s\", subNode:\"%s\" error(no rpc address)", addr, node, subNodes[0])
+		}
+
+		Log.Info("begin watching node:\"%s\"", node)
+		event := <-watch
+		Log.Warn("end watching node:\"%s\" event:\"%v\", retry to watch", node, event)
+	}
+
+	// Delete node
+	Log.Warn("stop watching node:\"%s\"", node)
+	if err := DelNode(node); err != nil {
+		Log.Error("stop watching node:\"%s\" error(%v)", node, err)
+		return
 	}
 }
 
