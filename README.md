@@ -19,6 +19,7 @@ gopush-cluster
  * 纯Golang实现
  * 支持消息过期
  * 支持离线消息存储
+ * 支持全量推送和单个私信推送
  * 支持单个Key多个订阅者（可限制订阅者最大人数）
  * 心跳支持（应用心跳和tcp keepalive）
  * 支持安全验证（未授权用户不能订阅）
@@ -206,7 +207,7 @@ $ sudo ldconfig
 [message](https://github.com/Terry-Mao/gopush-cluster/blob/master/message/message-example.conf)
 
 ## 例子
-TODO
+java: [gopush-cluster-sdk](https://github.com/Terry-Mao/gopush-cluster-sdk)
 
 ## 文档
 ### web节点相关的文档：
