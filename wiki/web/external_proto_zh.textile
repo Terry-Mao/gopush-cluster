@@ -62,6 +62,7 @@ Web外部接口文档，用于获取Subcribe节点,获取离线消息等
 (head). | 参数 | 类型 | 描述 |
 | msgs  | string数组 | 私有离线消息 |
 | pmsgs | string数组 | 公共离线消息 |
+注：解析每条message的时候注意，每条信息是string数据，而不是结构体
 
  * 返回结果
 
