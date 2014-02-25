@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	"github.com/garyburd/redigo/redis"
 )
@@ -70,8 +71,8 @@ func GetMessages(key string, mid int64) ([]string, error) {
 	}
 
 	defer conn.Close()
-	//reply, err := redis.Strings(conn.Do("ZRANGEBYSCORE", key, fmt.Sprintf("(%d", mid), "+inf"))
-	reply, err := redis.Strings(conn.Do("ZRANGEBYSCORE", key, "-inf", "+inf"))
+	reply, err := redis.Strings(conn.Do("ZRANGEBYSCORE", key, fmt.Sprintf("(%d", mid), "+inf"))
+	//reply, err := redis.Strings(conn.Do("ZRANGEBYSCORE", key, "-inf", "+inf"))
 	if err != nil {
 		if err == redis.ErrNil {
 			return nil, nil
