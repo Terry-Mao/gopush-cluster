@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	fitstPacketTimedoutSec = time.Second * 5
+	fitstPacketTimedoutSec = time.Second * 30
 )
 
 var (
