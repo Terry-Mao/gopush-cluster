@@ -29,8 +29,7 @@ Web内部接口文档，用于推送消息、节点管理等
 
 (head). | 参数 | 类型 | 描述 |
 | key    | string | 订阅key |
-| gid    | string | Group ID |
-| mid    | int64  | 消息ID  |
+| gid    | string | Group ID (写死0即可)|
 | expire | int64  | 消息过期时间，单位：秒(s)|
 注: 消息体存放到body中，以上参数为URL参数
 
@@ -49,12 +48,9 @@ Web内部接口文档，用于推送消息、节点管理等
  * 请求参数
 
 (head). | 参数 | 类型 | 描述 |
-| key    | string | 公共消息key |
-| mid    | int64  | 消息ID  |
 | expire | int64  | 消息过期时间，单位：秒(s)|
 
 注: 1.消息体存放到body中，以上参数为URL参数。
-    2.key保证与配置中pkey参数指定的值相同。
 
  * 返回码
 
