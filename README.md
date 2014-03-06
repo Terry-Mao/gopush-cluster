@@ -19,6 +19,7 @@ gopush-cluster is a go push server cluster.
 
 ## Document
 [English](https://github.com/Terry-Mao/gopush-cluster/blob/master/README_en.md)
+
 [中文](https://github.com/Terry-Mao/gopush-cluster/blob/master/README_zh.md)
 
 ## LICENSE
