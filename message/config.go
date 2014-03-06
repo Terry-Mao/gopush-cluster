@@ -30,6 +30,7 @@ type Config struct {
 	RedisIdleTimeout time.Duration     `goconf:"redis:idletimeout:time"`
 	RedisMaxIdle     int               `goconf:"redis:maxidle"`
 	RedisMaxActive   int               `goconf:"redis:maxactive"`
+	RedisMaxStore    int               `goconf:"redis:maxstore"`
 	RedisAddrs       map[string]string `goconf:"-"`
 }
 
@@ -53,6 +54,7 @@ func NewConfig(fileName string) (*Config, error) {
 		RedisIdleTimeout: 28800 * time.Second,
 		RedisMaxIdle:     50,
 		RedisMaxActive:   1000,
+		RedisMaxStore:    20,
 		RedisAddrs:       make(map[string]string),
 	}
 	if err := gconf.Unmarshal(conf); err != nil {
