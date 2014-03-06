@@ -3,14 +3,14 @@ gopush-cluster
 `Terry-Mao/gopush-cluster` is a go push server cluster (support websocket, tcp protocol).
 
 ---------------------------------------
-  * [Features](#Features)
-  * [Installation](#Installation)
-  * [Usage](#Usage)
-  * [Configuration](#Configuration)
-  * [Examples](#Examples)
-  * [Documentation](#Documentation)
-  * [FAQ](#FAQ)
-  * [LICENSE](#LICENSE)
+  * [Features](#features)
+  * [Installation](#installation)
+  * [Usage](#usage)
+  * [Configuration](#configuration)
+  * [Examples](#examples)
+  * [Documentation](#documentation)
+  * [FAQ](#faq)
+  * [LICENSE](#license)
 
 ---------------------------------------
 
