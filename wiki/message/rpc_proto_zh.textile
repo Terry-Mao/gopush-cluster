@@ -6,6 +6,7 @@ Message内部RPC接口文档，用于Message离线消息内部存储等。
 | "MessageRPC.Ping":MessageRPC_Ping | Service Ping | tcp RPC |
 | "MessageRPC.Save":MessageRPC_Save | 存储Message   | tcp RPC |
 | "MessageRPC.Get":MessageRPC_Get   | 获取Message   | tcp RPC |
+| "MessageRPC.CleanKey”:MessageRPC_CleanKey   | 清理Key       | tcp RPC |
 
 <h3>公共返回码</h3>
 仅限于返回int类型的接口
@@ -71,7 +72,17 @@ type MessageGetResp struct {
 }
 </pre>
 
+<h3>MessageRPC.Clean</h3>
+ * 请求参数
+
+(head). | 参数 | 类型 | 描述 |
+| key | string | 客户端的订阅key或公共key |
+
+ * 返回码
+仅返回公共参数
+
 
 [MessageRPC_Ping]#messagerpcping
 [MessageRPC_Save]#messagerpcsave
 [MessageRPC_Get]#messagerpcget
+[MessageRPC_CleanKey]#messagerpccleankey

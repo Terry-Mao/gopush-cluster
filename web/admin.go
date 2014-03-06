@@ -179,7 +179,7 @@ func AdminNodeAdd(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(date))
 
-		Log.Info("request:push, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+		Log.Info("request:node_add, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
 
 	// Get params
@@ -238,7 +238,7 @@ func AdminNodeDel(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(date))
 
-		Log.Info("request:push, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+		Log.Info("request:node_del, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
 
 	// Get params
@@ -271,4 +271,57 @@ func AdminNodeDel(rw http.ResponseWriter, r *http.Request) {
 
 	ret = OK
 	return
+}
+
+// AdminCleanCache handle for clean the offline message of specified key
+func AdminMsgClean(rw http.ResponseWriter, r *http.Request) {
+	var (
+		ret    = InternalErr
+		result = make(map[string]interface{})
+	)
+
+	if r.Method != "POST" {
+		http.Error(rw, "Method Not Allowed", 405)
+		return
+	}
+
+	// Final response operation
+	defer func() {
+		result["msg"] = GetErrMsg(ret)
+		result["ret"] = ret
+		date, _ := json.Marshal(result)
+
+		io.WriteString(rw, string(date))
+
+		Log.Info("request:clean_cache, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+	}()
+
+	// Get params
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		Log.Error("ioutil.ReadAll() quest_url:\"%s\" error(%v)", r.URL.String(), err)
+		ret = InternalErr
+		return
+	}
+
+	values, err := url.ParseQuery(string(body))
+	if err != nil {
+		ret = ParamErr
+		return
+	}
+
+	key := values.Get("key")
+	if key == "" {
+		ret = ParamErr
+		return
+	}
+
+	// RPC call clean key interface
+	reply, err := MessageRPCCleanKey(key)
+	if err != nil {
+		Log.Error("RPC.Call(\"ChannelRPC.CleanKey\") key:\"%s\" error(%v)", key, err)
+		return
+	}
+
+	ret = reply
 }

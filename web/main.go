@@ -65,6 +65,7 @@ func main() {
 		adminServeMux.HandleFunc("/admin/push/public", AdminPushPublic)
 		adminServeMux.HandleFunc("/admin/node/add", AdminNodeAdd)
 		adminServeMux.HandleFunc("/admin/node/del", AdminNodeDel)
+		adminServeMux.HandleFunc("/admin/msg/clean", AdminMsgClean)
 
 		err := http.ListenAndServe(Conf.AdminAddr, adminServeMux)
 		if err != nil {

@@ -88,3 +88,13 @@ func MessageRPCSavePub(msg string, mid, expire int64) (int, error) {
 
 	return reply, nil
 }
+
+// MessageRPCCleanKey message-service clean all offline message of specified key RPC insterface
+func MessageRPCCleanKey(key string) (int, error) {
+	reply := OK
+	if err := MsgSvrClient.Call("MessageRPC.CleanKey", key, &reply); err != nil {
+		return InternalErr, err
+	}
+
+	return reply, nil
+}

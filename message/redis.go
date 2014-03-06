@@ -140,6 +140,22 @@ func DelMessages(info *DelMessageInfo) error {
 	return nil
 }
 
+// Delete Key
+func DelKey(key string) error {
+	conn := getRedisConn(key)
+	if conn == nil {
+		return RedisNoConnErr
+	}
+
+	defer conn.Close()
+	_, err := conn.Do("DEL", key)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // getRedisConn get the redis connection of matching with key
 func getRedisConn(key string) redis.Conn {
 	node := defaultRedisNode

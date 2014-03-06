@@ -7,6 +7,7 @@ Web内部接口文档，用于推送消息、节点管理等
 | "推送公共消息":AdminPushPublic | /admin/push/public     | POST |
 | "添加节点":AdminNodeAdd | /admin/node/add | POST |
 | "删除节点":AdminNodeDel | /admin/node/del | POST |
+| “清理消息":AdminMsgClean | /admin/msg/clean | POST |
 
 <h3>公共返回码</h3>
 
@@ -94,8 +95,25 @@ Web内部接口文档，用于推送消息、节点管理等
 }
 </pre>
 
+<h3>清理消息</h3>
+注：清理单个订阅(key)下的所有消息
+ * 请求参数
+
+(head). | 参数 | 类型 | 描述 |
+| key | string | 客户端订阅时的key |
+
+ * 返回码
+
+<pre>
+{
+    "ret": 0,
+    "msg": "ok"
+}
+</pre>
+
 
 [AdminPush]#推送私有消息
 [AdminPushPublic]#推送公共消息
 [AdminNodeAdd]#添加节点
 [AdminNodeDel]#删除节点
+[AdminMsgClean]#清理消息

@@ -183,6 +183,18 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	return nil
 }
 
+// Clean offline message interface
+func (r *MessageRPC) CleanKey(key string, ret *int) error {
+	if err := DelKey(key); err != nil {
+		Log.Error("clean offline message error(%v)", err)
+		*ret = InternalErr
+		return nil
+	}
+	Log.Info("Clean Offline message key(\"%s\") OK", key)
+
+	return nil
+}
+
 // Server Ping interface
 func (r *MessageRPC) Ping(p int, ret *int) error {
 	*ret = OK
