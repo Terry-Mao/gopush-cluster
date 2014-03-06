@@ -30,8 +30,7 @@ gopush-cluster
  * failover support (zookeeper)
 
 ## Installation
-`zookeeper`
-
+### zookeeper
 1.download [zookeeper](http://www.apache.org/dyn/closer.cgi/zookeeper/),suggest version:'3.4.5'.
 
 2.unzip package
@@ -52,8 +51,7 @@ $ make && make install
 $ cd /data/programfiles/zookeeper-3.4.5/bin
 $ nohup ./zkServer.sh start &
 ```
-`redis`
-
+### redis
 ```sh
 $ cd /data/programfiles
 $ wget https://redis.googlecode.com/files/redis-2.6.4.tar.gz
@@ -67,11 +65,10 @@ $ cp /data/programfiles/redis-2.6.4/redis.conf /etc/redis/
 $ cp /data/programfiles/redis-2.6.4/redis-server /etc/init.d/redis-server
 $ /etc/init.d/redis-server /etc/redis/redis.conf
 ```
-`git`
-
+### git
 reference:[git](http://git-scm.com/download/linux)
 
-`golang`
+### golang
 1.download
 ```sh
 # centos
@@ -80,6 +77,7 @@ $ tar -xvf go1.2.linux-amd64.tar.gz
 $ cp -R go /usr/local/
 ```
 2.golang env
+
 modify ~/.profile
 ```sh
 $ vim ~/.profile
@@ -88,7 +86,7 @@ export GOROOT=/usr/local/go
 export PATH=$PATH:$GOROOT/bin
 export GOPATH=/data/app/go
 ```
-`gopush-cluster`
+### gopush-cluster
 1.download gopush-cluster
 ```sh
 $ go get -u github.com/Terry-Mao/gopush-cluster
@@ -97,20 +95,25 @@ $ go get -u github.com/garyburd/redigo/redis
 $ go get -u code.google.com/p/go.net/websocket
 $ go get -u launchpad.net/gozk/zookeeper
 ```
-* if following error, see FAQ 1
+*if following error, see FAQ 1
 
 go: missing Mercurial command. See http://golang.org/s/gogetcmd
+
 package code.google.com/p/go.net/websocket: exec: "hg": executable file not found in $PATH
-* if following error, see FAQ 2
+
+*if following error, see FAQ 2
 
 go: missing Bazaar command. See http://golang.org/s/gogetcmd
+
 package launchpad.net/gozk/zookeeper: exec: "bzr": executable file not found in $PATH
-* if following error, see FAQ 3
+
+*if following error, see FAQ 3
 
 launchpad.net/gozk/zookeeper
+
 ../zk.go:15:23: error: zookeeper.h: No such file or directory
 
-3.install message,comet,web node
+2.install message,comet,web node
 ```sh
 $ cd $GOPATH/src/github.com/Terry-Mao/gopush-cluster/message
 $ go install
@@ -125,16 +128,17 @@ $ cp web.conf /data/app/go/bin/
 ```
 All done!!!
 
-``
+### start gopush-cluster
 ```sh
 $ cd /$GOPATH/bin
 $ nohup ./message -c message.conf &
 $ nohup ./comet -c comet-example.conf &
 $ nohup ./web -c web.conf &
 ```
-* if following error, FAQ 4
+*if following error, FAQ 4
 
 error while loading shared libraries: libzookeeper_mt.so.2: cannot open shared object file: No such file or directory
+
 ### testing
 1.push public message
 ```sh
@@ -178,9 +182,7 @@ succeed response:
 
 ## Configuration
 [web](https://github.com/Terry-Mao/gopush-cluster/blob/master/web/web-example.conf)
-
 [comet](https://github.com/Terry-Mao/gopush-cluster/blob/master/comet/comet-example.conf)
-
 [message](https://github.com/Terry-Mao/gopush-cluster/blob/master/message/message-example.conf)
 
 ## Examples
@@ -188,19 +190,14 @@ succeed response:
 
 ## Documentation
 `web`
-
 [external](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/web/external_proto_zh.textile)
-
 [internal](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/web/internal_proto_zh.textile)
 
 `comet`
-
 [client](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/comet/client_proto_zh.textile)
-
 [internal](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/comet/rpc_proto_zh.textile)
 
 `message`
-
 [internal](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/message/rpc_proto_zh.textile)
 
 ## FAQ
