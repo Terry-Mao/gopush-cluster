@@ -65,9 +65,6 @@ func SaveMessage(key, msg string, mid int64) error {
 
 // GetMessages get all of offline messages which larger than mid
 func GetMessages(key string, mid int64) ([]string, error) {
-	cmdRank := "ZREMRANGEBYRANK"
-	cmdRange := "ZRANGEBYSCORE"
-
 	conn := getRedisConn(key)
 	if conn == nil {
 		return nil, RedisNoConnErr
@@ -75,11 +72,11 @@ func GetMessages(key string, mid int64) ([]string, error) {
 	defer conn.Close()
 
 	//ZREMRANGEBYRANK
-	if err := conn.Send(cmdRank, key, 0, -1*(Conf.RedisMaxStore+1)); err != nil {
+	if err := conn.Send("ZREMRANGEBYRANK", key, 0, -1*(Conf.RedisMaxStore+1)); err != nil {
 		return nil, err
 	}
 	//ZRANGEBYSCORE
-	if err := conn.Send(cmdRange, key, fmt.Sprintf("(%d", mid), "+inf"); err != nil {
+	if err := conn.Send("ZRANGEBYSCORE", key, fmt.Sprintf("(%d", mid), "+inf"); err != nil {
 		return nil, err
 	}
 
