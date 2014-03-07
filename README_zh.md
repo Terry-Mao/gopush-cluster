@@ -209,7 +209,7 @@ $ sudo ldconfig
 ## 例子
 java: [gopush-cluster-sdk](https://github.com/Terry-Mao/gopush-cluster-sdk)
 
-ios: [GoPushforIOS](https://github.com/Terry-Mao/GoPushforIOS)
+ios: [GoPushforIOS](https://github.com/roy5931/GoPushforIOS)
 
 ## 文档
 ### web节点相关的文档：
