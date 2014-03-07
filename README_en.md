@@ -186,7 +186,9 @@ succeed response:
 [message](https://github.com/Terry-Mao/gopush-cluster/blob/master/message/message-example.conf)
 
 ## Examples
-[gopush-cluster-sdk](https://github.com/Terry-Mao/gopush-cluster-sdk)
+java: [gopush-cluster-sdk](https://github.com/Terry-Mao/gopush-cluster-sdk)
+
+ios: [GoPushforIOS](https://github.com/Terry-Mao/GoPushforIOS)
 
 ## Documentation
 `web`
