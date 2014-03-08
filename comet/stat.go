@@ -96,9 +96,22 @@ func (s *ConnectionStat) Stat() []byte {
 	return jsonRes(res)
 }
 
+func statListen(bind string) {
+	httpServeMux := http.NewServeMux()
+	httpServeMux.HandleFunc("/stat", StatHandle)
+	if err := http.ListenAndServe(bind, httpServeMux); err != nil {
+		Log.Error("http.ListenAdServe(\"%s\") error(%v)", bind, err)
+		panic(err)
+	}
+}
+
 // start stats, called at process start
 func StartStats() {
 	startTime = time.Now().UnixNano()
+	for _, bind := range Conf.StatBind {
+		Log.Info("start stat listen addr:\"%s\"", bind)
+		go statListen(bind)
+	}
 }
 
 // memory stats

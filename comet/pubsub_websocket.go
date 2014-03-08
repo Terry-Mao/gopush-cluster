@@ -35,12 +35,12 @@ func (l *KeepAliveListener) Accept() (c net.Conn, err error) {
 // StartHttp start http listen.
 func StartHttp() {
 	for _, bind := range Conf.WebsocketBind {
-		Log.Info("start http listen addr:\"%s\"", bind)
-		go httpListen(bind)
+		Log.Info("start websocket listen addr:\"%s\"", bind)
+		go websocketListen(bind)
 	}
 }
 
-func httpListen(bind string) {
+func websocketListen(bind string) {
 	httpServeMux := http.NewServeMux()
 	httpServeMux.Handle("/sub", websocket.Handler(SubscribeHandle))
 	if Conf.TCPKeepalive {

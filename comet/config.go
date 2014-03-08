@@ -30,6 +30,7 @@ type Config struct {
 	WebsocketBind []string `goconf:"base:websocket.bind:,"`
 	RPCBind       []string `goconf:"base:rpc.bind:,"`
 	PprofBind     []string `goconf:"base:pprof.bind:,"`
+	StatBind      []string `goconf:"base:stat.bind:,"`
 	// zookeeper
 	ZookeeperAddr    string        `goconf:"zookeeper:addr"`
 	ZookeeperTimeout time.Duration `goconf:"zookeeper:timeout:time"`
@@ -66,6 +67,7 @@ func InitConfig(file string) (*Config, error) {
 		TCPBind:       []string{"localhost:6969"},
 		RPCBind:       []string{"localhost:6970"},
 		PprofBind:     []string{"localhost:6971"},
+		StatBind:      []string{"localhost:6971"},
 		// zookeeper
 		ZookeeperAddr:    "localhost:2181",
 		ZookeeperTimeout: 8 * time.Hour,
