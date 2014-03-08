@@ -3,9 +3,15 @@ package main
 import (
 	"flag"
 	"github.com/Terry-Mao/gopush-cluster/log"
+	"net"
 	"net/http"
 	"os"
 	"runtime"
+	"time"
+)
+
+const (
+	httpReadTimeout = 30 //seconds
 )
 
 var (
@@ -57,8 +63,8 @@ func main() {
 	StartPprof()
 
 	// External service handle
-	http.HandleFunc("/server/get", ServerGet)
-	http.HandleFunc("/msg/get", MsgGet)
+	//http.HandleFunc("/server/get", ServerGet)
+	//http.HandleFunc("/msg/get", MsgGet)
 
 	// Internal admin handle
 	go func() {
@@ -79,10 +85,26 @@ func main() {
 
 	// Start service
 	go func() {
-		if err := http.ListenAndServe(Conf.Addr, nil); err != nil {
-			Log.Error("http.ListenAndServe(\"%s\") failed(%v)", Conf.Addr, err)
+		// External service handle
+		httpServeMux := http.NewServeMux()
+		httpServeMux.HandleFunc("/server/get", ServerGet)
+		httpServeMux.HandleFunc("/msg/get", MsgGet)
+
+		server := &http.Server{Handler: httpServeMux, ReadTimeout: httpReadTimeout * time.Second}
+		l, err := net.Listen("tcp", Conf.Addr)
+		if err != nil {
+			Log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", Conf.Addr, err)
 			os.Exit(-1)
 		}
+		if err := server.Serve(l); err != nil {
+			Log.Error("server.Serve(\"%s\") error(%v)", Conf.Addr, err)
+			os.Exit(-1)
+		}
+		/*
+			if err := http.ListenAndServe(Conf.Addr, nil); err != nil {
+				Log.Error("http.ListenAndServe(\"%s\") failed(%v)", Conf.Addr, err)
+				os.Exit(-1)
+			}*/
 	}()
 
 	// init signals, block wait signals
