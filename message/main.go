@@ -40,6 +40,9 @@ func main() {
 		os.Exit(-1)
 	}
 
+	// start pprof http
+	StartPprof()
+
 	// Initialize redis
 	InitRedis()
 

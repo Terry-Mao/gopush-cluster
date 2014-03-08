@@ -27,6 +27,7 @@ type Config struct {
 	MaxProc          int               `goconf:"base:maxproc"`
 	LogFile          string            `goconf:"base:logfile"`
 	LogLevel         string            `goconf:"base:loglevel"`
+	PprofBind        []string          `goconf:"base:pprof.bind:,"`
 	RedisIdleTimeout time.Duration     `goconf:"redis:idletimeout:time"`
 	RedisMaxIdle     int               `goconf:"redis:maxidle"`
 	RedisMaxActive   int               `goconf:"redis:maxactive"`
@@ -51,6 +52,7 @@ func NewConfig(fileName string) (*Config, error) {
 		MaxProc:          runtime.NumCPU(),
 		LogFile:          "./message.log",
 		LogLevel:         "DEBUG",
+		PprofBind:        []string{"localhost:8170"},
 		RedisIdleTimeout: 28800 * time.Second,
 		RedisMaxIdle:     50,
 		RedisMaxActive:   1000,

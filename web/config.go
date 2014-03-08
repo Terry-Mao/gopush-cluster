@@ -21,6 +21,7 @@ type Config struct {
 	Addr        string        `goconf:"base:addr"`
 	AdminAddr   string        `goconf:"base:adminaddr"`
 	MaxProc     int           `goconf:"base:maxproc"`
+	PprofBind   []string      `goconf:"base:pprof.bind:,"`
 	LogPath     string        `goconf:"log:path"`
 	LogLevel    string        `goconf:"log:level"`
 	ZKAddr      string        `goconf:"zookeeper:addr"`
@@ -44,6 +45,7 @@ func NewConfig(file string) (*Config, error) {
 		Addr:        ":80",
 		AdminAddr:   ":81",
 		MaxProc:     runtime.NumCPU(),
+		PprofBind:   []string{"localhost:8190"},
 		LogPath:     "./web.log",
 		LogLevel:    "DEBUG",
 		ZKAddr:      ":2181",

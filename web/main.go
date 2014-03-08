@@ -53,6 +53,9 @@ func main() {
 		os.Exit(-1)
 	}
 
+	// start pprof http
+	StartPprof()
+
 	// External service handle
 	http.HandleFunc("/server/get", ServerGet)
 	http.HandleFunc("/msg/get", MsgGet)
