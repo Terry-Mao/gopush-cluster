@@ -7,7 +7,7 @@ Web内部接口文档，用于推送消息、节点管理等
 | "推送公共消息":AdminPushPublic | /admin/push/public     | POST |
 | "添加节点":AdminNodeAdd | /admin/node/add | POST |
 | "删除节点":AdminNodeDel | /admin/node/del | POST |
-| “清理消息":AdminMsgClean | /admin/msg/clean | POST |
+| "清理消息":AdminMsgClean | /admin/msg/clean | POST |
 
 <h3>公共返回码</h3>
 
