@@ -10,6 +10,7 @@ const (
 	TCPProtocol       = "tcp"
 	Heartbeat         = "h"
 	minHearbeatSec    = 30
+	delayHeartbeatSec = 15
 	Second            = int64(time.Second)
 )
 

@@ -183,12 +183,12 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		Log.Error("<%s> user_key:\"%s\" heartbeat:\"%s\" argument error (%s)", addr, key, heartbeatStr, err)
 		return
 	}
-	heartbeat := i * 2
-	if heartbeat < minHearbeatSec {
+	if i < minHearbeatSec {
 		conn.Write(ParamReply)
 		Log.Warn("<%s> user_key:\"%s\" heartbeat argument error, less than %d", addr, key, minHearbeatSec)
 		return
 	}
+	heartbeat := i + delayHeartbeatSec
 	token := ""
 	if argLen > 2 {
 		token = args[2]

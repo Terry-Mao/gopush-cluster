@@ -81,12 +81,12 @@ func SubscribeHandle(ws *websocket.Conn) {
 		Log.Error("<%s> user_key:\"%s\" heartbeat argument error(%s)", addr, key, err)
 		return
 	}
-	heartbeat := i * 2
-	if heartbeat <= minHearbeatSec {
-		ws.Write(ParamReply)
-		Log.Error("<%s> user_key \"%s\" heartbeat argument error, less than 0", addr, key)
+	if i < minHearbeatSec {
+		conn.Write(ParamReply)
+		Log.Warn("<%s> user_key:\"%s\" heartbeat argument error, less than %d", addr, key, minHearbeatSec)
 		return
 	}
+	heartbeat := i + delayHeartbeatSec
 	token := params.Get("token")
 	Log.Info("<%s> subscribe to key = %s, heartbeat = %d, token = %s", addr, key, heartbeat, token)
 	// fetch subscriber from the channel
