@@ -126,6 +126,13 @@ func (c *SeqChannel) AddConn(key string, conn net.Conn) (*list.Element, error) {
 		Log.Error("user_key:\"%s\" exceed conn", key)
 		return nil, ErrMaxConn
 	}
+	// send first heartbeat to tell client service is ready for accept heartbeat
+	if _, err := conn.Write(HeartbeatReply); err != nil {
+		c.mutex.Unlock()
+		Log.Error("user_key:\"%s\" write first heartbeat to client error(%v)", key, err)
+		return nil, err
+	}
+	// add conn
 	e := c.conn.PushBack(conn)
 	c.mutex.Unlock()
 	ConnStat.IncrAdd()
