@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	fitstPacketTimedoutSec = time.Second * 30
+	minCmdNum = 1
+	maxCmdNum = 4
 )
 
 var (
@@ -116,7 +117,7 @@ func tcpListen(bind string) {
 			conn.Close()
 			continue
 		}
-		// first packet must sent by client in 5 seconds
+		// first packet must sent by client in specified seconds
 		if err = conn.SetReadDeadline(time.Now().Add(fitstPacketTimedoutSec)); err != nil {
 			Log.Error("conn.SetReadDeadLine() error(%v)", err)
 			conn.Close()
@@ -212,14 +213,6 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		Log.Error("<%s> user_key:\"%s\" add conn error(%v)", addr, key, err)
 		return
 	}
-	// send first heartbeat to tell client service is ready for accept heartbeat
-	if _, err := conn.Write(HeartbeatReply); err != nil {
-		Log.Error("<%s> user_key:\"%s\" write first heartbeat to client error(%v)", addr, key, err)
-		if err := c.RemoveConn(key, connElem); err != nil {
-			Log.Error("<%s> user_key:\"%s\" remove conn error(%v)", addr, key, err)
-		}
-		return
-	}
 	// blocking wait client heartbeat
 	reply := make([]byte, HeartbeatLen)
 	begin := time.Now().UnixNano()
@@ -269,7 +262,7 @@ func parseCmd(rd *bufio.Reader) ([]string, error) {
 		Log.Error("tcp:cmd format error when find '*' (%s)", err)
 		return nil, err
 	}
-	if argNum < 1 {
+	if argNum < minCmdNum || argNum > maxCmdNum {
 		Log.Error("tcp:cmd argument number length error")
 		return nil, ErrProtocol
 	}
@@ -329,5 +322,5 @@ func parseCmdData(rd *bufio.Reader, cmdLen int) ([]byte, error) {
 		return nil, ErrProtocol
 	}
 	// skip last \r\n
-	return d[0 : dl-2], nil
+	return d[0:cmdLen], nil
 }
