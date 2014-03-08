@@ -108,14 +108,6 @@ func SubscribeHandle(ws *websocket.Conn) {
 		Log.Error("<%s> user_key:\"%s\" add conn error(%s)", addr, key, err)
 		return
 	}
-	// send first heartbeat to tell client service is ready for accept heartbeat
-	if _, err = ws.Write(HeartbeatReply); err != nil {
-		Log.Error("<%s> user_key:\"%s\" write first heartbeat to client error(%s)", addr, key, err)
-		if err := c.RemoveConn(key, connElem); err != nil {
-			Log.Error("<%s> user_key:\"%s\" remove conn error(%v)", addr, key, err)
-		}
-		return
-	}
 	// blocking wait client heartbeat
 	reply := ""
 	begin := time.Now().UnixNano()
