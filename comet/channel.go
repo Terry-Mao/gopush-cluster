@@ -6,14 +6,16 @@ import (
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	"net"
 	"sync"
+	"time"
+)
+
+const (
+	fitstPacketTimedoutSec = time.Second * 15
 )
 
 var (
 	ErrChannelNotExist = errors.New("Channle not exist")
-)
-
-var (
-	UserChannel *ChannelList
+	UserChannel        *ChannelList
 )
 
 // The subscriber interface.
