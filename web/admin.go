@@ -62,6 +62,11 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO:If there is not a node then CometHash.Node() will panic
+	if NodeQuantity() == 0 {
+		ret = NoNodeErr
+		return
+	}
 	// Match a push-server with the value computed through ketama algorithm
 	svrInfo := GetNode(CometHash.Node(key))
 	if svrInfo == nil {

@@ -14,7 +14,7 @@ const (
 	InternalErr     = 65535
 
 	OKMsg               = "ok"
-	NoNodeErrMsg        = "node is not alive"
+	NoNodeErrMsg        = "no node"
 	ParamErrMsg         = "param error"
 	InvalidSessionIDMsg = "invalid session id"
 

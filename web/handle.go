@@ -50,6 +50,11 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO:If there is not a node then CometHash.Node() will panic
+	if NodeQuantity() == 0 {
+		ret = NoNodeErr
+		return
+	}
 	// Match a push-server with the value computed through ketama algorithm
 	svrInfo := GetNode(CometHash.Node(key))
 	if svrInfo == nil {
@@ -132,7 +137,7 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if reply.Ret != OK {
-		Log.Error("RPC.Call(\"MessageRPC.Get\")  Key:\"%s\", MsgID:\"%d\" errorCode(%d)", key, midI, reply.Ret)
+		Log.Error("RPC.Call(\"MessageRPC.Get\")  Key:\"%s\", MsgID:\"%d\" errorCode(\"%d\")", key, midI, reply.Ret)
 		ret = reply.Ret
 		return
 	}

@@ -13,7 +13,7 @@ var (
 // InitMsgSvrClient initialize message service client
 func InitMsgSvrClient() error {
 	go func() {
-		var err error
+		failed := false
 		// If process exit, then close Message rpc
 		defer func() {
 			if MsgSvrClient != nil {
@@ -23,23 +23,28 @@ func InitMsgSvrClient() error {
 			}
 		}()
 		for {
-			if MsgSvrClient != nil {
+			if !failed && MsgSvrClient != nil {
 				reply := 0
 				if err := MsgSvrClient.Call("MessageRPC.Ping", 0, &reply); err != nil {
 					Log.Error("rpc.Call(\"MessageRPC.Ping\")  error(%v)", err)
+					failed = true
 				} else {
 					// every one second send a heartbeat ping
+					failed = false
 					Log.Debug("rpc ping ok")
 					time.Sleep(Conf.MsgPing)
 					continue
 				}
 			}
 			// reconnect(init) message rpc
-			if MsgSvrClient, err = rpc.Dial("tcp", Conf.MsgAddr); err != nil {
+			rpcTmp, err := rpc.Dial("tcp", Conf.MsgAddr)
+			if err != nil {
 				Log.Error("rpc.Dial(\"tcp\", \"%s\") error(%v), reconnect retry after \"%d\" second", Conf.MsgAddr, err, int64(Conf.MsgRetry)/int64(time.Second))
 				time.Sleep(Conf.MsgRetry)
 				continue
 			}
+			MsgSvrClient = rpcTmp
+			failed = false
 			Log.Info("rpc client reconnect \"%s\" ok", Conf.MsgAddr)
 		}
 	}()

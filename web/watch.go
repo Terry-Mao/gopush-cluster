@@ -112,9 +112,12 @@ func BeginWatchNode() error {
 		return err
 	}
 
-	// Update Comet hash, cause nodes are changed
-	CometHash = hash.NewKetama2(nodes, 255)
+	for _, n := range nodes {
+		NodeInfoMap[n] = nil
+	}
 
+	// Update Comet hash
+	CometHash = hash.NewKetama2(nodes, 255)
 	// Watch all of nodes
 	watchNodes(nodes)
 
@@ -124,6 +127,11 @@ func BeginWatchNode() error {
 // GetNode get the node infomation under the node
 func GetNode(node string) *NodeInfo {
 	return NodeInfoMap[node]
+}
+
+// GetNode get the node quantity
+func NodeQuantity() int {
+	return len(NodeInfoMap)
 }
 
 // AddNode add a node and watch it, and notice Comet to migrate node
@@ -165,25 +173,21 @@ func DelNode(node string) error {
 		return nil
 	}
 
-	for n, c := range NodeInfoMap {
-		if n == node {
-			info = c
-			continue
-		}
-
-		nodes = append(nodes, n)
-	}
-
-	// Update Comet hash, cause nodes are changed
-	CometHash = hash.NewKetama2(nodes, 255)
-
 	// Delete node from map before call Migrate RPC interface of Comet, cause needn`t to notice deleted node
 	tmpMap := make(map[string]*NodeInfo)
 	for n, i := range NodeInfoMap {
+		if n == node {
+			info = i
+			continue
+		}
+
 		tmpMap[n] = i
+		nodes = append(nodes, n)
 	}
-	delete(tmpMap, node)
 	NodeInfoMap = tmpMap
+
+	// Update Comet hash, cause nodes are changed
+	CometHash = hash.NewKetama2(nodes, 255)
 
 	if info != nil && info.PubRPC != nil {
 		info.PubRPC.Close()
@@ -212,11 +216,11 @@ func channelRPCMigrate(nodes []string, nodeInfoMap map[string]*NodeInfo) error {
 
 			if ret != OK {
 				err := errors.New(fmt.Sprintf("ret:%d", ret))
-				Log.Error("RPC.Call(\"ChannelRPC.Migrate\") error node:\"%s\" error(%v)", n, err)
+				Log.Error("RPC.Call(\"ChannelRPC.Migrate\") error node:\"%s\" errorCode:\"%d\"", n, ret)
 				return err
 			}
 
-			Log.Debug("RPC.Call(\"ChannelRPC.Migrate\") success node:\"%s\"", n)
+			Log.Info("RPC.Call(\"ChannelRPC.Migrate\") success node:\"%s\"", n)
 		}
 	}
 
@@ -261,14 +265,34 @@ func watchNodes(nodes []string) {
 // watchNodes watch the first service under the node, and keep rpc connecting with Comet RPC,
 // the first service must be alive
 func watchFirstService(node string) {
+	defer func() {
+		if err := recover(); err != nil {
+			Log.Error("watching node goroutine panic node:\"%s\" error(%v), stop watching", node, err)
+
+			var nodes []string
+			// Delete node from map
+			tmpMap := make(map[string]*NodeInfo)
+			for n, i := range NodeInfoMap {
+				if n == node {
+					continue
+				}
+				tmpMap[n] = i
+				nodes = append(nodes, n)
+			}
+			NodeInfoMap = tmpMap
+
+			// Update Comet hash, cause nodes are changed
+			CometHash = hash.NewKetama2(nodes, 255)
+		}
+	}()
 	path := fmt.Sprintf("%s/%s", Conf.ZKCometPath, node)
 	for {
 		subNodes, watch, err := getNodesW(path)
 		if err != nil {
 			// If no subNode, then recheck repeatedly
 			if err == ErrNoChild {
-				Log.Warn("get service of node:\"%s\" error(%v), recheck after 10 seconds", node, err)
-				time.Sleep(10 * time.Second)
+				Log.Warn("get service of node:\"%s\" error(%v), recheck after 5 seconds", node, err)
+				time.Sleep(5 * time.Second)
 				continue
 			}
 
@@ -281,7 +305,7 @@ func watchFirstService(node string) {
 		data, _, err := zk.Get(fmt.Sprintf("%s/%s", path, subNodes[0]))
 		if err != nil {
 			Log.Error("watch node:\"%s\", subNode:\"%s\", error(%v)", node, subNodes[0], err)
-			time.Sleep(10 * time.Second)
+			time.Sleep(5 * time.Second)
 			continue
 		}
 
@@ -289,7 +313,7 @@ func watchFirstService(node string) {
 		subAddr, err := parseZKData(data)
 		if err != nil {
 			Log.Error("get subNode data error node:\"%s\", subNode:\"%s\", error(%v)", node, subNodes[0], err)
-			time.Sleep(10 * time.Second)
+			time.Sleep(5 * time.Second)
 			continue
 		}
 		info := NodeInfoMap[node]
@@ -312,8 +336,8 @@ func watchFirstService(node string) {
 		if ok {
 			r, err := rpc.Dial("tcp", addr)
 			if err != nil {
-				Log.Error("rpc.Dial(\"tcp\", \"%s\") error(%v) node:\"%s\", subNode:\"%s\", recheck after 10 seconds", addr, err, node, subNodes[0])
-				time.Sleep(10 * time.Second)
+				Log.Error("rpc.Dial(\"tcp\", \"%s\") error(%v) node:\"%s\", subNode:\"%s\", recheck after 5 seconds", addr, err, node, subNodes[0])
+				time.Sleep(5 * time.Second)
 				continue
 			}
 
@@ -322,9 +346,9 @@ func watchFirstService(node string) {
 			Log.Error("rpc.Dial(\"tcp\", \"%s\") error node:\"%s\", subNode:\"%s\" error(no rpc address)", addr, node, subNodes[0])
 		}
 
-		Log.Info("begin watching node:\"%s\"", node)
+		Log.Info("begin watching node:\"%s\" addr:\"%v\"", node, subAddr)
 		event := <-watch
-		Log.Warn("end watching node:\"%s\" event:\"%v\", retry to watch", node, event)
+		Log.Warn("end watching node:\"%s\" addr:\"%v\" event:\"%v\", retry to watch", node, subAddr, event)
 	}
 
 	// Delete node

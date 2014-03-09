@@ -40,6 +40,7 @@ func main() {
 		panic(err)
 		os.Exit(-1)
 	}
+	Log.Debug("initialize config %v", *Conf)
 
 	// Initialize zookeeper
 	if err := InitWatch(); err != nil {

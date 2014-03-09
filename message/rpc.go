@@ -208,5 +208,6 @@ func DelProc() {
 		if err := DelMessages(info); err != nil {
 			Log.Error("DelMessages(key:\"%s\", Msgs:\"%s\") error(%v)", info.Key, info.Msgs, err)
 		}
+		Log.Info("DelMessages(key:\"%s\", Msgs:\"%s\") OK", info.Key, info.Msgs)
 	}
 }
