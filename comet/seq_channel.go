@@ -73,9 +73,11 @@ func (c *SeqChannel) AuthToken(key, token string) bool {
 
 // PushMsg implements the Channel PushMsg method.
 func (c *SeqChannel) PushMsg(key string, m *Message) error {
+	var succeed, failed uint64
 	if MsgRPC == nil {
 		return ErrMessageRPC
 	}
+	succeed, failed = 0, 0
 	c.mutex.Lock()
 	// private message need persistence
 	if m.GroupID != myrpc.PublicGroupID {
@@ -109,13 +111,18 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 		// do something with e.Value
 		if n, err := conn.Write(b); err != nil {
 			Log.Error("conn.Write() error(%v)", err)
+			failed++
 			continue
 		} else {
+			succeed++
 			Log.Debug("conn.Write %d bytes", n)
 		}
 		Log.Info("user_key:\"%s\" push message \"%s\":%d", key, m.Msg, m.MsgID)
 	}
 	c.mutex.Unlock()
+	// message stat
+	MsgStat.IncrFailed(failed)
+	MsgStat.IncrSucceed(succeed)
 	return nil
 }
 

@@ -161,11 +161,9 @@ func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) e
 	// use the channel push message
 	if err = ch.PushMsg(args.Key, &Message{Msg: args.Msg, Expire: time.Now().UnixNano() + expire*Second, GroupID: args.GroupID}); err != nil {
 		*ret = retPushMsgErr
-		MsgStat.IncrFailed(1)
 		return nil
 	}
 	*ret = retOK
-	MsgStat.IncrSucceed(1)
 	return nil
 }
 
@@ -182,18 +180,11 @@ func (c *ChannelRPC) PushPublic(args *myrpc.ChannelPushPublicArgs, ret *int) err
 		c.Unlock()
 		// multiple routine push message
 		go func() {
-			succeed := uint64(0)
-			failed := uint64(0)
 			for k, v := range cm {
 				if err := v.PushMsg(k, m); err != nil {
-					// *ret = retPushMsgErr
-					failed++
 					continue
 				}
-				succeed++
 			}
-			MsgStat.IncrFailed(failed)
-			MsgStat.IncrSucceed(succeed)
 		}()
 	}
 	*ret = retOK

@@ -54,6 +54,7 @@ func (s *ChannelStat) Stat() []byte {
 type MessageStat struct {
 	Succeed uint64 // total push message succeed count
 	Failed  uint64 // total push message failed count
+	Online  uint64 // total push online message count
 }
 
 func (s *MessageStat) IncrSucceed(delta uint64) {
@@ -64,11 +65,16 @@ func (s *MessageStat) IncrFailed(delta uint64) {
 	atomic.AddUint64(&s.Failed, delta)
 }
 
+func (s *MessageStat) IncrOnline(delta uint64) {
+	atomic.AddUint64(&s.Online, delta)
+}
+
 // Stat get the message stat info
 func (s *MessageStat) Stat() []byte {
 	res := map[string]interface{}{}
 	res["succeed"] = s.Succeed
 	res["failed"] = s.Failed
+	res["online"] = s.Online
 	res["total"] = s.Succeed + s.Failed
 	return jsonRes(res)
 }
