@@ -82,7 +82,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 		return
 	}
 	if i < minHearbeatSec {
-		conn.Write(ParamReply)
+		ws.Write(ParamReply)
 		Log.Warn("<%s> user_key:\"%s\" heartbeat argument error, less than %d", addr, key, minHearbeatSec)
 		return
 	}
