@@ -20,7 +20,7 @@ type SeqChannel struct {
 	mutex *sync.Mutex
 	// client conn double linked-list
 	conn *list.List
-	// TODO Remove time id
+	// TODO Remove time id or lazy New
 	timeID *TimeID
 	// token
 	token *Token
@@ -34,6 +34,7 @@ func NewSeqChannel() *SeqChannel {
 		timeID: NewTimeID(),
 		token:  nil,
 	}
+    // save memory
 	if Conf.Auth {
 		ch.token = NewToken()
 	}
