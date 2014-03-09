@@ -44,12 +44,12 @@ var (
    if any error the os.Stdout will return
 */
 func New(file string, levelStr string) (*Logger, error) {
-    level := defaultLogLevel
-    for lv, str := range errLevels {
-        if str == levelStr {
-            level = lv
-        }
-    }
+	level := defaultLogLevel
+	for lv, str := range errLevels {
+		if str == levelStr {
+			level = lv
+		}
+	}
 	if file != "" {
 		f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {

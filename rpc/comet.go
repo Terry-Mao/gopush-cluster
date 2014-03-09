@@ -15,8 +15,8 @@ type ChannelPushPrivateArgs struct {
 
 // Channel Push Public Message Args
 type ChannelPushPublicArgs struct {
-	MsgID   int64  // message id
-	Msg     string // message content
+	MsgID int64  // message id
+	Msg   string // message content
 }
 
 // Channel Migrate Args
