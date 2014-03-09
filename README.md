@@ -17,7 +17,7 @@ gopush-cluster is a go push server cluster.
  * cluster support (easy add or remove comet & web & message node)
  * failover support (zookeeper)
 
- ## Architecture
+## Architecture
  ![gopush-cluster](http://raw.github.com/Terry-Mao/gopush-cluster/master/wiki/architecture/architecture.jpg "gopush-cluster architecture")
 
 ## Document
