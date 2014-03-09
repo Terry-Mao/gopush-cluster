@@ -67,7 +67,7 @@ func InitConfig(file string) (*Config, error) {
 		TCPBind:       []string{"localhost:6969"},
 		RPCBind:       []string{"localhost:6970"},
 		PprofBind:     []string{"localhost:6971"},
-		StatBind:      []string{"localhost:6971"},
+		StatBind:      []string{"localhost:6972"},
 		// zookeeper
 		ZookeeperAddr:    "localhost:2181",
 		ZookeeperTimeout: 8 * time.Hour,

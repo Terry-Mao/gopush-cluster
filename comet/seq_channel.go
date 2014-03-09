@@ -1,8 +1,8 @@
 package main
 
 import (
-	"container/list"
 	"errors"
+	"github.com/Terry-Mao/gopush-cluster/hlist"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"sync"
@@ -19,7 +19,7 @@ type SeqChannel struct {
 	// Mutex
 	mutex *sync.Mutex
 	// client conn double linked-list
-	conn *list.List
+	conn *hlist.Hlist
 	// TODO Remove time id or lazy New
 	timeID *TimeID
 	// token
@@ -30,11 +30,11 @@ type SeqChannel struct {
 func NewSeqChannel() *SeqChannel {
 	ch := &SeqChannel{
 		mutex:  &sync.Mutex{},
-		conn:   list.New(),
+		conn:   hlist.New(),
 		timeID: NewTimeID(),
 		token:  nil,
 	}
-    // save memory
+	// save memory
 	if Conf.Auth {
 		ch.token = NewToken()
 	}
@@ -120,7 +120,7 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 }
 
 // AddConn implements the Channel AddConn method.
-func (c *SeqChannel) AddConn(key string, conn net.Conn) (*list.Element, error) {
+func (c *SeqChannel) AddConn(key string, conn net.Conn) (*hlist.Element, error) {
 	c.mutex.Lock()
 	if c.conn.Len()+1 > Conf.MaxSubscriberPerChannel {
 		c.mutex.Unlock()
@@ -134,7 +134,7 @@ func (c *SeqChannel) AddConn(key string, conn net.Conn) (*list.Element, error) {
 		return nil, err
 	}
 	// add conn
-	e := c.conn.PushBack(conn)
+	e := c.conn.PushFront(conn)
 	c.mutex.Unlock()
 	ConnStat.IncrAdd()
 	Log.Debug("user_key:\"%s\" add conn", key)
@@ -142,7 +142,7 @@ func (c *SeqChannel) AddConn(key string, conn net.Conn) (*list.Element, error) {
 }
 
 // RemoveConn implements the Channel RemoveConn method.
-func (c *SeqChannel) RemoveConn(key string, e *list.Element) error {
+func (c *SeqChannel) RemoveConn(key string, e *hlist.Element) error {
 	c.mutex.Lock()
 	c.conn.Remove(e)
 	c.mutex.Unlock()

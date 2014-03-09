@@ -1,9 +1,9 @@
 package main
 
 import (
-	"container/list"
 	"errors"
 	"github.com/Terry-Mao/gopush-cluster/hash"
+	"github.com/Terry-Mao/gopush-cluster/hlist"
 	"net"
 	"sync"
 	"time"
@@ -30,9 +30,9 @@ type Channel interface {
 	AuthToken(key, token string) bool
 	// AddConn add a connection for the subscriber.
 	// Exceed the max number of subscribers per key will return errors.
-	AddConn(key string, conn net.Conn) (*list.Element, error)
+	AddConn(key string, conn net.Conn) (*hlist.Element, error)
 	// RemoveConn remove a connection for the  subscriber.
-	RemoveConn(key string, e *list.Element) error
+	RemoveConn(key string, e *hlist.Element) error
 	// Expire expire the channle and clean data.
 	Close() error
 }
