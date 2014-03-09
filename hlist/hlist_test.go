@@ -71,4 +71,28 @@ func TestHlist(t *testing.T) {
 			fmt.Println(i)
 		}
 	}
+	second := l.Front()    // 5
+	thrid := second.Next() // 4
+	fourth := thrid.Next() // 3
+	fifth := fourth.Next() // 2
+	sixth := fifth.Next()  // 1
+	l.Remove(second)
+	l.Remove(thrid)
+	l.Remove(fourth)
+	l.Remove(fifth)
+	l.Remove(sixth)
+	if l.Len() != 0 {
+		t.Errorf("length error")
+	}
+	first = l.Front()
+	if first != nil {
+		t.Error("first != nil")
+	}
+	for e := l.Front(); e != nil; e = e.Next() {
+		if i, ok := e.Value.(int); !ok {
+			t.Error("e.Value assection failed")
+		} else {
+			fmt.Println(i)
+		}
+	}
 }
