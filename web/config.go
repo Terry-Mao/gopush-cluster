@@ -22,6 +22,9 @@ type Config struct {
 	AdminAddr   string        `goconf:"base:adminaddr"`
 	MaxProc     int           `goconf:"base:maxproc"`
 	PprofBind   []string      `goconf:"base:pprof.bind:,"`
+	User        string        `goconf:"base:user"`
+	PidFile     string        `goconf:"base:pidfile"`
+	Dir         string        `goconf:"base:dir"`
 	LogPath     string        `goconf:"log:path"`
 	LogLevel    string        `goconf:"log:level"`
 	ZKAddr      string        `goconf:"zookeeper:addr"`
@@ -46,6 +49,9 @@ func NewConfig(file string) (*Config, error) {
 		AdminAddr:   ":81",
 		MaxProc:     runtime.NumCPU(),
 		PprofBind:   []string{"localhost:8190"},
+		User:        "nobody nobody",
+		PidFile:     "/tmp/gopush-cluster-web.pid",
+		Dir:         "./",
 		LogPath:     "./web.log",
 		LogLevel:    "DEBUG",
 		ZKAddr:      ":2181",

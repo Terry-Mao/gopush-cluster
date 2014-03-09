@@ -60,6 +60,12 @@ func main() {
 		os.Exit(-1)
 	}
 
+	// init process
+	if err = InitProcess(); err != nil {
+		Log.Error("InitProcess() error(%v)", err)
+		os.Exit(-1)
+	}
+
 	// start pprof http
 	StartPprof()
 
