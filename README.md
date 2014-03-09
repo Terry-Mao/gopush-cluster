@@ -18,7 +18,7 @@ gopush-cluster is a go push server cluster.
  * failover support (zookeeper)
 
  ## Architecture
- ![gopush-cluster](https://raw.github.com/Terry-Mao/gopush-cluster/blob/master/wiki/architecture/architecture.jpg "gopush-cluster architecture")
+ ![gopush-cluster](http://raw.github.com/Terry-Mao/gopush-cluster/master/wiki/architecture/architecture.jpg "gopush-cluster architecture")
 
 ## Document
 [English](https://github.com/Terry-Mao/gopush-cluster/blob/master/README_en.md)
