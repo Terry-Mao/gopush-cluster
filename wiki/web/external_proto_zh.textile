@@ -21,6 +21,14 @@ Web外部接口文档，用于获取Subcribe节点,获取离线消息等
     "data": {….}//如果有数据返回，则有data，无数据返回就只有前面的ret和msg
 }
 </pre>
+如何接口需要返回jsonp结构(例如客户端使用js解析json)，则指定callback参数，例如：callback=test，则返回结构如下：
+<pre>
+test({
+    "ret": 0,  //错误码
+    "msg": "ok",
+    "data": {….}//如果有数据返回，则有data，无数据返回就只有前面的ret和msg
+})
+</pre>
 
 <h3>获取订阅节点</h3>
  * 请求参数
@@ -28,6 +36,7 @@ Web外部接口文档，用于获取Subcribe节点,获取离线消息等
 (head). | 参数 | 类型 | 描述 |
 | key   | string | 订阅key |
 | proto | int    | 订阅协议 1:websocket 2:tcp |
+| callback   | string | 返回jsonp结构函数名(可选) |
 
  * 返回参数说明
 
@@ -56,6 +65,7 @@ Web外部接口文档，用于获取Subcribe节点,获取离线消息等
 | key  | string | 订阅key |
 | mid  | int64  | 最新接收的私有消息ID |
 | pmid | int64  | 最新接收收的公共消息ID |
+| callback   | string | jsonp函数名(可选) |
 
  * 返回参数说明
 
