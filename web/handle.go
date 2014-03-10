@@ -30,16 +30,16 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 	defer func() {
 		result["ret"] = ret
 		result["msg"] = GetErrMsg(ret)
-		date, _ := json.Marshal(result)
+		data, _ := json.Marshal(result)
 
 		Log.Info("request:Get_server, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 
 		if callback == "" {
 			// Normal json
-			io.WriteString(rw, string(date))
+			io.WriteString(rw, string(data))
 		} else {
 			// Jsonp
-			io.WriteString(rw, fmt.Sprintf("%s(%s)", callback, string(date)))
+			io.WriteString(rw, fmt.Sprintf("%s(%s)", callback, string(data)))
 		}
 	}()
 
@@ -108,16 +108,16 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 	defer func() {
 		result["ret"] = ret
 		result["msg"] = GetErrMsg(ret)
-		date, _ := json.Marshal(result)
+		data, _ := json.Marshal(result)
 
 		Log.Info("request:Get_messages, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 
 		if callback == "" {
 			// Normal json
-			io.WriteString(rw, string(date))
+			io.WriteString(rw, string(data))
 		} else {
 			// Jsonp
-			io.WriteString(rw, fmt.Sprintf("%s(%s)", callback, string(date)))
+			io.WriteString(rw, fmt.Sprintf("%s(%s)", callback, string(data)))
 		}
 	}()
 
@@ -207,16 +207,16 @@ func TimeGet(rw http.ResponseWriter, r *http.Request) {
 	defer func() {
 		result["ret"] = ret
 		result["msg"] = GetErrMsg(ret)
-		date, _ := json.Marshal(result)
+		data, _ := json.Marshal(result)
 
 		Log.Info("request:Get_server_time, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 
 		if callback == "" {
 			// Normal json
-			io.WriteString(rw, string(date))
+			io.WriteString(rw, string(data))
 		} else {
 			// Jsonp
-			io.WriteString(rw, fmt.Sprintf("%s(%s)", callback, string(date)))
+			io.WriteString(rw, fmt.Sprintf("%s(%s)", callback, string(data)))
 		}
 	}()
 

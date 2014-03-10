@@ -27,9 +27,9 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 	defer func() {
 		result["msg"] = GetErrMsg(ret)
 		result["ret"] = ret
-		date, _ := json.Marshal(result)
+		data, _ := json.Marshal(result)
 
-		io.WriteString(rw, string(date))
+		io.WriteString(rw, string(data))
 
 		Log.Info("request:push_private, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
@@ -102,9 +102,9 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 	defer func() {
 		result["msg"] = GetErrMsg(ret)
 		result["ret"] = ret
-		date, _ := json.Marshal(result)
+		data, _ := json.Marshal(result)
 
-		io.WriteString(rw, string(date))
+		io.WriteString(rw, string(data))
 
 		Log.Info("request:push_public, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
@@ -180,9 +180,9 @@ func AdminNodeAdd(rw http.ResponseWriter, r *http.Request) {
 	defer func() {
 		result["msg"] = GetErrMsg(ret)
 		result["ret"] = ret
-		date, _ := json.Marshal(result)
+		data, _ := json.Marshal(result)
 
-		io.WriteString(rw, string(date))
+		io.WriteString(rw, string(data))
 
 		Log.Info("request:node_add, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
@@ -239,9 +239,9 @@ func AdminNodeDel(rw http.ResponseWriter, r *http.Request) {
 	defer func() {
 		result["msg"] = GetErrMsg(ret)
 		result["ret"] = ret
-		date, _ := json.Marshal(result)
+		data, _ := json.Marshal(result)
 
-		io.WriteString(rw, string(date))
+		io.WriteString(rw, string(data))
 
 		Log.Info("request:node_del, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
@@ -294,9 +294,9 @@ func AdminMsgClean(rw http.ResponseWriter, r *http.Request) {
 	defer func() {
 		result["msg"] = GetErrMsg(ret)
 		result["ret"] = ret
-		date, _ := json.Marshal(result)
+		data, _ := json.Marshal(result)
 
-		io.WriteString(rw, string(date))
+		io.WriteString(rw, string(data))
 
 		Log.Info("request:clean_cache, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
