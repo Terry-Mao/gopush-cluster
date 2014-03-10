@@ -80,7 +80,8 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 	succeed, failed = 0, 0
 	c.mutex.Lock()
 	// private message need persistence
-	if m.GroupID != myrpc.PublicGroupID {
+    // if message expired no need persistence, only send online message
+	if m.GroupID != myrpc.PublicGroupID && m.Expire > 0 {
 		// rewrite message id
 		m.MsgID = c.timeID.ID()
 		Log.Debug("user_key:\"%s\" timeID:%d", key, m.MsgID)
