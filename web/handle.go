@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -15,8 +16,9 @@ type ServerGetData struct {
 // ServerGet handle for server get
 func ServerGet(rw http.ResponseWriter, r *http.Request) {
 	var (
-		ret    = InternalErr
-		result = make(map[string]interface{})
+		ret      = InternalErr
+		result   = make(map[string]interface{})
+		callback = ""
 	)
 
 	if r.Method != "GET" {
@@ -30,13 +32,20 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 		result["msg"] = GetErrMsg(ret)
 		date, _ := json.Marshal(result)
 
-		Log.Info("request:Get server, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+		Log.Info("request:Get_server, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 
-		io.WriteString(rw, string(date))
+		if callback == "" {
+			// Normal json
+			io.WriteString(rw, string(date))
+		} else {
+			// Jsonp
+			io.WriteString(rw, fmt.Sprintf("%s(%s)", callback, string(date)))
+		}
 	}()
 
 	// Get params
 	param := r.URL.Query()
+	callback = param.Get("callback")
 	key := param.Get("key")
 
 	if key == "" {
@@ -85,10 +94,15 @@ type MsgGetData struct {
 // MsgGet handle for msg get
 func MsgGet(rw http.ResponseWriter, r *http.Request) {
 	var (
-		ret    = InternalErr
-		result = make(map[string]interface{})
-		data   = &MsgGetData{}
+		ret      = InternalErr
+		result   = make(map[string]interface{})
+		callback = ""
 	)
+
+	if r.Method != "GET" {
+		http.Error(rw, "Method Not Allowed", 405)
+		return
+	}
 
 	// Final ResponseWriter operation
 	defer func() {
@@ -96,18 +110,20 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		result["msg"] = GetErrMsg(ret)
 		date, _ := json.Marshal(result)
 
-		Log.Info("request:Get messages, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+		Log.Info("request:Get_messages, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 
-		io.WriteString(rw, string(date))
+		if callback == "" {
+			// Normal json
+			io.WriteString(rw, string(date))
+		} else {
+			// Jsonp
+			io.WriteString(rw, fmt.Sprintf("%s(%s)", callback, string(date)))
+		}
 	}()
-
-	if r.Method != "GET" {
-		http.Error(rw, "Method Not Allowed", 405)
-		return
-	}
 
 	// Get params
 	val := r.URL.Query()
+	callback = val.Get("callback")
 	key := val.Get("key")
 	mid := val.Get("mid")
 	pMid := val.Get("pmid")
@@ -128,6 +144,14 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If one of midI or pMidI is 0, then response nil message,
+	// avoid client bug that always use the default value 0 of type int64 or long,so get the repetitive messages.
+	// When client install, the first it needs to request url /time/get and get the initial mid
+	//if midI == 0 || pMidI == 0 {
+	//	ret = OK
+	//	return
+	//}
+
 	// RPC get offline messages
 	reply, err := MessageRPCGet(key, midI, pMidI)
 	if err != nil {
@@ -147,6 +171,7 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	data := &MsgGetData{}
 	if len(reply.Msgs) > 0 {
 		data.Msgs = reply.Msgs
 	}
@@ -158,4 +183,45 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 	result["data"] = data
 	ret = reply.Ret
 	return
+}
+
+// Data struct as response of handle TimeGetData
+type TimeGetData struct {
+	TimeID int64 `json:"timeid"` // as message id
+}
+
+// Get server time
+func TimeGet(rw http.ResponseWriter, r *http.Request) {
+	var (
+		ret      = InternalErr
+		result   = make(map[string]interface{})
+		callback = ""
+	)
+
+	if r.Method != "GET" {
+		http.Error(rw, "Method Not Allowed", 405)
+		return
+	}
+
+	// Final ResponseWriter operation
+	defer func() {
+		result["ret"] = ret
+		result["msg"] = GetErrMsg(ret)
+		date, _ := json.Marshal(result)
+
+		Log.Info("request:Get_server_time, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+
+		if callback == "" {
+			// Normal json
+			io.WriteString(rw, string(date))
+		} else {
+			// Jsonp
+			io.WriteString(rw, fmt.Sprintf("%s(%s)", callback, string(date)))
+		}
+	}()
+
+	val := r.URL.Query()
+	callback = val.Get("callback")
+
+	result["data"] = &TimeGetData{TimeID: PubMID.ID()}
 }

@@ -39,7 +39,7 @@ const (
 type NodeInfo struct {
 	// The addr for subscribe, format like:map[Protocol]Addr
 	SubAddr map[int]string
-	// The connection for publish RPC
+	// The connection for Comet RPC
 	PubRPC *rpc.Client
 }
 
