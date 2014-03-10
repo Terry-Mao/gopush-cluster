@@ -48,8 +48,10 @@ type Connection struct {
 // Write different message to client by different protocol
 func (c *Connection) Write(msg []byte) (int, error) {
 	if c.Proto == WebsocketProto {
+        // raw
 		return c.Conn.Write(msg)
 	} else if c.Proto == TCPProto {
+        // redis protocol
 		return c.Conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(msg), string(msg))))
 	} else {
 		return 0, ErrConnProto
