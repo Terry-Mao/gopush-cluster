@@ -69,8 +69,8 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 	}
 	// Match a push-server with the value computed through ketama algorithm
 	svrInfo := GetNode(CometHash.Node(key))
-	if svrInfo == nil {
-		Log.Debug("no node:\"%s\"", CometHash.Node(key))
+	if svrInfo == nil || svrInfo.PubRPC == nil {
+		Log.Error("no node:\"%s\"", CometHash.Node(key))
 		ret = NoNodeErr
 		return
 	}
@@ -147,8 +147,8 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	for node, info := range NodeInfoMap {
-		if info == nil {
-			Log.Error("abnormal node:\"%s\", do not push public message to node:\"%s\"", node)
+		if info == nil || info.PubRPC == nil {
+			Log.Error("abnormal node:\"%s\", interrupt pushing public message to node:\"%s\"", node)
 			continue
 		}
 
@@ -328,5 +328,28 @@ func AdminMsgClean(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret = reply
+	if reply != OK {
+		ret = reply
+		return
+	}
+
+	// TODO:If there is not a node then CometHash.Node() will panic
+	if NodeQuantity() == 0 {
+		ret = NoNodeErr
+		return
+	}
+	// Match a push-server with the value computed through ketama algorithm
+	svrInfo := GetNode(CometHash.Node(key))
+	if svrInfo == nil || svrInfo.PubRPC == nil {
+		Log.Error("no node:\"%s\"", CometHash.Node(key))
+		ret = NoNodeErr
+		return
+	}
+
+	// RPC call ChannelRPC.Close interface
+	if err := svrInfo.PubRPC.Call("ChannelRPC.Close", key, &ret); err != nil {
+		Log.Error("RPC.Call(\"ChannelRPC.Close\") server:\"%v\" error(%v)", svrInfo.SubAddr, err)
+		ret = InternalErr
+		return
+	}
 }
