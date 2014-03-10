@@ -103,7 +103,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 		return
 	}
 	// add a conn to the channel
-	connElem, err := c.AddConn(key, ws)
+	connElem, err := c.AddConn(key, &Connection{Conn: ws, Proto: WebsocketProto})
 	if err != nil {
 		Log.Error("<%s> user_key:\"%s\" add conn error(%s)", addr, key, err)
 		return

@@ -80,7 +80,7 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 	succeed, failed = 0, 0
 	c.mutex.Lock()
 	// private message need persistence
-    // if message expired no need persistence, only send online message
+	// if message expired no need persistence, only send online message
 	if m.GroupID != myrpc.PublicGroupID && m.Expire > 0 {
 		// rewrite message id
 		m.MsgID = c.timeID.ID()
@@ -108,7 +108,7 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 	}
 	// push message
 	for e := c.conn.Front(); e != nil; e = e.Next() {
-		conn, _ := e.Value.(net.Conn)
+		conn, _ := e.Value.(*Connection)
 		// do something with e.Value
 		if n, err := conn.Write(b); err != nil {
 			Log.Error("conn.Write() error(%v)", err)
@@ -128,7 +128,7 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 }
 
 // AddConn implements the Channel AddConn method.
-func (c *SeqChannel) AddConn(key string, conn net.Conn) (*hlist.Element, error) {
+func (c *SeqChannel) AddConn(key string, conn *Connection) (*hlist.Element, error) {
 	c.mutex.Lock()
 	if c.conn.Len()+1 > Conf.MaxSubscriberPerChannel {
 		c.mutex.Unlock()

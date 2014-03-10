@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 // The Message struct.
@@ -24,5 +23,6 @@ func (m *Message) Bytes() ([]byte, error) {
 		Log.Error("json.Marshal(%v) error(%v)", m, err)
 		return nil, err
 	}
-	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(byteJson), string(byteJson))), nil
+
+	return byteJson, nil
 }

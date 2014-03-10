@@ -208,7 +208,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		return
 	}
 	// add a conn to the channel
-	connElem, err := c.AddConn(key, conn)
+	connElem, err := c.AddConn(key, &Connection{Conn: conn, Proto: TCPProto})
 	if err != nil {
 		Log.Error("<%s> user_key:\"%s\" add conn error(%v)", addr, key, err)
 		return

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	"github.com/Terry-Mao/gopush-cluster/hlist"
 	"net"
@@ -15,6 +16,7 @@ const (
 
 var (
 	ErrChannelNotExist = errors.New("Channle not exist")
+	ErrConnProto       = errors.New("Unknown connection protocol")
 	UserChannel        *ChannelList
 )
 
@@ -30,11 +32,28 @@ type Channel interface {
 	AuthToken(key, token string) bool
 	// AddConn add a connection for the subscriber.
 	// Exceed the max number of subscribers per key will return errors.
-	AddConn(key string, conn net.Conn) (*hlist.Element, error)
+	AddConn(key string, conn *Connection) (*hlist.Element, error)
 	// RemoveConn remove a connection for the  subscriber.
 	RemoveConn(key string, e *hlist.Element) error
 	// Expire expire the channle and clean data.
 	Close() error
+}
+
+// Connection
+type Connection struct {
+	Conn  net.Conn
+	Proto uint8
+}
+
+// Write different message to client by different protocol
+func (c *Connection) Write(msg []byte) (int, error) {
+	if c.Proto == WebsocketProto {
+		return c.Conn.Write(msg)
+	} else if c.Proto == TCPProto {
+		return c.Conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(msg), string(msg))))
+	} else {
+		return 0, ErrConnProto
+	}
 }
 
 // Channel bucket.

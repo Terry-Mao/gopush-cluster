@@ -6,8 +6,10 @@ import (
 )
 
 const (
-	WebsocketProtocol = "websocket"
-	TCPProtocol       = "tcp"
+	TCPProto          = uint8(0)
+	WebsocketProto    = uint8(1)
+	WebsocketProtoStr = "websocket"
+	TCPProtoStr       = "tcp"
 	Heartbeat         = "h"
 	minHearbeatSec    = 30
 	delayHeartbeatSec = 15
@@ -34,10 +36,10 @@ var (
 // StartListen start accept client.
 func StartComet() {
 	for _, proto := range Conf.Proto {
-		if proto == WebsocketProtocol {
+		if proto == WebsocketProtoStr {
 			// Start http push service
 			StartHttp()
-		} else if proto == TCPProtocol {
+		} else if proto == TCPProtoStr {
 			// Start tcp push service
 			StartTCP()
 		} else {
