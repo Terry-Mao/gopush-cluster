@@ -167,7 +167,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 
 	// Send to delete message process
 	if len(delMsgs) != 0 {
-		Log.Info("delete expire private messages:\"%s\"", pMsgs)
+		Log.Info("delete expire private messages:\"%s\"", msgs)
 		DelChan <- &DelMessageInfo{Key: m.Key, Msgs: delMsgs}
 	}
 	if len(delPMsgs) != 0 {

@@ -34,13 +34,15 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 
 		Log.Info("request:Get_server, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 
+		dataStr := ""
 		if callback == "" {
 			// Normal json
-			io.WriteString(rw, string(data))
+			dataStr = string(data)
 		} else {
 			// Jsonp
-			io.WriteString(rw, fmt.Sprintf("%s(%s)", callback, string(data)))
+			dataStr = fmt.Sprintf("%s(%s)", callback, string(data))
 		}
+		io.WriteString(rw, dataStr)
 	}()
 
 	// Get params
@@ -112,13 +114,15 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 
 		Log.Info("request:Get_messages, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 
+		dataStr := ""
 		if callback == "" {
 			// Normal json
-			io.WriteString(rw, string(data))
+			dataStr = string(data)
 		} else {
 			// Jsonp
-			io.WriteString(rw, fmt.Sprintf("%s(%s)", callback, string(data)))
+			dataStr = fmt.Sprintf("%s(%s)", callback, string(data))
 		}
+		io.WriteString(rw, dataStr)
 	}()
 
 	// Get params
@@ -211,13 +215,15 @@ func TimeGet(rw http.ResponseWriter, r *http.Request) {
 
 		Log.Info("request:Get_server_time, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 
+		dataStr := ""
 		if callback == "" {
 			// Normal json
-			io.WriteString(rw, string(data))
+			dataStr = string(data)
 		} else {
 			// Jsonp
-			io.WriteString(rw, fmt.Sprintf("%s(%s)", callback, string(data)))
+			dataStr = fmt.Sprintf("%s(%s)", callback, string(data))
 		}
+		io.WriteString(rw, dataStr)
 	}()
 
 	val := r.URL.Query()
