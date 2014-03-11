@@ -230,4 +230,5 @@ func TimeGet(rw http.ResponseWriter, r *http.Request) {
 	callback = val.Get("callback")
 
 	result["data"] = &TimeGetData{TimeID: PubMID.ID()}
+	ret = OK
 }
