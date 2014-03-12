@@ -96,6 +96,7 @@ func main() {
 		httpServeMux := http.NewServeMux()
 		httpServeMux.HandleFunc("/server/get", ServerGet)
 		httpServeMux.HandleFunc("/msg/get", MsgGet)
+		httpServeMux.HandleFunc("/time/get", TimeGet)
 
 		server := &http.Server{Handler: httpServeMux, ReadTimeout: httpReadTimeout * time.Second}
 		l, err := net.Listen("tcp", Conf.Addr)
