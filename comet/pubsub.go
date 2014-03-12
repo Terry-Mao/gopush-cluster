@@ -22,7 +22,7 @@ var (
 	// Assection type failed
 	ErrAssertType = errors.New("Subscriber assert type failed")
 	// Heartbeat
-	HeartbeatLen = len(Heartbeat)
+	// HeartbeatLen = len(Heartbeat)
 	// hearbeat
 	HeartbeatReply = []byte("+h\r\n")
 	// auth failed reply

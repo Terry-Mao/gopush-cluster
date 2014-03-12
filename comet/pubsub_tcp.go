@@ -214,7 +214,8 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		return
 	}
 	// blocking wait client heartbeat
-	reply := make([]byte, HeartbeatLen)
+	reply := []byte{0}
+	// reply := make([]byte, HeartbeatLen)
 	begin := time.Now().UnixNano()
 	end := begin + Second
 	for {
