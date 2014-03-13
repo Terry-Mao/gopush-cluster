@@ -129,9 +129,9 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 	bodyStr = string(body)
 
 	// Lock here, make sure that get the unique mid
-	lockYes, pathCreated, err := PubMID.Lock()
+	lockYes, pathCreated, err := PubMIDLock()
 	if pathCreated != "" {
-		defer PubMID.LockRelease(pathCreated)
+		defer PubMIDLockRelease(pathCreated)
 	}
 	if err != nil || lockYes == false {
 		Log.Error("PubMIDLock error(%v)", err)

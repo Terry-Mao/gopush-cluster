@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
+	timeID "github.com/Terry-Mao/gopush-cluster/id"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"launchpad.net/gozk/zookeeper"
 	"net/rpc"
@@ -74,7 +75,7 @@ func InitWatch() error {
 	Log.Info("Initialize zookeeper OK")
 
 	// Init public message mid-creater
-	PubMID = NewTimeID()
+	PubMID = timeID.NewTimeID()
 
 	return nil
 }
@@ -90,7 +91,7 @@ func WatchStop() {
 
 // zkCreate zookeeper init subnode
 func zkCreate() error {
-	// Create zk root path
+	// Create zk public message lock root path
 	Log.Debug("create zookeeper path:%s", Conf.ZKPIDPath)
 	_, err := zk.Create(Conf.ZKPIDPath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
 	if err != nil {
