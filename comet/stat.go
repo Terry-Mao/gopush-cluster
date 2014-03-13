@@ -194,7 +194,7 @@ func ConfigInfo() []byte {
 	byteJson, err := json.MarshalIndent(Conf, "", "    ")
 	if err != nil {
 		Log.Error("json.MarshalIndent(\"%v\", \"\", \"    \") error(%v)", Conf, err)
-		return []byte{}
+		return nil
 	}
 	return byteJson
 }
@@ -204,7 +204,7 @@ func jsonRes(res map[string]interface{}) []byte {
 	byteJson, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		Log.Error("json.MarshalIndent(\"%v\", \"\", \"    \") error(%v)", res, err)
-		return []byte{}
+		return nil
 	}
 	return byteJson
 }
@@ -215,17 +215,12 @@ func ChInfoStat(key string) []byte {
 		if sch, ok := ch.(*SeqChannel); ok {
 			res["channel"] = map[string]interface{}{"conn": sch.conn.Len()}
 		} else {
-			return []byte{}
+			return nil
 		}
 	} else {
-		return []byte{}
+		return nil
 	}
-	byteJson, err := json.MarshalIndent(res, "", "    ")
-	if err != nil {
-		Log.Error("json.MarshalIndent(\"%v\", \"\", \"    \") error(%v)", res, err)
-		return []byte{}
-	}
-	return byteJson
+	return jsonRes(res)
 }
 
 // StatHandle get stat info by http
@@ -260,7 +255,9 @@ func StatHandle(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Not Found", 404)
 	}
-	if _, err := w.Write(res); err != nil {
-		Log.Error("w.Write(\"%s\") error(%v)", string(res), err)
+	if res != nil {
+		if _, err := w.Write(res); err != nil {
+			Log.Error("w.Write(\"%s\") error(%v)", string(res), err)
+		}
 	}
 }

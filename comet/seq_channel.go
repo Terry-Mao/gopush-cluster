@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"github.com/Terry-Mao/gopush-cluster/hlist"
+	"github.com/Terry-Mao/gopush-cluster/id"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"sync"
@@ -21,7 +22,7 @@ type SeqChannel struct {
 	// client conn double linked-list
 	conn *hlist.Hlist
 	// TODO Remove time id or lazy New
-	timeID *TimeID
+	timeID *id.TimeID
 	// token
 	token *Token
 }
@@ -31,7 +32,7 @@ func NewSeqChannel() *SeqChannel {
 	ch := &SeqChannel{
 		mutex:  &sync.Mutex{},
 		conn:   hlist.New(),
-		timeID: NewTimeID(),
+		timeID: id.NewTimeID(),
 		token:  nil,
 	}
 	// save memory
