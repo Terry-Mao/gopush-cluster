@@ -32,7 +32,7 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 		result["msg"] = GetErrMsg(ret)
 		data, _ := json.Marshal(result)
 
-		Log.Info("request:Get_server, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+		Log.Info("request:Get_server, quest_url:\"%s\", response_json(\"%s\"), ret:\"%d\"", r.URL.String(), string(data), ret)
 
 		dataStr := ""
 		if callback == "" {
@@ -112,7 +112,7 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		result["msg"] = GetErrMsg(ret)
 		data, _ := json.Marshal(result)
 
-		Log.Info("request:Get_messages, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+		Log.Info("request:Get_messages, quest_url:\"%s\", response_json(\"%s\"), ret:\"%d\"", r.URL.String(), string(data), ret)
 
 		dataStr := ""
 		if callback == "" {
