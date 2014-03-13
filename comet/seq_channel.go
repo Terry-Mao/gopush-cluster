@@ -146,7 +146,7 @@ func (c *SeqChannel) AddConn(key string, conn *Connection) (*hlist.Element, erro
 	e := c.conn.PushFront(conn)
 	c.mutex.Unlock()
 	ConnStat.IncrAdd()
-	Log.Debug("user_key:\"%s\" add conn", key)
+	Log.Info("user_key:\"%s\" add conn = %d", key, c.conn.Len())
 	return e, nil
 }
 
@@ -156,7 +156,7 @@ func (c *SeqChannel) RemoveConn(key string, e *hlist.Element) error {
 	c.conn.Remove(e)
 	c.mutex.Unlock()
 	ConnStat.IncrRemove()
-	Log.Debug("user_key:\"%s\" remove conn", key)
+	Log.Info("user_key:\"%s\" remove conn = %d", key, c.conn.Len())
 	return nil
 }
 
