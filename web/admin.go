@@ -24,15 +24,16 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Final response operation
-	defer func() {
+	var bodyStr string
+	defer func(body *string) {
 		result["msg"] = GetErrMsg(ret)
 		result["ret"] = ret
 		data, _ := json.Marshal(result)
 
 		io.WriteString(rw, string(data))
 
-		Log.Info("request:push_private, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
-	}()
+		Log.Info("request:push_private, request_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
+	}(&bodyStr)
 
 	// Get params
 	param := r.URL.Query()
@@ -61,6 +62,7 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 		ret = InternalErr
 		return
 	}
+	bodyStr = string(body)
 
 	// TODO:If there is not a node then CometHash.Node() will panic
 	if NodeQuantity() == 0 {
@@ -99,15 +101,16 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Final response operation
-	defer func() {
+	var bodyStr string
+	defer func(body *string) {
 		result["msg"] = GetErrMsg(ret)
 		result["ret"] = ret
 		data, _ := json.Marshal(result)
 
 		io.WriteString(rw, string(data))
 
-		Log.Info("request:push_public, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
-	}()
+		Log.Info("request:push_public, quest_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
+	}(&bodyStr)
 
 	// Get params
 	param := r.URL.Query()
@@ -123,6 +126,7 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 		ret = InternalErr
 		return
 	}
+	bodyStr = string(body)
 
 	// Lock here, make sure that get the unique mid
 	lockYes, pathCreated, err := PubMID.Lock()
@@ -291,15 +295,16 @@ func AdminMsgClean(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Final response operation
-	defer func() {
+	var bodyStr string
+	defer func(body *string) {
 		result["msg"] = GetErrMsg(ret)
 		result["ret"] = ret
 		data, _ := json.Marshal(result)
 
 		io.WriteString(rw, string(data))
 
-		Log.Info("request:clean_cache, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
-	}()
+		Log.Info("request:clean_cache, quest_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
+	}(&bodyStr)
 
 	// Get params
 	body, err := ioutil.ReadAll(r.Body)
@@ -308,6 +313,7 @@ func AdminMsgClean(rw http.ResponseWriter, r *http.Request) {
 		ret = InternalErr
 		return
 	}
+	bodyStr = string(body)
 
 	values, err := url.ParseQuery(string(body))
 	if err != nil {

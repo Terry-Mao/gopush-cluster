@@ -62,7 +62,7 @@ func StartRPC() {
 
 // Store offline pravite message interface
 func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
-	Log.Debug("save data %v", *m)
+	Log.Info("save pravite message (mid:%d,msg:%s,expire:%d,key:%s)", m.MsgID, m.Msg, m.Expire, m.Key)
 	if m == nil || m.MsgID < 0 {
 		*ret = ParamErr
 		return nil
@@ -83,7 +83,7 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 
 // Store offline public message interface
 func (r *MessageRPC) SavePub(m *myrpc.MessageSavePubArgs, ret *int) error {
-	Log.Debug("save data %v", *m)
+	Log.Info("save public message (mid:%d,msg:%s,expire:%d,key:%s)", m.MsgID, m.Msg, m.Expire, Conf.PKey)
 	if m == nil || m.MsgID < 0 {
 		*ret = ParamErr
 		return nil
@@ -104,7 +104,7 @@ func (r *MessageRPC) SavePub(m *myrpc.MessageSavePubArgs, ret *int) error {
 
 // Get offline message interface
 func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) error {
-	Log.Debug("request data %v", *m)
+	Log.Info("request message (mid:%d,pmid:%d,key:%s)", m.MsgID, m.PubMsgID, m.Key)
 	// Get all of offline messages which larger than MsgID that corresponding to m.Key
 	msgs, err := GetMessages(m.Key, m.MsgID)
 	if err != nil {
@@ -125,6 +125,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	numPMsg := len(pMsgs)
 	if numMsg == 0 && numPMsg == 0 {
 		rw.Ret = OK
+		Log.Info("response message nil, request key(\"%s\") mid(\"%d\") pmid(\"%d\")", m.Key, m.MsgID, m.PubMsgID)
 		return nil
 	}
 
@@ -178,7 +179,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	rw.Ret = OK
 	rw.Msgs = data
 	rw.PubMsgs = pData
-	Log.Debug("response data %v", *rw)
+	Log.Info("response private_message(%s) public_message(%s)", data, pData)
 
 	return nil
 }
