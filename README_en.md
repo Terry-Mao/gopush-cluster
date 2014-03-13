@@ -190,6 +190,8 @@ java: [gopush-cluster-sdk](https://github.com/Terry-Mao/gopush-cluster-sdk)
 
 ios: [GoPushforIOS](https://github.com/roy5931/GoPushforIOS)
 
+javascript: [gopush-cluster-javascript-sdk](https://github.com/Lanfei/gopush-cluster-javascript-sdk)
+
 ## Documentation
 `web`
 [external](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/web/external_proto_zh.textile)

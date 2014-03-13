@@ -211,6 +211,8 @@ java: [gopush-cluster-sdk](https://github.com/Terry-Mao/gopush-cluster-sdk)
 
 ios: [GoPushforIOS](https://github.com/roy5931/GoPushforIOS)
 
+javascript: [gopush-cluster-javascript-sdk](https://github.com/Lanfei/gopush-cluster-javascript-sdk)
+
 ## 文档
 ### web节点相关的文档：
 [内部协议](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/web/internal_proto_zh.textile)主要针对内部管理如推送消息、管理comet节点等。
