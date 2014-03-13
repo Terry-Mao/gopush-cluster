@@ -26,4 +26,4 @@ gopush-cluster is a go push server cluster.
 [中文](https://github.com/Terry-Mao/gopush-cluster/blob/master/README_zh.md)
 
 ## LICENSE
-TODO
+gopush-cluster is is distributed under the terms of the GNU General Public License, version 3.0 [GPLv3](http://www.gnu.org/licenses/gpl.txt)
