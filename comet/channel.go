@@ -7,7 +7,6 @@ import (
 	"github.com/Terry-Mao/gopush-cluster/hlist"
 	"net"
 	"sync"
-	"time"
 )
 
 var (
