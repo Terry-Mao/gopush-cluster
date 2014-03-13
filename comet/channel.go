@@ -133,12 +133,12 @@ func (l *ChannelList) New(key string) (Channel, error) {
 }
 
 // Get a user channel from ChannleList.
-func (l *ChannelList) Get(key string) (Channel, error) {
+func (l *ChannelList) Get(key string, newOne bool) (Channel, error) {
 	// get a channel bucket
 	b := l.bucket(key)
 	b.Lock()
 	if c, ok := b.Data[key]; !ok {
-		if !Conf.Auth {
+		if !Conf.Auth && newOne {
 			c = NewSeqChannel()
 			b.Data[key] = c
 			b.Unlock()

@@ -90,7 +90,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	token := params.Get("token")
 	Log.Info("<%s> subscribe to key = %s, heartbeat = %d, token = %s", addr, key, heartbeat, token)
 	// fetch subscriber from the channel
-	c, err := UserChannel.Get(key)
+	c, err := UserChannel.Get(key, true)
 	if err != nil {
 		ws.Write(ChannelReply)
 		Log.Error("<%s> user_key:\"%s\" can't get a channel error(%s)", addr, key, err)

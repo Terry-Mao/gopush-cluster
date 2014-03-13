@@ -195,7 +195,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	}
 	Log.Info("<%s> subscribe to key = %s, heartbeat = %d, token = %s", addr, key, heartbeat, token)
 	// fetch subscriber from the channel
-	c, err := UserChannel.Get(key)
+	c, err := UserChannel.Get(key, true)
 	if err != nil {
 		Log.Warn("<%s> user_key:\"%s\" can't get a channel (%s)", addr, key, err)
 		conn.Write(ChannelReply)

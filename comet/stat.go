@@ -209,6 +209,25 @@ func jsonRes(res map[string]interface{}) []byte {
 	return byteJson
 }
 
+func ChInfoStat(key string) []byte {
+	res := map[string]interface{}{}
+	if ch, err := UserChannel.Get(key, false); err == nil {
+		if sch, ok := ch.(*SeqChannel); ok {
+			res["channel"] = map[string]interface{}{"conn": sch.conn.Len()}
+		} else {
+			return []byte{}
+		}
+	} else {
+		return []byte{}
+	}
+	byteJson, err := json.MarshalIndent(res, "", "    ")
+	if err != nil {
+		Log.Error("json.MarshalIndent(\"%v\", \"\", \"    \") error(%v)", res, err)
+		return []byte{}
+	}
+	return byteJson
+}
+
 // StatHandle get stat info by http
 func StatHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
@@ -228,7 +247,12 @@ func StatHandle(w http.ResponseWriter, r *http.Request) {
 	case "config":
 		res = ConfigInfo()
 	case "channel":
-		res = ChStat.Stat()
+		key := params.Get("key")
+		if key == "" {
+			res = ChStat.Stat()
+		} else {
+			res = ChInfoStat(key)
+		}
 	case "message":
 		res = MsgStat.Stat()
 	case "connection":

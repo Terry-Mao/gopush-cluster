@@ -20,7 +20,7 @@ func (t *TimeID) ID() int64 {
 		if t.lastID >= s {
 			time.Sleep(100 * time.Nanosecond)
 		} else {
-            t.lastID = s
+			t.lastID = s
 			return s
 		}
 	}
