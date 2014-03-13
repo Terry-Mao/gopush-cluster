@@ -121,7 +121,7 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 		}
 	}
 	c.mutex.Unlock()
-	Log.Info("user_key:\"%s\" push message \"%s\":%d, (succeed:%d, failed:%s)", key, m.Msg, m.MsgID, succeed, failed)
+	Log.Info("user_key:\"%s\" push message \"%s\":%d, (succeed:%d, failed:%d)", key, m.Msg, m.MsgID, succeed, failed)
 	// message stat
 	MsgStat.IncrFailed(failed)
 	MsgStat.IncrSucceed(succeed)
