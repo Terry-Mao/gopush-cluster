@@ -137,7 +137,7 @@ func (c *SeqChannel) AddConn(key string, conn *Connection) (*hlist.Element, erro
 		return nil, ErrMaxConn
 	}
 	// send first heartbeat to tell client service is ready for accept heartbeat
-	if _, err := conn.Write(HeartbeatReply); err != nil {
+	if _, err := conn.Conn.Write(HeartbeatReply); err != nil {
 		c.mutex.Unlock()
 		Log.Error("user_key:\"%s\" write first heartbeat to client error(%v)", key, err)
 		return nil, err

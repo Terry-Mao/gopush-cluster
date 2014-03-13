@@ -67,6 +67,7 @@ func main() {
 			Log.Error("protocol reply format error")
 			os.Exit(-1)
 		}
+        Log.Info("line: %s", line)
 		switch line[0] {
 		// reply
 		case '$':
@@ -81,7 +82,7 @@ func main() {
 				os.Exit(-1)
 			}
 			if len(data) != cmdSize+2 {
-				Log.Error("protocol reply format error")
+				Log.Error("protocol reply format error: %s", data)
 				os.Exit(-1)
 			}
 			if data[cmdSize] != '\r' || data[cmdSize+1] != '\n' {
