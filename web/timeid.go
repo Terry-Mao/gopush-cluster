@@ -24,9 +24,10 @@ func NewTimeID() *TimeID {
 func (t *TimeID) ID() int64 {
 	for {
 		s := time.Now().UnixNano() / 100
-		if t.lastID == s {
+		if t.lastID >= s {
 			time.Sleep(100 * time.Nanosecond)
 		} else {
+			t.lastID = s
 			return s
 		}
 	}
