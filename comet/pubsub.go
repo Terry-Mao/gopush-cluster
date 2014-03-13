@@ -6,14 +6,15 @@ import (
 )
 
 const (
-	TCPProto          = uint8(0)
-	WebsocketProto    = uint8(1)
-	WebsocketProtoStr = "websocket"
-	TCPProtoStr       = "tcp"
-	Heartbeat         = "h"
-	minHearbeatSec    = 30
-	delayHeartbeatSec = 5
-	Second            = int64(time.Second)
+	TCPProto               = uint8(0)
+	WebsocketProto         = uint8(1)
+	WebsocketProtoStr      = "websocket"
+	TCPProtoStr            = "tcp"
+	Heartbeat              = "h"
+	minHearbeatSec         = 30
+	delayHeartbeatSec      = 5
+	fitstPacketTimedoutSec = time.Second * 5
+	Second                 = int64(time.Second)
 )
 
 var (

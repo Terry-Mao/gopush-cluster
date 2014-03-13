@@ -10,10 +10,6 @@ import (
 	"time"
 )
 
-const (
-	fitstPacketTimedoutSec = time.Second * 5
-)
-
 var (
 	ErrChannelNotExist = errors.New("Channle not exist")
 	ErrConnProto       = errors.New("Unknown connection protocol")
