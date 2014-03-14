@@ -17,6 +17,7 @@
 package main
 
 import (
+    "time"
 	"flag"
 	"github.com/Terry-Mao/gopush-cluster/log"
 	"os"
@@ -40,11 +41,6 @@ func main() {
 	}
 	// Set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
-	// init process
-	if err = InitProcess(); err != nil {
-		Log.Error("InitProcess() error(%v)", err)
-		os.Exit(-1)
-	}
 	// init log
 	if Log, err = log.New(Conf.LogFile, Conf.LogLevel); err != nil {
 		Log.Error("log.New(\"%s\", %s) error(%v)", Conf.LogFile, Conf.LogLevel, err)
@@ -75,6 +71,13 @@ func main() {
 	}
 	// if process exit, close zk
 	defer zk.Close()
+	// init process
+    // sleep one second, let the listen start
+    time.Sleep(time.Second)
+	if err = InitProcess(); err != nil {
+		Log.Error("InitProcess() error(%v)", err)
+		os.Exit(-1)
+	}
 	// init signals, block wait signals
 	HandleSignal(signalCH)
 	// exit
