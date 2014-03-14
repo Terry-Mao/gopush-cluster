@@ -29,6 +29,7 @@ var (
 	ErrMessageSave = errors.New("Message set failed")
 	ErrMessageGet  = errors.New("Message get failed")
 	ErrMessageRPC  = errors.New("Message RPC not init")
+    ErrAssectionConn = errors.New("Assection type Connection failed")
 )
 
 // Sequence Channel struct.
@@ -180,11 +181,14 @@ func (c *SeqChannel) RemoveConn(key string, e *hlist.Element) error {
 func (c *SeqChannel) Close() error {
 	c.mutex.Lock()
 	for e := c.conn.Front(); e != nil; e = e.Next() {
-		conn, _ := e.Value.(net.Conn)
-		if err := conn.Close(); err != nil {
-			// ignore close error
-			Log.Warn("conn.Close() error(%v)", err)
-		}
+		if conn, ok := e.Value.(*Connection); !ok {
+            return ErrAssectionConn
+        } else {
+            if err := conn.Close(); err != nil {
+                // ignore close error
+                Log.Warn("conn.Close() error(%v)", err)
+            }
+        }
 	}
 	c.mutex.Unlock()
 	return nil
