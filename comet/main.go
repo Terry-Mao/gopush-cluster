@@ -17,11 +17,11 @@
 package main
 
 import (
-    "time"
 	"flag"
 	"github.com/Terry-Mao/gopush-cluster/log"
 	"os"
 	"runtime"
+	"time"
 )
 
 var (
@@ -72,8 +72,8 @@ func main() {
 	// if process exit, close zk
 	defer zk.Close()
 	// init process
-    // sleep one second, let the listen start
-    time.Sleep(time.Second)
+	// sleep one second, let the listen start
+	time.Sleep(time.Second)
 	if err = InitProcess(); err != nil {
 		Log.Error("InitProcess() error(%v)", err)
 		os.Exit(-1)

@@ -21,15 +21,14 @@ import (
 	"github.com/Terry-Mao/gopush-cluster/hlist"
 	"github.com/Terry-Mao/gopush-cluster/id"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
-	"net"
 	"sync"
 )
 
 var (
-	ErrMessageSave = errors.New("Message set failed")
-	ErrMessageGet  = errors.New("Message get failed")
-	ErrMessageRPC  = errors.New("Message RPC not init")
-    ErrAssectionConn = errors.New("Assection type Connection failed")
+	ErrMessageSave   = errors.New("Message set failed")
+	ErrMessageGet    = errors.New("Message get failed")
+	ErrMessageRPC    = errors.New("Message RPC not init")
+	ErrAssectionConn = errors.New("Assection type Connection failed")
 )
 
 // Sequence Channel struct.
@@ -182,13 +181,13 @@ func (c *SeqChannel) Close() error {
 	c.mutex.Lock()
 	for e := c.conn.Front(); e != nil; e = e.Next() {
 		if conn, ok := e.Value.(*Connection); !ok {
-            return ErrAssectionConn
-        } else {
-            if err := conn.Close(); err != nil {
-                // ignore close error
-                Log.Warn("conn.Close() error(%v)", err)
-            }
-        }
+			return ErrAssectionConn
+		} else {
+			if err := conn.Conn.Close(); err != nil {
+				// ignore close error
+				Log.Warn("conn.Close() error(%v)", err)
+			}
+		}
 	}
 	c.mutex.Unlock()
 	return nil
