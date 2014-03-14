@@ -24,28 +24,7 @@ import (
 	"time"
 )
 
-const (
-	// internal failed
-	retInternalErr = 65535
-	// param error
-	retParamErr = 65534
-	// ok
-	retOK = 0
-	// create channel failed
-	retCreateChannelErr = 1
-	// add channel failed
-	retAddChannleErr = 2
-	// get channel failed
-	retGetChannelErr = 3
-	// message push failed
-	retPushMsgErr = 4
-	// migrate failed
-	retMigrateErr = 5
-	// rpc failed
-	retRPCErr = 6
-	// add token
-	retAddTokenErr = 7
-)
+const ()
 
 var (
 	// rpc
@@ -126,60 +105,60 @@ type ChannelRPC struct {
 // New expored a method for creating new channel
 func (c *ChannelRPC) New(args *myrpc.ChannelNewArgs, ret *int) error {
 	if args == nil || args.Key == "" {
-		*ret = retParamErr
+		*ret = myrpc.ParamErr
 		return nil
 	}
 	// create a new channel for the user
 	ch, err := UserChannel.New(args.Key)
 	if err != nil {
-		*ret = retCreateChannelErr
+		*ret = myrpc.CreateChannelErr
 		return nil
 	}
 	if err = ch.AddToken(args.Key, args.Token); err != nil {
-		*ret = retAddTokenErr
+		*ret = myrpc.AddTokenErr
 		return nil
 	}
-	*ret = retOK
+	*ret = myrpc.OK
 	return nil
 }
 
 // Close expored a method for closing new channel
 func (c *ChannelRPC) Close(key *string, ret *int) error {
 	if *key == "" {
-		*ret = retParamErr
+		*ret = myrpc.ParamErr
 		return nil
 	}
 	// close the channle for the user
 	ch, err := UserChannel.Delete(*key)
 	if err != nil {
-		*ret = retGetChannelErr
+		*ret = myrpc.GetChannelErr
 		return nil
 	}
 	// ignore channel close error, only log a warnning
 	ch.Close()
-	*ret = retOK
+	*ret = myrpc.OK
 	return nil
 }
 
 // PushPrivate expored a method for publishing a user private message for the channel
 func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) error {
 	if args == nil || args.Key == "" || args.Msg == "" {
-		*ret = retParamErr
+		*ret = myrpc.ParamErr
 		return nil
 	}
 	expire := args.Expire
 	// get a user channel
 	ch, err := UserChannel.New(args.Key)
 	if err != nil {
-		*ret = retGetChannelErr
+		*ret = myrpc.GetChannelErr
 		return nil
 	}
 	// use the channel push message
 	if err = ch.PushMsg(args.Key, &Message{Msg: args.Msg, Expire: time.Now().UnixNano() + expire*Second, GroupID: args.GroupID}); err != nil {
-		*ret = retPushMsgErr
+		*ret = myrpc.PushMsgErr
 		return nil
 	}
-	*ret = retOK
+	*ret = myrpc.OK
 	return nil
 }
 
@@ -203,14 +182,14 @@ func (c *ChannelRPC) PushPublic(args *myrpc.ChannelPushPublicArgs, ret *int) err
 			}
 		}()
 	}
-	*ret = retOK
+	*ret = myrpc.OK
 	return nil
 }
 
 // Publish expored a method for publishing a message for the channel
 func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
 	if len(args.Nodes) == 0 {
-		*ret = retParamErr
+		*ret = myrpc.ParamErr
 		return nil
 	}
 	// find current node exists in new nodes
@@ -222,7 +201,7 @@ func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
 	}
 	if !has {
 		Log.Crit("make sure your migrate nodes right, there is no %s in nodes, this will cause all the node hit miss", Conf.ZookeeperNode)
-		*ret = retMigrateErr
+		*ret = myrpc.MigrateErr
 		return nil
 	}
 	// init ketama
@@ -255,7 +234,7 @@ func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
 			continue
 		}
 	}
-	*ret = retOK
+	*ret = myrpc.OK
 	Log.Info("close all the migrate channels finished")
 	return nil
 }

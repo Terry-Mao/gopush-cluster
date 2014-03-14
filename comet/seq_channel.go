@@ -103,14 +103,14 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 		m.MsgID = c.timeID.ID()
 		Log.Debug("user_key:\"%s\" timeID:%d", key, m.MsgID)
 		args := &myrpc.MessageSaveArgs{MsgID: m.MsgID, Msg: m.Msg, Expire: m.Expire, Key: key}
-		reply := retOK
+		reply := myrpc.OK
 		if err := MsgRPC.Call("MessageRPC.Save", args, &reply); err != nil {
 			c.mutex.Unlock()
 			Log.Error("MessageRPC.Save error(%v)", err)
 			return err
 		}
 		// message save failed
-		if reply != retOK {
+		if reply != myrpc.OK {
 			c.mutex.Unlock()
 			Log.Error("MessageRPC.Save error(ret=%d)", reply)
 			return ErrMessageSave

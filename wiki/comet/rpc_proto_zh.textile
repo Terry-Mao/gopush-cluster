@@ -36,8 +36,8 @@ type ChannelNewArgs struct {
  * 返回码
 
 (head). | 错误码 | 描述 |
-| 1 | 创建Channel失败 |
-| 7 | 添加token失败 |
+| 2000 | 创建Channel失败 |
+| 2004  | 添加token失败 |
  
 <h3>ChannelRPC.Close</h3>
  * 请求参数
@@ -47,7 +47,7 @@ type ChannelNewArgs struct {
  * 返回码
 
 (head). | 错误码 | 描述 |
-| 3 | 获取Channel失败 |
+| 2001 | 获取Channel失败 |
 
 <h3>ChannelRPC.PushPublic</h3>
  * 请求参数
@@ -80,8 +80,8 @@ type ChannelPushPrivateArgs struct {
  * 返回码
 
 (head). | 错误码 | 描述 |
-| 3 | 获取Channel失败 |
-| 4 | 推送消息失败 |
+| 2001 | 获取Channel失败 |
+| 2002 | 推送消息失败 |
 
 <h3>ChannelRPC.Migrate</h3>
  * 请求参数
@@ -100,7 +100,7 @@ type ChannelMigrateArgs struct {
  * 返回码
 
 (head). | 错误码 | 描述 |
-| 5 | 迁移失败 |
+| 2003 | 迁移失败 |
 
 [ChannelRPC_New]#channelrpcnew
 [ChannelRPC_Close]#channelrpcclose

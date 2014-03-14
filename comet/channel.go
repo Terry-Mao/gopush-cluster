@@ -176,7 +176,7 @@ func (l *ChannelList) Delete(key string) (Channel, error) {
 	b.Lock()
 	if c, ok := b.Data[key]; !ok {
 		b.Unlock()
-		Log.Warn("user_key:\"%s\" channle not exists", key)
+		Log.Warn("user_key:\"%s\" delete channle not exists", key)
 		return nil, ErrChannelNotExist
 	} else {
 		delete(b.Data, key)
