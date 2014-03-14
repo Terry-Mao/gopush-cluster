@@ -76,18 +76,8 @@ func main() {
 		os.Exit(-1)
 	}
 
-	// init process
-	if err = InitProcess(); err != nil {
-		Log.Error("InitProcess() error(%v)", err)
-		os.Exit(-1)
-	}
-
 	// start pprof http
 	StartPprof()
-
-	// External service handle
-	//http.HandleFunc("/server/get", ServerGet)
-	//http.HandleFunc("/msg/get", MsgGet)
 
 	// Internal admin handle
 	go func() {
@@ -124,12 +114,13 @@ func main() {
 			Log.Error("server.Serve(\"%s\") error(%v)", Conf.Addr, err)
 			os.Exit(-1)
 		}
-		/*
-			if err := http.ListenAndServe(Conf.Addr, nil); err != nil {
-				Log.Error("http.ListenAndServe(\"%s\") failed(%v)", Conf.Addr, err)
-				os.Exit(-1)
-			}*/
 	}()
+
+	// init process
+	if err = InitProcess(); err != nil {
+		Log.Error("InitProcess() error(%v)", err)
+		os.Exit(-1)
+	}
 
 	// init signals, block wait signals
 	Log.Info("Web service start")
