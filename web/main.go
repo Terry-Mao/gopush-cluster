@@ -117,6 +117,8 @@ func main() {
 	}()
 
 	// init process
+	// sleep one second, let the listen start
+	time.Sleep(time.Second)
 	if err = InitProcess(); err != nil {
 		Log.Error("InitProcess() error(%v)", err)
 		os.Exit(-1)
