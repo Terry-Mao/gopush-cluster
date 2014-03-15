@@ -17,13 +17,15 @@
 package rpc
 
 const (
-    // common
+	// common
 	// ok
 	OK = 0
 	// param error
 	ParamErr = 65534
+	// internal error
+	InternalErr = 65535
 
-    // comet
+	// comet
 	// create channel failed
 	CreateChannelErr = 2000
 	// get channel failed
