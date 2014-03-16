@@ -1,4 +1,4 @@
-<h3>Terry-Mao/gopush-cluster Web http协议文档</h3>
+<h3>Terry-Mao/gopush-cluster Web http protocol document</h3>
 Web internal interface document, used for push message, node management and so on
 
 <h3>Interface Summary</h3>
@@ -108,7 +108,7 @@ Note: It will not disconnect the tcp connection between Client and Comet-Service
 
 <h3>Clean Message</h3>
 Node: It will delete all of messages what belong to specify key and it will delete the Channel in the Comet-Service, for release memory
- * 请求参数
+ * Request Parameter
 
 (head). | Parameter | Type | Description |
 | key | string | Subscription Key |

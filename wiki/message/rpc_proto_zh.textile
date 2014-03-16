@@ -9,7 +9,6 @@ Message内部RPC接口文档，用于Message离线消息内部存储等。
 | "MessageRPC.CleanKey":MessageRPC_CleanKey   | 清理Key       | tcp RPC |
 
 <h3>公共返回码</h3>
-仅限于返回int类型的接口
 
 (head). | 错误码 | 描述 |
 | 0 | 成功 |
