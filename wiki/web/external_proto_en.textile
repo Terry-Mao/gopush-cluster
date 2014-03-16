@@ -3,7 +3,7 @@ Web external interface document, used for getting subscription node, getting off
 
 <h3>Interface Summary</h3>
 (head). | Name | URL | Method |
-| "Get Subscribe Node":ServerGet | /server/get | GET |
+| "Get Subscription Node":ServerGet | /server/get | GET |
 | "Get Offline Messages":MsgGet    | /msg/get    | GET |
 
 <h3>Public ErrorCode</h3>
@@ -31,13 +31,13 @@ test({
 })
 </pre>
 
-<h3>Get Subscribe Node</h3>
+<h3>Get Subscription Node</h3>
  * Request Parameter
 
 (head). | Parameter | Type | Description |
 | key   | string | Subscription Key |
-| proto | int    | Subscription Protocol 1:websocket 2:tcp |
-| callback   | string | Callback Name(Optional) |
+| proto | int    | Subscription Protocol (1:websocket 2:tcp) |
+| callback | string | Callback Name(Optional) |
 
  * Response Parameter Description
 
@@ -74,8 +74,8 @@ test({
 | msgs  | string Array | Private Offline Message |
 | pmsgs | string Array | Public Offline Message |
 Note:
-1.Every message is a string rather than struct, so you need to Unmarshal message one by one
-2.The type of parameter "mid" is int64.
+* Every message is a string rather than struct, so you need to Unmarshal message one by one
+* The type of parameter "mid" is int64.
 
  * Response result
 
@@ -97,5 +97,5 @@ Note:
 </pre>
 
 
-[ServerGet]#Get Subscribe Node
-[MsgGet]#Get Offline Messages
+[ServerGet]#GetSubscriptionNode
+[MsgGet]#GetOfflineMessages
