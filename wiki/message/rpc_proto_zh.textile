@@ -72,7 +72,7 @@ type MessageGetResp struct {
 }
 </pre>
 
-<h3>MessageRPC.Clean</h3>
+<h3>MessageRPC.CleanKey</h3>
  * 请求参数
 
 (head). | 参数 | 类型 | 描述 |
