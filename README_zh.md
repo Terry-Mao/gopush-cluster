@@ -134,11 +134,13 @@ error while loading shared libraries: libzookeeper_mt.so.2: cannot open shared o
 $ curl -d "test2" http://localhost:8091/admin/push/public?expire=600
 ```
 成功返回：{"msg":"ok","ret":0}
+
 2.推送私信（消息过期时间为expire=600秒）
 ```sh
 $ curl -d "test" http://localhost:8091/admin/push?key=Terry-Mao\&expire=600\&gid=0
 ```
 成功返回：{“msg":"ok","ret":0}
+
 3.获取离线消息接口
 在浏览器中打开：http://localhost:8090/msg/get?key=Terry-Mao&mid=1&pmid=0
 成功返回：
