@@ -3,11 +3,11 @@ Web internal interface document, used for push message, node management and so o
 
 <h3>Interface Summary</h3>
 (head). | Name | URL | Method |
-| "Push Private Message":AdminPush | /admin/push     | POST |
-| "Push Public Message":AdminPushPublic | /admin/push/public     | POST |
-| "Add Node":AdminNodeAdd | /admin/node/add | POST |
-| "Delete Node":AdminNodeDel | /admin/node/del | POST |
-| "Clean Message":AdminMsgClean | /admin/msg/clean | POST |
+| "<a href="#Push Private Message">Push Private Message</a>":AdminPush | /admin/push     | POST |
+| "<a href="#Push Public Message">Push Public Message</a>":AdminPushPublic | /admin/push/public     | POST |
+| "<a href="#Add Node">Add Node</a>":AdminNodeAdd | /admin/node/add | POST |
+| "<a href="#Delete Node">Delete Node</a>":AdminNodeDel | /admin/node/del | POST |
+| "<a href="#Clean Message">Clean Message</a>":AdminMsgClean | /admin/msg/clean | POST |
 
 <h3>Public ErrorCode</h3>
 
@@ -24,6 +24,8 @@ Web internal interface document, used for push message, node management and so o
     "data": {….}//Data does not appear if data is null or ret != 0
 }
 </pre>
+
+<a name="Push Private Message"></a>
 
 <h3>Push Private Message</h3>
  * Request Parameter
@@ -46,6 +48,8 @@ Note: Messages stored in body, and service will wholly intact return to client. 
 }
 </pre>
 
+<a name="Push Public Message"></a>
+
 <h3>Push Public Message</h3>
  * Request Parameter
 
@@ -65,6 +69,8 @@ Note: Messages stored in body, and service will wholly intact return to client. 
 }
 </pre>
 
+<a name="Add Node"></a>
+
 <h3>Add Node</h3>
  * Request Parameter
 
@@ -79,6 +85,8 @@ Note: Messages stored in body, and service will wholly intact return to client. 
     "msg": "ok"
 }
 </pre>
+
+<a name="Delete Node"></a>
 
 <h3>Delete Node</h3>
 Note: It will not disconnect the tcp connection between Client and Comet-Service
@@ -96,6 +104,8 @@ Note: It will not disconnect the tcp connection between Client and Comet-Service
 }
 </pre>
 
+<a name="Clean Message"></a>
+
 <h3>Clean Message</h3>
 Node: It will delete all of messages what belong to specify key and it will delete the Channel in the Comet-Service, for release memory
  * 请求参数
@@ -111,10 +121,3 @@ Node: It will delete all of messages what belong to specify key and it will dele
     "msg": "ok"
 }
 </pre>
-
-
-[AdminPush]#Push Private Message
-[AdminPushPublic]#Push Public Message
-[AdminNodeAdd]#Add Node
-[AdminNodeDel]#Delete Node
-[AdminMsgClean]#Clean Message
