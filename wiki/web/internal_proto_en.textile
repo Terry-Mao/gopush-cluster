@@ -1,0 +1,123 @@
+<h3>Terry-Mao/gopush-cluster Web http protocol document</h3>
+Web internal interface document, used for push message, node management and so on
+
+<h3>Interface Summary</h3>
+(head). | Name | URL | Method |
+| "<a href="#Push Private Message">Push Private Message</a>":AdminPush | /admin/push     | POST |
+| "<a href="#Push Public Message">Push Public Message</a>":AdminPushPublic | /admin/push/public     | POST |
+| "<a href="#Add Node">Add Node</a>":AdminNodeAdd | /admin/node/add | POST |
+| "<a href="#Delete Node">Delete Node</a>":AdminNodeDel | /admin/node/del | POST |
+| "<a href="#Clean Message">Clean Message</a>":AdminMsgClean | /admin/msg/clean | POST |
+
+<h3>Public ErrorCode</h3>
+
+(head). | ErrorCode | Description |
+| 0 | Success |
+| 65534 | Parameter Error |
+| 65535 | Internal Error |
+
+<h3>Basic Response Json</h3>
+<pre>
+{
+    "ret": 0,  //ErrorCode
+    "msg": "ok",
+    "data": {….}//Data does not appear if data is null or ret != 0
+}
+</pre>
+
+<a name="Push Private Message"></a>
+
+<h3>Push Private Message</h3>
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| key    | string | Subscription key |
+| gid    | string | Group ID (0)|
+| expire | int64  | Message Expire Time, Unit:second|
+
+Note: Messages stored in body, and service will wholly intact return to client. Above just as URL Parameter.
+
+ * ErrorCode
+
+(head). | ErrorCode | Description |
+| 1001 | no node corresponding with subscription key |
+<pre>
+{
+    "ret": 0,
+    "msg": "ok"
+}
+</pre>
+
+<a name="Push Public Message"></a>
+
+<h3>Push Public Message</h3>
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| expire | int64  | Message Expire Time, Unit:second|
+
+Note: Messages stored in body, and service will wholly intact return to client. Above just as URL Parameter.
+
+ * ErrorCode
+
+(head). | ErrorCode | Description |
+| 1001 | no node corresponding with subscription key |
+<pre>
+{
+    "ret": 0,
+    "msg": "ok"
+}
+</pre>
+
+<a name="Add Node"></a>
+
+<h3>Add Node</h3>
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| node | string | Node name |
+
+ * ErrorCode
+
+<pre>
+{
+    "ret": 0,
+    "msg": "ok"
+}
+</pre>
+
+<a name="Delete Node"></a>
+
+<h3>Delete Node</h3>
+Note: It will not disconnect the tcp connection between Client and Comet-Service
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| node | string | Node name |
+
+ * ErrorCode
+
+<pre>
+{
+    "ret": 0,
+    "msg": "ok"
+}
+</pre>
+
+<a name="Clean Message"></a>
+
+<h3>Clean Message</h3>
+Node: It will delete all of messages what belong to specify key and it will delete the Channel in the Comet-Service, for release memory
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| key | string | Subscription Key |
+
+ * ErrorCode
+
+<pre>
+{
+    "ret": 0,
+    "msg": "ok"
+}
+</pre>

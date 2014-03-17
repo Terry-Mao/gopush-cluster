@@ -1,0 +1,101 @@
+<h3>Terry-Mao/gopush-cluster Web http protocol document</h3>
+Web external interface document, used for getting subscription node, getting offline messages and so on
+
+<h3>Interface Summary</h3>
+(head). | Name | URL | Method |
+| "<a href="#Get Subscription Node">Get Subscription Node</a>":ServerGet | /server/get | GET |
+| "<a href="#Get Offline Messages">Get Offline Messages</a>":MsgGet    | /msg/get    | GET |
+
+<h3>Public ErrorCode</h3>
+
+(head). | ErrorCode | Description |
+| 0 | Success |
+| 65534 | Parameter Error |
+| 65535 | Internal Error |
+
+<h3>Basic Response Json</h3>
+<pre>
+{
+    "ret": 0,  //ErrorCode
+    "msg": "ok",
+    "data": {….}//Data does not appear if data is null or ret != 0
+}
+</pre>
+If you are working on JavaScript, you can specify a callback to URL Parameter "callback" eg: callback=test.
+Respond data like following:
+<pre>
+test({
+    "ret": 0,
+    "msg": "ok",
+    "data": {….}
+})
+</pre>
+
+<a name="Get Subscription Node"></a>
+
+<h3>Get Subscription Node</h3>
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| key   | string | Subscription Key |
+| proto | int    | Subscription Protocol (1:websocket 2:tcp) |
+| callback | string | Callback Name(Optional) |
+
+ * Response Parameter Description
+
+(head). | Parameter | Type | Description |
+| server | string | Address of Subscription |
+
+ * ErrorCode
+
+(head). | ErrorCode | Description |
+| 1001 | no node corresponding with subscription key |
+| 1003 | Unknown Subscription Protocol |
+<pre>
+{
+    "ret": 0,
+    "msg": "ok"
+    "data": {
+	    "server": "127.0.0.1:8080"  //IP:Port
+    }
+}
+</pre>
+
+<a name="Get Offline Messages"></a>
+
+<h3>Get Offline Messages</h3>
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| key  | string | Subscription Key |
+| mid  | int64  | Latest Private Message ID |
+| pmid | int64  | Latest Public Message ID |
+| callback   | string | Callback Name(Optional) |
+
+ * Response Parameter Description
+
+(head). | Parameter | Type | Description |
+| msgs  | string Array | Private Offline Message |
+| pmsgs | string Array | Public Offline Message |
+Note:
+	1.Every message is a string rather than struct, so you need to Unmarshal message one by one
+	2.The type of parameter "mid" is int64.
+
+ * Response result
+
+<pre>
+{
+    "ret": 0,
+    "msg": "ok",
+    "data": {
+        "msgs": [
+            "{\"msg\":\"test4\",\"expire\":1390654180596824618,\"mid\":13906541205968269}",
+            "{\"msg\":\"test4\",\"expire\":1390654193548291636,\"mid\":13906541335482953}"
+        ],
+        "pmsgs": [
+            "{\"msg\":\"test4\",\"expire\":1390654173008432944,\"mid\":6}",
+            "{\"msg\":\"test4\",\"expire\":1390654199561712956,\"mid\":7}"
+        ]
+    }
+}
+</pre>

@@ -1,0 +1,89 @@
+<h3>Terry-Mao/gopush-cluster Message RPC protocol document</h3>
+Message internal communication RPC interface document, used for storing and getting message and such messages management.
+
+<h3>Interface Summary</h3>
+(head). | Name | Description | Method |
+| "<a href="#MessageRPC.Ping">MessageRPC.Ping</a>":MessageRPC_Ping | Service Ping | tcp RPC |
+| "<a href="#MessageRPC.Save">MessageRPC.Save</a>":MessageRPC_Save | Stored Message   | tcp RPC |
+| "<a href="#MessageRPC.Get">MessageRPC.Get</a>":MessageRPC_Get   | Get Message   | tcp RPC |
+| "<a href="#MessageRPC.CleanKey">MessageRPC.CleanKey</a>":MessageRPC_CleanKey   | Clean Key       | tcp RPC |
+
+<h3>Public ErrorCode</h3>
+
+(head). | ErrorCode | Description |
+| 0 | Success |
+| 65534 | Parameter Error |
+| 65535 | Internal Error |
+
+<a name="MessageRPC.Ping"></a>
+
+<h3>MessageRPC.Ping</h3>
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| m | int | Write 0 |
+
+ * ErrorCode
+Only Public ErrorCode
+
+<a name="MessageRPC.Save"></a>
+
+<h3>MessageRPC.Save</h3>
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| m | rpc.MessageSaveArgs | Request parameter struct of Save interface |
+<pre>
+package rpc
+
+// Message Save Args
+type MessageSaveArgs struct {
+	MsgID  int64  // message id
+	Msg    string // message content
+	Expire int64  // message expire second
+	Key    string // subscriber key
+}
+</pre>
+
+ * ErrorCode
+Only Public ErrorCode
+
+<a name="MessageRPC.Get"></a>
+
+<h3>MessageRPC.Get</h3>
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| m | rpc.MessageGetArgs | Request parameter struct of Get interface |
+<pre>
+// Message Get Args
+type MessageGetArgs struct {
+	MsgID 	 int64  // message id
+	PubMsgID int64  // public message id
+	Key      string // subscriber key
+}
+</pre>
+
+ * ErrorCode
+
+(head). | ErrorCode | Description |
+| rpc. MessageGetResp | Struct of response |
+<pre>
+// Message Get Response
+type MessageGetResp struct {
+	Ret     int      // response
+	Msgs    []string // messages
+	PubMsgs []string // public messages
+}
+</pre>
+
+<a name="MessageRPC.CleanKey"></a>
+
+<h3>MessageRPC.CleanKey</h3>
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| key | string | Subscription key or Public key |
+
+ * ErrorCode
+Only Public ErrorCode

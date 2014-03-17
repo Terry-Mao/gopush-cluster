@@ -25,13 +25,6 @@ import (
 	"time"
 )
 
-// Public error code
-const (
-	OK          = 0
-	ParamErr    = 65534
-	InternalErr = 65535
-)
-
 var (
 	// Delete messages channel
 	DelChan chan *DelMessageInfo
@@ -80,7 +73,7 @@ func StartRPC() {
 func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 	Log.Info("save pravite message (mid:%d,msg:%s,expire:%d,key:%s)", m.MsgID, m.Msg, m.Expire, m.Key)
 	if m == nil || m.MsgID < 0 {
-		*ret = ParamErr
+		*ret = myrpc.ParamErr
 		return nil
 	}
 
@@ -89,11 +82,11 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 	message, _ := json.Marshal(recordMsg)
 	if err := SaveMessage(m.Key, string(message), m.MsgID); err != nil {
 		Log.Error("save message error(%v)", err)
-		*ret = InternalErr
+		*ret = myrpc.InternalErr
 		return nil
 	}
 
-	*ret = OK
+	*ret = myrpc.OK
 	return nil
 }
 
@@ -101,7 +94,7 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 func (r *MessageRPC) SavePub(m *myrpc.MessageSavePubArgs, ret *int) error {
 	Log.Info("save public message (mid:%d,msg:%s,expire:%d,key:%s)", m.MsgID, m.Msg, m.Expire, Conf.PKey)
 	if m == nil || m.MsgID < 0 {
-		*ret = ParamErr
+		*ret = myrpc.ParamErr
 		return nil
 	}
 
@@ -110,11 +103,11 @@ func (r *MessageRPC) SavePub(m *myrpc.MessageSavePubArgs, ret *int) error {
 	message, _ := json.Marshal(recordMsg)
 	if err := SaveMessage(Conf.PKey, string(message), m.MsgID); err != nil {
 		Log.Error("save message error(%v)", err)
-		*ret = InternalErr
+		*ret = myrpc.InternalErr
 		return nil
 	}
 
-	*ret = OK
+	*ret = myrpc.OK
 	return nil
 }
 
@@ -125,7 +118,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	msgs, err := GetMessages(m.Key, m.MsgID)
 	if err != nil {
 		Log.Error("get messages error(%v)", err)
-		rw.Ret = InternalErr
+		rw.Ret = myrpc.InternalErr
 		return nil
 	}
 
@@ -133,14 +126,14 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	pMsgs, err := GetMessages(Conf.PKey, m.PubMsgID)
 	if err != nil {
 		Log.Error("get public messages error(%v)", err)
-		rw.Ret = InternalErr
+		rw.Ret = myrpc.InternalErr
 		return nil
 	}
 
 	numMsg := len(msgs)
 	numPMsg := len(pMsgs)
 	if numMsg == 0 && numPMsg == 0 {
-		rw.Ret = OK
+		rw.Ret = myrpc.OK
 		Log.Info("response message nil, request key(\"%s\") mid(\"%d\") pmid(\"%d\")", m.Key, m.MsgID, m.PubMsgID)
 		return nil
 	}
@@ -158,7 +151,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	for i := 0; i < numMsg; i++ {
 		if err := json.Unmarshal([]byte(msgs[i]), &msg); err != nil {
 			Log.Error("internal message:\"%s\" error(%v)", msgs[i], err)
-			rw.Ret = InternalErr
+			rw.Ret = myrpc.InternalErr
 			return nil
 		}
 
@@ -172,7 +165,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	for i := 0; i < numPMsg; i++ {
 		if err := json.Unmarshal([]byte(pMsgs[i]), &msg); err != nil {
 			Log.Error("internal message:\"%s\" error(%v)", pMsgs[i], err)
-			rw.Ret = InternalErr
+			rw.Ret = myrpc.InternalErr
 			return nil
 		}
 		if tNow > msg.Expire {
@@ -192,7 +185,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 		DelChan <- &DelMessageInfo{Key: Conf.PKey, Msgs: delPMsgs}
 	}
 
-	rw.Ret = OK
+	rw.Ret = myrpc.OK
 	rw.Msgs = data
 	rw.PubMsgs = pData
 	Log.Info("response private_message(%s) public_message(%s)", data, pData)
@@ -204,7 +197,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 func (r *MessageRPC) CleanKey(key string, ret *int) error {
 	if err := DelKey(key); err != nil {
 		Log.Error("clean offline message error(%v)", err)
-		*ret = InternalErr
+		*ret = myrpc.InternalErr
 		return nil
 	}
 	Log.Info("Clean Offline message key(\"%s\") OK", key)
@@ -214,7 +207,7 @@ func (r *MessageRPC) CleanKey(key string, ret *int) error {
 
 // Server Ping interface
 func (r *MessageRPC) Ping(p int, ret *int) error {
-	*ret = OK
+	*ret = myrpc.OK
 	return nil
 }
 
