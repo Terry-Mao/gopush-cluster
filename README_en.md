@@ -194,15 +194,15 @@ javascript: [gopush-cluster-javascript-sdk](https://github.com/Lanfei/gopush-clu
 
 ## Documentation
 `web`
-[external](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/web/external_proto_zh.textile)
-[internal](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/web/internal_proto_zh.textile)
+[external](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/web/external_proto_en.textile)
+[internal](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/web/internal_proto_en.textile)
 
 `comet`
-[client](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/comet/client_proto_zh.textile)
-[internal](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/comet/rpc_proto_zh.textile)
+[client](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/comet/client_proto_en.textile)
+[internal](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/comet/rpc_proto_en.textile)
 
 `message`
-[internal](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/message/rpc_proto_zh.textile)
+[internal](https://github.com/Terry-Mao/gopush-cluster/blob/master/wiki/message/rpc_proto_en.textile)
 
 ## FAQ
 1.install hg
