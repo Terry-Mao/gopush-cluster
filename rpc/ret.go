@@ -24,16 +24,4 @@ const (
 	ParamErr = 65534
 	// internal error
 	InternalErr = 65535
-
-	// comet
-	// create channel failed
-	CreateChannelErr = 2000
-	// get channel failed
-	GetChannelErr = 2001
-	// message push failed
-	PushMsgErr = 2002
-	// migrate failed
-	MigrateErr = 2003
-	// add token
-	AddTokenErr = 2004
 )

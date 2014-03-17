@@ -111,11 +111,11 @@ func (c *ChannelRPC) New(args *myrpc.ChannelNewArgs, ret *int) error {
 	// create a new channel for the user
 	ch, err := UserChannel.New(args.Key)
 	if err != nil {
-		*ret = myrpc.CreateChannelErr
+		*ret = myrpc.InternalErr
 		return nil
 	}
 	if err = ch.AddToken(args.Key, args.Token); err != nil {
-		*ret = myrpc.AddTokenErr
+		*ret = myrpc.InternalErr
 		return nil
 	}
 	*ret = myrpc.OK
@@ -131,7 +131,7 @@ func (c *ChannelRPC) Close(key *string, ret *int) error {
 	// close the channle for the user
 	ch, err := UserChannel.Delete(*key)
 	if err != nil {
-		*ret = myrpc.GetChannelErr
+		*ret = myrpc.InternalErr
 		return nil
 	}
 	// ignore channel close error, only log a warnning
@@ -150,12 +150,12 @@ func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) e
 	// get a user channel
 	ch, err := UserChannel.New(args.Key)
 	if err != nil {
-		*ret = myrpc.GetChannelErr
+		*ret = myrpc.InternalErr
 		return nil
 	}
 	// use the channel push message
 	if err = ch.PushMsg(args.Key, &Message{Msg: args.Msg, Expire: time.Now().UnixNano() + expire*Second, GroupID: args.GroupID}); err != nil {
-		*ret = myrpc.PushMsgErr
+		*ret = myrpc.InternalErr
 		return nil
 	}
 	*ret = myrpc.OK
@@ -201,7 +201,7 @@ func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
 	}
 	if !has {
 		Log.Crit("make sure your migrate nodes right, there is no %s in nodes, this will cause all the node hit miss", Conf.ZookeeperNode)
-		*ret = myrpc.MigrateErr
+		*ret = myrpc.InternalErr
 		return nil
 	}
 	// init ketama
