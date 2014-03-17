@@ -63,7 +63,7 @@ func InitProcess() error {
 		// TODO LookupGroup
 		gid, _ = strconv.Atoi(ui.Gid)
 	}
-	Log.Debug("set user: %v", ui)
+	Log.Debug("set user: %d", uid)
 	if err := syscall.Setuid(uid); err != nil {
 		Log.Error("syscall.Setuid(%d) error(%v)", uid, err)
 		return err
