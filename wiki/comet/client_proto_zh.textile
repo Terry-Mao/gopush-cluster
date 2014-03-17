@@ -52,6 +52,6 @@ $第N个参数的字符串占用字节数字 CR LF
 其中Terry就是接受到推送的消息内容。
 在comet返回的数据定义为标准json：
 <pre>{msg:"your data", mid:100, gid:0}</pre>
-客户端需要最终拿到的是json字符串，然后解析获取其中的msg为推送数据，mid为消息ID（客户端保存这个ID，用于获取下次离线消息用，注意区分私信和公共信息的MID要分开存储），gid为消息分组ID（0：表示私信，1：表示公共信息）。
+客户端需要最终拿到的是json字符串，然后解析获取其中的msg为推送数据，mid为 *int64* 消息ID（客户端保存这个ID，用于获取下次离线消息用，注意区分私信和公共信息的MID要分开存储），gid为消息分组ID（0：表示私信，1：表示公共信息）。
 
 [redis_ref]http://redis.io/topics/protocol

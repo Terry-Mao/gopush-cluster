@@ -113,11 +113,11 @@ func TestHlist(t *testing.T) {
 	}
 
 	e := l.PushFront(7)
-    if i, ok := e.Value.(int); !ok {
-        t.Error("e.Value assection failed")
-    } else {
-        if i != 7 {
-            t.Error("i value error: %d", i)
-        }
-    }
+	if i, ok := e.Value.(int); !ok {
+		t.Error("e.Value assection failed")
+	} else {
+		if i != 7 {
+			t.Error("i value error: %d", i)
+		}
+	}
 }

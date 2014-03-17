@@ -35,19 +35,12 @@ type ChannelNewArgs struct {
 </pre>
  * 返回码
 
-(head). | 错误码 | 描述 |
-| 2000 | 创建Channel失败 |
-| 2004  | 添加token失败 |
- 
 <h3>ChannelRPC.Close</h3>
  * 请求参数
 
 (head). | 参数 | 类型 | 是否必选 | 描述 |
 | key | string | 是 | 用户key |
  * 返回码
-
-(head). | 错误码 | 描述 |
-| 2001 | 获取Channel失败 |
 
 <h3>ChannelRPC.PushPublic</h3>
  * 请求参数
@@ -60,9 +53,6 @@ type ChannelPushPublicArgs struct {
 	Msg     string // message content
 }
 </pre>
- * 返回码
-
-(head). | 错误码 | 描述 |
 
 <h3>ChannelRPC.PushPrivate</h3>
  * 请求参数
@@ -79,10 +69,6 @@ type ChannelPushPrivateArgs struct {
 </pre>
  * 返回码
 
-(head). | 错误码 | 描述 |
-| 2001 | 获取Channel失败 |
-| 2002 | 推送消息失败 |
-
 <h3>ChannelRPC.Migrate</h3>
  * 请求参数
 
@@ -97,10 +83,6 @@ type ChannelMigrateArgs struct {
     Vnode int      // ketama virtual node number (required)
 }
 </pre>
- * 返回码
-
-(head). | 错误码 | 描述 |
-| 2003 | 迁移失败 |
 
 [ChannelRPC_New]#channelrpcnew
 [ChannelRPC_Close]#channelrpcclose
