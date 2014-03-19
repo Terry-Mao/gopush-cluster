@@ -18,7 +18,6 @@ package process
 
 import (
 	"fmt"
-	. "github.com/Terry-Mao/gopush-cluster/log"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -32,10 +31,10 @@ const (
 	defaultGroup = "nobody"
 )
 
-// InitProcess create pid file, set working dir, setgid and setuid.
-func InitProcess(userConf, dir, pidFile string) error {
+// Init create pid file, set working dir, setgid and setuid.
+func Init(userGroup, dir, pidFile string) error {
 	// setuid and setgid
-	ug := strings.SplitN(userConf, " ", 2)
+	ug := strings.SplitN(userGroup, " ", 2)
 	usr := defaultUser
 	grp := defaultGroup
 	if len(ug) == 0 {
@@ -51,37 +50,29 @@ func InitProcess(userConf, dir, pidFile string) error {
 	gid := 0
 	ui, err := user.Lookup(usr)
 	if err != nil {
-		Log.Error("user.Lookup(\"%s\") error(%v)", err)
 		return err
 	}
 	uid, _ = strconv.Atoi(ui.Uid)
 	// group no set
 	if grp == "" {
-		Log.Debug("no set group")
 		gid, _ = strconv.Atoi(ui.Gid)
 	} else {
 		// use user's group instread
 		// TODO LookupGroup
 		gid, _ = strconv.Atoi(ui.Gid)
 	}
-	Log.Debug("set user: %d", uid)
-	if err := syscall.Setuid(uid); err != nil {
-		Log.Error("syscall.Setuid(%d) error(%v)", uid, err)
+	if err := syscall.Setgid(gid); err != nil {
 		return err
 	}
-	//if err := syscall.Setgid(gid); err != nil {
-	//	Log.Error("syscall.Setgid(%d) failed (%s)", gid, err.Error())
-	//	return err
-	//}
+	if err := syscall.Setuid(uid); err != nil {
+		return err
+	}
 	// change working dir
-	Log.Debug("set gid: %d", gid)
 	if err := os.Chdir(dir); err != nil {
-		Log.Error("os.Chdir(\"%s\") error(%v)", "", err)
 		return err
 	}
 	// create pid file
 	if err := ioutil.WriteFile(pidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644); err != nil {
-		Log.Error("ioutil.WriteFile(\"%s\") error(%v)", "", err)
 		return err
 	}
 	return nil
