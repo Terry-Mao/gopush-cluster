@@ -18,6 +18,7 @@ package main
 
 import (
 	"github.com/Terry-Mao/gopush-cluster/hash"
+	. "github.com/Terry-Mao/gopush-cluster/log"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"net/rpc"

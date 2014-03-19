@@ -14,25 +14,26 @@
 // You should have received a copy of the GNU General Public License
 // along with gopush-cluster.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package pprof
 
 import (
+	. "github.com/Terry-Mao/gopush-cluster/log"
 	"net/http"
-	"net/http/pprof"
+	netPprof "net/http/pprof"
 )
 
 // StartPprof start http pprof.
-func StartPprof() {
+func StartPprof(pprofBind []string) {
 	pprofServeMux := http.NewServeMux()
-	pprofServeMux.HandleFunc("/debug/pprof/", pprof.Index)
-	pprofServeMux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	pprofServeMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	pprofServeMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	for _, addr := range Conf.PprofBind {
+	pprofServeMux.HandleFunc("/debug/pprof/", netPprof.Index)
+	pprofServeMux.HandleFunc("/debug/pprof/cmdline", netPprof.Cmdline)
+	pprofServeMux.HandleFunc("/debug/pprof/profile", netPprof.Profile)
+	pprofServeMux.HandleFunc("/debug/pprof/symbol", netPprof.Symbol)
+	for _, addr := range pprofBind {
 		go func() {
 			Log.Info("start pprof listen addr:\"%s\"", addr)
 			if err := http.ListenAndServe(addr, pprofServeMux); err != nil {
-				Log.Error("http.ListenAndServe(\"%s\") error(%v)", addr, err)
+				Log.Error("http.ListenAdServe(\"%s\") error(%v)", addr, err)
 				panic(err)
 			}
 		}()

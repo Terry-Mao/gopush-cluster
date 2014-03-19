@@ -20,6 +20,7 @@ import (
 	"errors"
 	"github.com/Terry-Mao/gopush-cluster/hlist"
 	"github.com/Terry-Mao/gopush-cluster/id"
+	. "github.com/Terry-Mao/gopush-cluster/log"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"sync"
 )

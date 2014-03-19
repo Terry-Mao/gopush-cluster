@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	"github.com/Terry-Mao/gopush-cluster/hlist"
+	. "github.com/Terry-Mao/gopush-cluster/log"
 	"net"
 	"sync"
 )
