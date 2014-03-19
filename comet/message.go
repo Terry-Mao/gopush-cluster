@@ -18,6 +18,7 @@ package main
 
 import (
 	"encoding/json"
+	. "github.com/Terry-Mao/gopush-cluster/log"
 )
 
 // The Message struct.

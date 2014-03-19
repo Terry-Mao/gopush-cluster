@@ -18,17 +18,17 @@ package main
 
 import (
 	"flag"
-	"github.com/Terry-Mao/gopush-cluster/log"
+	. "github.com/Terry-Mao/gopush-cluster/log"
+	. "github.com/Terry-Mao/gopush-cluster/pprof"
+	. "github.com/Terry-Mao/gopush-cluster/process"
+	. "github.com/Terry-Mao/gopush-cluster/signal"
 	"os"
 	"runtime"
 	"time"
 )
 
-var (
-	Log = log.DefaultLogger
-)
-
 func main() {
+	Log = DefaultLogger
 	var err error
 	// parse cmd-line arguments
 	flag.Parse()
@@ -42,7 +42,7 @@ func main() {
 	// Set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
 	// init log
-	if Log, err = log.New(Conf.LogFile, Conf.LogLevel); err != nil {
+	if Log, err = NewLog(Conf.LogFile, Conf.LogLevel); err != nil {
 		Log.Error("log.New(\"%s\", %s) error(%v)", Conf.LogFile, Conf.LogLevel, err)
 		os.Exit(-1)
 	}
@@ -56,7 +56,7 @@ func main() {
 	// start stats
 	StartStats()
 	// start pprof http
-	StartPprof()
+	StartPprof(Conf.PprofBind)
 	// init message rpc, block until message rpc init.
 	InitMessageRPC()
 	// start rpc
@@ -74,7 +74,7 @@ func main() {
 	// init process
 	// sleep one second, let the listen start
 	time.Sleep(time.Second)
-	if err = InitProcess(); err != nil {
+	if err = InitProcess(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
 		Log.Error("InitProcess() error(%v)", err)
 		os.Exit(-1)
 	}

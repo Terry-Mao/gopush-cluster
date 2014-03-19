@@ -23,6 +23,10 @@ import (
 	"runtime"
 )
 
+var (
+	Log *Logger
+)
+
 const (
 	// Log Level
 	Emerg = 0
@@ -59,7 +63,7 @@ var (
    each generated log line. The file argument defines the write log file path.
    if any error the os.Stdout will return
 */
-func New(file string, levelStr string) (*Logger, error) {
+func NewLog(file string, levelStr string) (*Logger, error) {
 	level := defaultLogLevel
 	for lv, str := range errLevels {
 		if str == levelStr {

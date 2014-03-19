@@ -14,10 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with gopush-cluster.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package process
 
 import (
 	"fmt"
+	. "github.com/Terry-Mao/gopush-cluster/log"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -32,9 +33,9 @@ const (
 )
 
 // InitProcess create pid file, set working dir, setgid and setuid.
-func InitProcess() error {
+func InitProcess(userConf, dir, pidFile string) error {
 	// setuid and setgid
-	ug := strings.SplitN(Conf.User, " ", 2)
+	ug := strings.SplitN(userConf, " ", 2)
 	usr := defaultUser
 	grp := defaultGroup
 	if len(ug) == 0 {
@@ -50,7 +51,7 @@ func InitProcess() error {
 	gid := 0
 	ui, err := user.Lookup(usr)
 	if err != nil {
-		Log.Error("user.Lookup(\"%s\") error(%v)", usr, err)
+		Log.Error("user.Lookup(\"%s\") error(%v)", err)
 		return err
 	}
 	uid, _ = strconv.Atoi(ui.Uid)
@@ -63,9 +64,9 @@ func InitProcess() error {
 		// TODO LookupGroup
 		gid, _ = strconv.Atoi(ui.Gid)
 	}
-	Log.Debug("set user: %v", ui)
+	Log.Debug("set user: %d", uid)
 	if err := syscall.Setuid(uid); err != nil {
-		Log.Error("syscall.Setuid(\"%d\") error(%v)", uid, err)
+		Log.Error("syscall.Setuid(%d) error(%v)", uid, err)
 		return err
 	}
 	//if err := syscall.Setgid(gid); err != nil {
@@ -74,12 +75,12 @@ func InitProcess() error {
 	//}
 	// change working dir
 	Log.Debug("set gid: %d", gid)
-	if err := os.Chdir(Conf.Dir); err != nil {
+	if err := os.Chdir(dir); err != nil {
 		Log.Error("os.Chdir(\"%s\") error(%v)", "", err)
 		return err
 	}
 	// create pid file
-	if err := ioutil.WriteFile(Conf.PidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644); err != nil {
+	if err := ioutil.WriteFile(pidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644); err != nil {
 		Log.Error("ioutil.WriteFile(\"%s\") error(%v)", "", err)
 		return err
 	}
