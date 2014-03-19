@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	timeID "github.com/Terry-Mao/gopush-cluster/id"
-	. "github.com/Terry-Mao/gopush-cluster/log"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"launchpad.net/gozk/zookeeper"
 	"net/rpc"

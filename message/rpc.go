@@ -18,7 +18,6 @@ package main
 
 import (
 	"encoding/json"
-	. "github.com/Terry-Mao/gopush-cluster/log"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"net/rpc"

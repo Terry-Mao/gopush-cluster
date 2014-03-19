@@ -20,7 +20,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/Terry-Mao/goconf"
-	. "github.com/Terry-Mao/gopush-cluster/log"
 	"runtime"
 	"time"
 )

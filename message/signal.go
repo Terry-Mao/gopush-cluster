@@ -14,10 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with gopush-cluster.  If not, see <http://www.gnu.org/licenses/>.
 
-package signal
+package main
 
 import (
-	. "github.com/Terry-Mao/gopush-cluster/log"
 	"os"
 	"os/signal"
 	"syscall"

@@ -19,7 +19,6 @@ package main
 import (
 	"bufio"
 	"errors"
-	. "github.com/Terry-Mao/gopush-cluster/log"
 	"io"
 	"net"
 	"strconv"

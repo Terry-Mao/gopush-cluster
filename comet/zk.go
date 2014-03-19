@@ -19,7 +19,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	. "github.com/Terry-Mao/gopush-cluster/log"
 	"launchpad.net/gozk/zookeeper"
 	"strings"
 )

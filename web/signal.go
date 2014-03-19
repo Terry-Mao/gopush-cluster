@@ -17,28 +17,32 @@
 package main
 
 import (
-	"encoding/json"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
-// The Message struct.
-type Message struct {
-	// Message expired time
-	Expire int64 `json:"-"`
-	// Message
-	Msg string `json:"msg"`
-	// Message id
-	MsgID int64 `json:"mid"`
-	// Group id
-	GroupID int `json:"gid"`
+// InitSignal register signals handler.
+func InitSignal() chan os.Signal {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, syscall.SIGSTOP)
+	return c
 }
 
-// Bytes get a message reply bytes.
-func (m *Message) Bytes() ([]byte, error) {
-	byteJson, err := json.Marshal(m)
-	if err != nil {
-		Log.Error("json.Marshal(%v) error(%v)", m, err)
-		return nil, err
+// HandleSignal fetch signal from chan then do exit or reload.
+func HandleSignal(c chan os.Signal) {
+	// Block until a signal is received.
+	for {
+		s := <-c
+		Log.Info("get a signal %s", s.String())
+		switch s {
+		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGSTOP, syscall.SIGINT:
+			return
+		case syscall.SIGHUP:
+			// TODO reload
+			//return
+		default:
+			return
+		}
 	}
-
-	return byteJson, nil
 }

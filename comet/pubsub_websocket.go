@@ -18,7 +18,6 @@ package main
 
 import (
 	"code.google.com/p/go.net/websocket"
-	. "github.com/Terry-Mao/gopush-cluster/log"
 	"net"
 	"net/http"
 	"strconv"

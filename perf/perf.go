@@ -14,31 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with gopush-cluster.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package perf
 
 import (
-	"encoding/json"
+	"net/http"
+	"net/http/pprof"
 )
 
-// The Message struct.
-type Message struct {
-	// Message expired time
-	Expire int64 `json:"-"`
-	// Message
-	Msg string `json:"msg"`
-	// Message id
-	MsgID int64 `json:"mid"`
-	// Group id
-	GroupID int `json:"gid"`
-}
-
-// Bytes get a message reply bytes.
-func (m *Message) Bytes() ([]byte, error) {
-	byteJson, err := json.Marshal(m)
-	if err != nil {
-		Log.Error("json.Marshal(%v) error(%v)", m, err)
-		return nil, err
+// StartPprof start http pprof.
+func Init(pprofBind []string) {
+	pprofServeMux := http.NewServeMux()
+	pprofServeMux.HandleFunc("/debug/pprof/", pprof.Index)
+	pprofServeMux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	pprofServeMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	pprofServeMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	for _, addr := range pprofBind {
+		go func() {
+			if err := http.ListenAndServe(addr, pprofServeMux); err != nil {
+				panic(err)
+			}
+		}()
 	}
-
-	return byteJson, nil
 }

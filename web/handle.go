@@ -19,7 +19,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	. "github.com/Terry-Mao/gopush-cluster/log"
 	"io"
 	"net/http"
 	"strconv"

@@ -18,7 +18,6 @@ package main
 
 import (
 	"errors"
-	. "github.com/Terry-Mao/gopush-cluster/log"
 	"time"
 )
 

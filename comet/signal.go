@@ -14,28 +14,35 @@
 // You should have received a copy of the GNU General Public License
 // along with gopush-cluster.  If not, see <http://www.gnu.org/licenses/>.
 
-package pprof
+package main
 
 import (
-	. "github.com/Terry-Mao/gopush-cluster/log"
-	"net/http"
-	netPprof "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
-// StartPprof start http pprof.
-func StartPprof(pprofBind []string) {
-	pprofServeMux := http.NewServeMux()
-	pprofServeMux.HandleFunc("/debug/pprof/", netPprof.Index)
-	pprofServeMux.HandleFunc("/debug/pprof/cmdline", netPprof.Cmdline)
-	pprofServeMux.HandleFunc("/debug/pprof/profile", netPprof.Profile)
-	pprofServeMux.HandleFunc("/debug/pprof/symbol", netPprof.Symbol)
-	for _, addr := range pprofBind {
-		go func() {
-			Log.Info("start pprof listen addr:\"%s\"", addr)
-			if err := http.ListenAndServe(addr, pprofServeMux); err != nil {
-				Log.Error("http.ListenAdServe(\"%s\") error(%v)", addr, err)
-				panic(err)
-			}
-		}()
+// InitSignal register signals handler.
+func InitSignal() chan os.Signal {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, syscall.SIGSTOP)
+	return c
+}
+
+// HandleSignal fetch signal from chan then do exit or reload.
+func HandleSignal(c chan os.Signal) {
+	// Block until a signal is received.
+	for {
+		s := <-c
+		Log.Info("get a signal %s", s.String())
+		switch s {
+		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGSTOP, syscall.SIGINT:
+			return
+		case syscall.SIGHUP:
+			// TODO reload
+			//return
+		default:
+			return
+		}
 	}
 }

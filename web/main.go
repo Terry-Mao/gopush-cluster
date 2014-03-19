@@ -18,15 +18,18 @@ package main
 
 import (
 	"flag"
-	. "github.com/Terry-Mao/gopush-cluster/log"
-	. "github.com/Terry-Mao/gopush-cluster/pprof"
-	. "github.com/Terry-Mao/gopush-cluster/process"
-	. "github.com/Terry-Mao/gopush-cluster/signal"
+	"github.com/Terry-Mao/gopush-cluster/log"
+	"github.com/Terry-Mao/gopush-cluster/perf"
+	"github.com/Terry-Mao/gopush-cluster/process"
 	"net"
 	"net/http"
 	"os"
 	"runtime"
 	"time"
+)
+
+var (
+	Log = log.DefaultLogger
 )
 
 const (
@@ -50,8 +53,7 @@ func main() {
 	runtime.GOMAXPROCS(Conf.MaxProc)
 
 	// Load log
-	Log, err = NewLog(Conf.LogPath, Conf.LogLevel)
-	if err != nil {
+	if Log, err = log.New(Conf.LogPath, Conf.LogLevel); err != nil {
 		panic(err)
 		os.Exit(-1)
 	}
@@ -76,7 +78,7 @@ func main() {
 	}
 
 	// start pprof http
-	StartPprof(Conf.PprofBind)
+	perf.Init(Conf.PprofBind)
 
 	// Internal admin handle
 	go func() {
@@ -118,8 +120,8 @@ func main() {
 	// init process
 	// sleep one second, let the listen start
 	time.Sleep(time.Second)
-	if err = InitProcess(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
-		Log.Error("InitProcess() error(%v)", err)
+	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
+		Log.Error("process.Init() error(%v)", err)
 		os.Exit(-1)
 	}
 
