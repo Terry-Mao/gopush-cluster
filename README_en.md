@@ -117,7 +117,6 @@ launchpad.net/gozk/zookeeper
 ```sh
 $ cd $GOPATH/src/github.com/Terry-Mao/gopush-cluster/message
 $ go install
-$ cp message
 $ cp message.conf $GOPATH/bin/
 $ cd ../comet/
 $ go install
