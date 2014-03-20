@@ -40,7 +40,6 @@ func main() {
 	Conf, err = NewConfig(ConfFile)
 	if err != nil {
 		panic(err)
-		os.Exit(-1)
 	}
 
 	// Set max routine
@@ -49,7 +48,6 @@ func main() {
 	// Load log
 	if Log, err = log.New(Conf.LogFile, Conf.LogLevel); err != nil {
 		panic(err)
-		os.Exit(-1)
 	}
 
 	// init process
