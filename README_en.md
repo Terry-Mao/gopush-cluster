@@ -62,7 +62,6 @@ $ make test
 $ make install
 $ mkdir /etc/redis
 $ cp /data/programfiles/redis-2.6.4/redis.conf /etc/redis/
-$ cp /data/programfiles/redis-2.6.4/redis-server /etc/init.d/redis-server
 $ /etc/init.d/redis-server /etc/redis/redis.conf
 ```
 ### git
