@@ -69,9 +69,28 @@ func SaveMessage(key, msg string, mid int64) error {
 	if conn == nil {
 		return RedisNoConnErr
 	}
-
 	defer conn.Close()
-	_, err := redis.Int(conn.Do("ZADD", key, mid, msg))
+
+	//ZADD
+	if err := conn.Send("ZADD", key, mid, msg); err != nil {
+		return err
+	}
+	//ZREMRANGEBYRANK
+	if err := conn.Send("ZREMRANGEBYRANK", key, 0, -1*(Conf.RedisMaxStore+1)); err != nil {
+		return err
+	}
+
+	if err := conn.Flush(); err != nil {
+		return err
+	}
+
+	//ZADD Receive
+	_, err := conn.Receive()
+	if err != nil {
+		return err
+	}
+	//ZREMRANGEBYRANK Receive
+	_, err = conn.Receive()
 	if err != nil {
 		return err
 	}
@@ -100,12 +119,12 @@ func GetMessages(key string, mid int64) ([]string, error) {
 		return nil, err
 	}
 
-	//ZREMRANGEBYRANK
+	//ZREMRANGEBYRANK Receive
 	_, err := conn.Receive()
 	if err != nil {
 		return nil, err
 	}
-	//ZRANGEBYSCORE
+	//ZRANGEBYSCORE Receive
 	reply, err := redis.Strings(conn.Receive())
 	if err != nil {
 		return nil, err
@@ -116,28 +135,14 @@ func GetMessages(key string, mid int64) ([]string, error) {
 
 // Delete Message
 func DelMessages(info *DelMessageInfo) error {
-	commands := []struct {
-		args []interface{}
-	}{}
-
-	for i := 0; i < len(info.Msgs); i++ {
-		commands = append(commands,
-			struct {
-				args []interface{}
-			}{
-				args: []interface{}{"ZREM", info.Key, info.Msgs[i]},
-			},
-		)
-	}
-
 	conn := getRedisConn(info.Key)
 	if conn == nil {
 		return RedisNoConnErr
 	}
 	defer conn.Close()
 
-	for _, cmd := range commands {
-		if err := conn.Send(cmd.args[0].(string), cmd.args[1:]...); err != nil {
+	for _, msg := range info.Msgs {
+		if err := conn.Send("ZREM", info.Key, msg); err != nil {
 			return err
 		}
 	}
@@ -146,7 +151,7 @@ func DelMessages(info *DelMessageInfo) error {
 		return err
 	}
 
-	for _, _ = range commands {
+	for _, _ = range info.Msgs {
 		_, err := conn.Receive()
 		if err != nil {
 			return err
