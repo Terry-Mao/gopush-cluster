@@ -181,6 +181,7 @@ func (c *SeqChannel) Close() error {
 	c.mutex.Lock()
 	for e := c.conn.Front(); e != nil; e = e.Next() {
 		if conn, ok := e.Value.(*Connection); !ok {
+			c.mutex.Unlock()
 			return ErrAssectionConn
 		} else {
 			if err := conn.Conn.Close(); err != nil {
