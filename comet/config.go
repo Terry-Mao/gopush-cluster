@@ -111,7 +111,8 @@ func InitConfig(file string) (*Config, error) {
 		return nil, err
 	}
 	if err := c.Unmarshal(cf); err != nil {
-		Log.Error("gocong.Unmarshall() error(%v)", err)
+		Log.Error("goconf.Unmarshall() error(%v)", err)
+		return nil, err
 	}
 	return cf, nil
 }
