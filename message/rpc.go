@@ -81,7 +81,7 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 	recordMsg := Message{Msg: m.Msg, Expire: m.Expire, MsgID: m.MsgID}
 	message, _ := json.Marshal(recordMsg)
 	if err := SaveMessage(m.Key, string(message), m.MsgID); err != nil {
-		Log.Error("save message error(%v)", err)
+		Log.Error("SaveMessage(\"%s\",\"%s\",\"%d\") error(%v)", m.Key, string(message), m.MsgID, err)
 		*ret = myrpc.InternalErr
 		return nil
 	}
@@ -102,7 +102,7 @@ func (r *MessageRPC) SavePub(m *myrpc.MessageSavePubArgs, ret *int) error {
 	recordMsg := Message{Msg: m.Msg, Expire: m.Expire, MsgID: m.MsgID}
 	message, _ := json.Marshal(recordMsg)
 	if err := SaveMessage(Conf.PKey, string(message), m.MsgID); err != nil {
-		Log.Error("save message error(%v)", err)
+		Log.Error("SaveMessage(\"%s\",\"%s\",\"%d\") error(%v)", Conf.PKey, string(message), m.MsgID, err)
 		*ret = myrpc.InternalErr
 		return nil
 	}
@@ -117,7 +117,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	// Get all of offline messages which larger than MsgID that corresponding to m.Key
 	msgs, err := GetMessages(m.Key, m.MsgID)
 	if err != nil {
-		Log.Error("get messages error(%v)", err)
+		Log.Error("GetMessages(\"%s\", \"%d\") error(%v)", m.Key, m.MsgID, err)
 		rw.Ret = myrpc.InternalErr
 		return nil
 	}
@@ -125,7 +125,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	// Get public offline messages which larger than PubMsgID
 	pMsgs, err := GetMessages(Conf.PKey, m.PubMsgID)
 	if err != nil {
-		Log.Error("get public messages error(%v)", err)
+		Log.Error("GetMessages(\"%s\", \"%d\") error(%v)", Conf.PKey, m.PubMsgID, err)
 		rw.Ret = myrpc.InternalErr
 		return nil
 	}
@@ -196,11 +196,11 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 // Clean offline message interface
 func (r *MessageRPC) CleanKey(key string, ret *int) error {
 	if err := DelKey(key); err != nil {
-		Log.Error("clean offline message error(%v)", err)
+		Log.Error("clean offline message key:\"%s\" error(%v)", key, err)
 		*ret = myrpc.InternalErr
 		return nil
 	}
-	Log.Info("Clean Offline message key(\"%s\") OK", key)
+	Log.Info("Clean Offline message key:\"%s\" OK", key)
 
 	return nil
 }

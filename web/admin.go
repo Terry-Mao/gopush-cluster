@@ -125,7 +125,7 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(data))
 
-		Log.Info("request:push_public, quest_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
+		Log.Info("request:push_public, request_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
 	}(&bodyStr)
 
 	// Get params
@@ -138,7 +138,7 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log.Error("ioutil.ReadAll() quest_url:\"%s\" error(%v)", r.URL.String(), err)
+		Log.Error("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
 		ret = InternalErr
 		return
 	}
@@ -204,13 +204,13 @@ func AdminNodeAdd(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(data))
 
-		Log.Info("request:node_add, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+		Log.Info("request:node_add, request_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
 
 	// Get params
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log.Error("ioutil.ReadAll() quest_url:\"%s\" error(%v)", r.URL.String(), err)
+		Log.Error("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
 		ret = InternalErr
 		return
 	}
@@ -263,13 +263,13 @@ func AdminNodeDel(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(data))
 
-		Log.Info("request:node_del, quest_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+		Log.Info("request:node_del, request_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
 
 	// Get params
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log.Error("ioutil.ReadAll() quest_url:\"%s\" error(%v)", r.URL.String(), err)
+		Log.Error("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
 		ret = InternalErr
 		return
 	}
@@ -319,13 +319,13 @@ func AdminMsgClean(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(data))
 
-		Log.Info("request:clean_cache, quest_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
+		Log.Info("request:clean_cache, request_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
 	}(&bodyStr)
 
 	// Get params
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log.Error("ioutil.ReadAll() quest_url:\"%s\" error(%v)", r.URL.String(), err)
+		Log.Error("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
 		ret = InternalErr
 		return
 	}
@@ -370,7 +370,7 @@ func AdminMsgClean(rw http.ResponseWriter, r *http.Request) {
 
 	// RPC call ChannelRPC.Close interface
 	if err := svrInfo.PubRPC.Call("ChannelRPC.Close", key, &ret); err != nil {
-		Log.Error("RPC.Call(\"ChannelRPC.Close\") server:\"%v\" error(%v)", svrInfo.SubAddr, err)
+		Log.Error("RPC.Call(\"ChannelRPC.Close\") server:\"%v\" key:\"%s\" error(%v)", svrInfo.SubAddr, key, err)
 		ret = InternalErr
 		return
 	}
