@@ -29,28 +29,32 @@ gopush-cluster
  * 利用Zookeeper支持故障转移
 
 ## 安装
-### 一、搭建zookeeper
-1.下载[zookeeper](http://www.apache.org/dyn/closer.cgi/zookeeper/)，推荐下载3.4.5版本
-
-2.解压包（这里解压到 /data/programfiles/zookeeper-3.4.5下面 ）
+### 一、安装依赖
 ```sh
-$ mkdir -p /data/programfiles
-$ cp ./zookeeper-3.4.5.tar.gz /data/programfiles
-$ cd /data/programfiles/
-$ tar -xvf zookeeper-3.4.5.tar.gz -C ./
+$ yum -y install java-1.7.0-openjdk$ yum -y install gcc-c++
+```
+### 二、搭建zookeeper
+1.新建目录
+```sh
+$ mkdir -p /data/apps$ mkdir -p /data/logs$ mkdir -p /data/programfiles
+```
+2.下载[zookeeper](http://www.apache.org/dyn/closer.cgi/zookeeper/)，推荐下载3.4.5版本
+```sh
+$ cd /data/programfiles$ wget http://mirror.bit.edu.cn/apache/zookeeper/zookeeper-3.4.5/zookeeper-3.4.5.tar.gz$ tar -xvf zookeeper-3.4.5.tar.gz -C ./
 ```
 3.编译及安装
 ``` sh
 $ cd zookeeper-3.4.5/src/c
 $ ./configure
 $ make && make install
+$ cp /data/programfiles/zookeeper-3.4.5/conf/zoo_sample.cfg /data/programfiles/zookeeper-3.4.5/conf/zoo.cfg
 ```
 4.启动zookeeper(zookeeper配置在这里不做详细介绍)
 ```sh
 $ cd /data/programfiles/zookeeper-3.4.5/bin
 $ nohup ./zkServer.sh start &
 ```
-### 二、搭建redis
+### 三、搭建redis
 ```sh
 $ cd /data/programfiles
 $ wget https://redis.googlecode.com/files/redis-2.6.4.tar.gz
@@ -61,13 +65,24 @@ $ make test
 $ make install
 $ mkdir /etc/redis
 $ cp /data/programfiles/redis-2.6.4/redis.conf /etc/redis/
+$ cp /data/programfiles/redis-2.6.4/src/redis-server /etc/init.d/redis-server
 $ /etc/init.d/redis-server /etc/redis/redis.conf
 ```
-### 三、安装git工具（如果已安装则可跳过此步）
+* 如果如下报错,则安装tcl8.5（参考附资料5）
+which: no tclsh8.5 in (/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/geffzhang/bin)
+You need 'tclsh8.5' in order to run the Redis test
+Make[1]: *** [test] error 1
+make[1]: Leaving directory ‘/data/program files/redis-2.6.4/src’
+Make: *** [test] error 2
+### 四、安装git工具（如果已安装则可跳过此步）
 参考：[git](http://git-scm.com/download/linux)
-### 四、搭建golang环境
+```sh
+$ yum -y install git
+```
+### 五、搭建golang环境
 1.下载源码(根据自己的系统下载对应的安装包)
 ```sh
+$ cd /data/programfiles
 $ wget https://go.googlecode.com/files/go1.2.linux-amd64.tar.gz
 $ tar -xvf go1.2.linux-amd64.tar.gz
 $ cp -R go /usr/local/
@@ -80,8 +95,9 @@ $ vim etc/profile
 export GOROOT=/usr/local/go
 export PATH=$PATH:$GOROOT/bin
 export GOPATH=/data/app/go
+$ source /etc/profile
 ```
-### 五、部署gopush-cluster
+### 六、部署gopush-cluster
 1.下载gopush-cluster及依赖包
 ```sh
 $ go get -u github.com/Terry-Mao/gopush-cluster
@@ -116,7 +132,7 @@ $ go install
 $ cp web.conf /data/app/go/bin/
 ```
 到此所有的环境都搭建完成！
-### 六、启动gopush-cluster
+### 七、启动gopush-cluster
 ```sh
 $ cd /$GOPATH/bin
 $ nohup ./message -c message.conf &
@@ -126,7 +142,7 @@ $ nohup ./web -c web.conf &
 * 如果报错如下(参考附资料4)
 
 error while loading shared libraries: libzookeeper_mt.so.2: cannot open shared object file: No such file or directory
-### 七、测试
+### 八、测试
 1.推送公信（消息过期时间为expire=600秒）
 ```sh
 $ curl -d "test2" http://localhost:8091/admin/push/public?expire=600
@@ -168,7 +184,7 @@ $ curl -d "test" http://localhost:8091/admin/push?key=Terry-Mao\&expire=600\&gid
     "ret":0
 }
 ```
-### 八、附资料
+### 九、附资料
 1.下载安装[hg](code.google.com/p/go.net/websocket)
 ```sh
 $ wget http://mercurial.selenic.com/release/mercurial-1.4.1.tar.gz 
@@ -176,6 +192,14 @@ $ tar -xvf mercurial-1.4.1.tar.gz
 $ cd mercurial-1.4.1
 $ make
 $ make install
+```
+* 如果安装提示找不到文件‘Python.h’ 则需要安装 python-devel
+```sh
+$ yum -y install python-devel
+```
+* 如果报错：couldn`t find libraries,则添加环境变量
+```sh
+$ export PYTHONPATH=/usr/local/lib64/python2.6/site-packages
 ```
 2.下载安装bzr(只为下载包：launchpad.net/gozk/zookeeper)
 ```sh
@@ -194,6 +218,10 @@ $ vim $GOPATH/src/launchpad.net/gozk/zookeeper/zk.go
 ```sh
 $ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 $ sudo ldconfig
+```
+5.安装tcl8.5
+```sh
+$ cd /data/programfiles$ wget http://downloads.sourceforge.net/tcl/tcl8.5.10-src.tar.gz$ tar -xvf tcl8.5.10-src.tar.gz -C ./$ cd tcl8.5.10$ cd unix$ ./configure$ make$ make install
 ```
 
 ## 配置
