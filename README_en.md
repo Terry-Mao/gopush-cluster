@@ -30,21 +30,25 @@ gopush-cluster
  * failover support (zookeeper)
 
 ## Installation
-### zookeeper
-1.download [zookeeper](http://www.apache.org/dyn/closer.cgi/zookeeper/),suggest version:'3.4.5'.
-
-2.unzip package
+### Dependencies
 ```sh
-$ mkdir -p /data/programfiles
-$ cp ./zookeeper-3.4.5.tar.gz /data/programfiles
-$ cd /data/programfiles/
-$ tar -xvf zookeeper-3.4.5.tar.gz -C ./
+$ yum -y install java-1.7.0-openjdk$ yum -y install gcc-c++
+```
+### zookeeper
+1.mkdir
+```sh
+$ mkdir -p /data/apps$ mkdir -p /data/logs$ mkdir -p /data/programfiles
+```
+2.download [zookeeper](http://www.apache.org/dyn/closer.cgi/zookeeper/),suggest version:'3.4.5'.
+```sh
+$ cd /data/programfiles$ wget http://mirror.bit.edu.cn/apache/zookeeper/zookeeper-3.4.5/zookeeper-3.4.5.tar.gz$ tar -xvf zookeeper-3.4.5.tar.gz -C ./
 ```
 3.compile && install
 ``` sh
 $ cd zookeeper-3.4.5/src/c
 $ ./configure
 $ make && make install
+$ cp /data/programfiles/zookeeper-3.4.5/conf/zoo_sample.cfg /data/programfiles/zookeeper-3.4.5/conf/zoo.cfg
 ```
 4.start zookeeper
 ```sh
@@ -62,10 +66,21 @@ $ make test
 $ make install
 $ mkdir /etc/redis
 $ cp /data/programfiles/redis-2.6.4/redis.conf /etc/redis/
+$ cp /data/programfiles/redis-2.6.4/src/redis-server /etc/init.d/redis-server
 $ /etc/init.d/redis-server /etc/redis/redis.conf
 ```
+* if following error, see FAQ 5
+
+which: no tclsh8.5 in (/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/geffzhang/bin)
+You need 'tclsh8.5' in order to run the Redis test
+Make[1]: *** [test] error 1
+make[1]: Leaving directory ‘/data/program files/redis-2.6.4/src’
+Make: *** [test] error 2！
 ### git
 reference:[git](http://git-scm.com/download/linux)
+```sh
+$ yum -y install git
+```
 
 ### golang
 1.download
@@ -84,6 +99,7 @@ $ vim ~/.profile
 export GOROOT=/usr/local/go
 export PATH=$PATH:$GOROOT/bin
 export GOPATH=/data/app/go
+$ source /etc/profile
 ```
 ### gopush-cluster
 1.download gopush-cluster
@@ -227,6 +243,10 @@ $ vim $GOPATH/src/launchpad.net/gozk/zookeeper/zk.go
 ```sh
 $ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 $ sudo ldconfig
+```
+5.install tcl8.5
+```sh
+$ cd /data/programfiles$ wget http://downloads.sourceforge.net/tcl/tcl8.5.10-src.tar.gz$ tar -xvf tcl8.5.10-src.tar.gz -C ./$ cd tcl8.5.10$ cd unix$ ./configure$ make$ make install
 ```
 
 ## LICENSE
