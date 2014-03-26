@@ -73,7 +73,8 @@ which: no tclsh8.5 in (/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/l
 You need 'tclsh8.5' in order to run the Redis test
 Make[1]: *** [test] error 1
 make[1]: Leaving directory ‘/data/program files/redis-2.6.4/src’
-Make: *** [test] error 2
+Make: *** [test] error 2！
+
 ### 四、安装git工具（如果已安装则可跳过此步）
 参考：[git](http://git-scm.com/download/linux)
 ```sh
@@ -119,7 +120,7 @@ package launchpad.net/gozk/zookeeper: exec: "bzr": executable file not found in 
 launchpad.net/gozk/zookeeper
 ../zk.go:15:23: error: zookeeper.h: No such file or directory
 
-3.安装message、comet、web模块
+2.安装message、comet、web模块
 ```sh
 $ cd $GOPATH/src/github.com/Terry-Mao/gopush-cluster/message
 $ go install
