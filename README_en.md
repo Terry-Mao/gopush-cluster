@@ -39,7 +39,7 @@ $ yum -y install java-1.7.0-openjdk$ yum -y install gcc-c++
 ```sh
 $ mkdir -p /data/apps$ mkdir -p /data/logs$ mkdir -p /data/programfiles
 ```
-2.download [zookeeper](http://www.apache.org/dyn/closer.cgi/zookeeper/),suggest version:'3.4.5'.
+2.download [zookeeper](http://www.apache.org/dyn/closer.cgi/zookeeper/), suggest version: '3.4.5'.
 ```sh
 $ cd /data/programfiles$ wget http://mirror.bit.edu.cn/apache/zookeeper/zookeeper-3.4.5/zookeeper-3.4.5.tar.gz$ tar -xvf zookeeper-3.4.5.tar.gz -C ./
 ```
@@ -70,12 +70,13 @@ $ cp /data/programfiles/redis-2.6.4/src/redis-server /etc/init.d/redis-server
 $ /etc/init.d/redis-server /etc/redis/redis.conf
 ```
 * if following error, see FAQ 5
-
+```sh
 which: no tclsh8.5 in (/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/geffzhang/bin)
 You need 'tclsh8.5' in order to run the Redis test
 Make[1]: *** [test] error 1
 make[1]: Leaving directory ‘/data/program files/redis-2.6.4/src’
 Make: *** [test] error 2！
+```
 ### git
 reference:[git](http://git-scm.com/download/linux)
 ```sh
@@ -226,6 +227,14 @@ $ tar -xvf mercurial-1.4.1.tar.gz
 $ cd mercurial-1.4.1
 $ make
 $ make install
+```
+* if error couldn`t find ‘Python.h’
+```sh
+$ yum -y install python-devel
+```
+* if error：couldn`t find libraries
+```sh
+$ export PYTHONPATH=/usr/local/lib64/python2.6/site-packages
 ```
 2.install bzr
 ```sh

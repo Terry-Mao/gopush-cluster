@@ -69,13 +69,13 @@ $ cp /data/programfiles/redis-2.6.4/src/redis-server /etc/init.d/redis-server
 $ /etc/init.d/redis-server /etc/redis/redis.conf
 ```
 * 如果如下报错,则安装tcl8.5(参考附资料5)
-
+```sh
 which: no tclsh8.5 in (/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/geffzhang/bin)
 You need 'tclsh8.5' in order to run the Redis test
 Make[1]: *** [test] error 1
 make[1]: Leaving directory ‘/data/program files/redis-2.6.4/src’
 Make: *** [test] error 2！
-
+```
 ### 四、安装git工具（如果已安装则可跳过此步）
 参考：[git](http://git-scm.com/download/linux)
 ```sh
@@ -111,10 +111,12 @@ $ go get -u launchpad.net/gozk/zookeeper
 * 如果提示如下,说明需要安装谷歌的hg工具（安装mercurial,参考附资料1）
 
 go: missing Mercurial command. See http://golang.org/s/gogetcmd
+
 package code.google.com/p/go.net/websocket: exec: "hg": executable file not found in $PATH
 * 如果提示如下,说明需要安装bzr工具（参考附资料2）
 
 go: missing Bazaar command. See http://golang.org/s/gogetcmd
+
 package launchpad.net/gozk/zookeeper: exec: "bzr": executable file not found in $PATH
 * 如果提示如下,此时gozk已经下载下来了,需要修改gozk的cgo路径（参考附资料3）
 
