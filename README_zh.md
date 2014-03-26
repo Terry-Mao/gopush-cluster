@@ -68,7 +68,7 @@ $ cp /data/programfiles/redis-2.6.4/redis.conf /etc/redis/
 $ cp /data/programfiles/redis-2.6.4/src/redis-server /etc/init.d/redis-server
 $ /etc/init.d/redis-server /etc/redis/redis.conf
 ```
-* 如果如下报错,则安装tcl8.5（参考附资料5）
+* 如果如下报错,则安装tcl8.5(参考附资料5)
 which: no tclsh8.5 in (/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/geffzhang/bin)
 You need 'tclsh8.5' in order to run the Redis test
 Make[1]: *** [test] error 1
