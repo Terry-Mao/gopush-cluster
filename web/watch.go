@@ -3,9 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/Terry-Mao/gopush-cluster/hash"
-	timeID "github.com/Terry-Mao/gopush-cluster/id"
-	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
+	"../hash"
+	timeID "../id"
+	myrpc "../rpc"
 	"launchpad.net/gozk/zookeeper"
 	"net/rpc"
 	"sort"

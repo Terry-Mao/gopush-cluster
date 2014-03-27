@@ -19,7 +19,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/Terry-Mao/gopush-cluster/hash"
+	"../hash"
 	"github.com/garyburd/redigo/redis"
 )
 

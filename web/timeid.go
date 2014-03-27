@@ -18,7 +18,7 @@ package main
 
 import (
 	"fmt"
-	timeID "github.com/Terry-Mao/gopush-cluster/id"
+	timeID "../id"
 	"launchpad.net/gozk/zookeeper"
 	"sort"
 	"strings"

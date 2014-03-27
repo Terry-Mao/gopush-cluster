@@ -17,7 +17,7 @@
 package main
 
 import (
-	"code.google.com/p/go.net/websocket"
+	"github.com/gdier/go-net-websocket"
 	"net"
 	"net/http"
 	"strconv"

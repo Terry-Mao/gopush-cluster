@@ -18,7 +18,7 @@ package main
 
 import (
 	"encoding/json"
-	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
+	myrpc "../rpc"
 	"io"
 	"io/ioutil"
 	"net/http"
