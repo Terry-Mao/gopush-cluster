@@ -48,7 +48,7 @@ type Config struct {
 	PprofBind     []string `goconf:"base:pprof.bind:,"`
 	StatBind      []string `goconf:"base:stat.bind:,"`
 	// zookeeper
-	ZookeeperAddr    string        `goconf:"zookeeper:addr"`
+	ZookeeperAddr    []string      `goconf:"zookeeper:addr:,"`
 	ZookeeperTimeout time.Duration `goconf:"zookeeper:timeout:time"`
 	ZookeeperPath    string        `goconf:"zookeeper:path"`
 	ZookeeperNode    string        `goconf:"zookeeper:node"`
@@ -85,7 +85,7 @@ func InitConfig(file string) (*Config, error) {
 		PprofBind:     []string{"localhost:6971"},
 		StatBind:      []string{"localhost:6972"},
 		// zookeeper
-		ZookeeperAddr:    "localhost:2181",
+		ZookeeperAddr:    []string{"localhost:2181"},
 		ZookeeperTimeout: 8 * time.Hour,
 		ZookeeperPath:    "/gopush-cluster",
 		ZookeeperNode:    "node1",

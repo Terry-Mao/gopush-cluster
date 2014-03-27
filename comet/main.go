@@ -65,13 +65,13 @@ func main() {
 	// start comet
 	StartComet()
 	// init zookeeper
-	zk, err := InitZookeeper()
+	zkConn, err := InitZK()
 	if err != nil {
 		Log.Error("InitZookeeper() error(%v)", err)
 		return
 	}
 	// if process exit, close zk
-	defer zk.Close()
+	defer zkConn.Close()
 	// init process
 	// sleep one second, let the listen start
 	time.Sleep(time.Second)

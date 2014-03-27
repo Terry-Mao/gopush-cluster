@@ -106,13 +106,13 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 		reply := myrpc.OK
 		if err := MsgRPC.Call("MessageRPC.Save", args, &reply); err != nil {
 			c.mutex.Unlock()
-			Log.Error("MessageRPC.Save error(%v)", err)
+			Log.Error("MessageRPC.Save(\"%s\", %v) error(%v)", key, m, err)
 			return err
 		}
 		// message save failed
 		if reply != myrpc.OK {
 			c.mutex.Unlock()
-			Log.Error("MessageRPC.Save error(ret=%d)", reply)
+			Log.Error("MessageRPC.Save(\"%s\", %v) error(ret=%d)", key, m, reply)
 			return ErrMessageSave
 		}
 	}
@@ -120,7 +120,6 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 	b, err := m.Bytes()
 	if err != nil {
 		c.mutex.Unlock()
-		Log.Error("message.Bytes() error(%v)", err)
 		return err
 	}
 	// push message
@@ -128,12 +127,12 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 		conn, _ := e.Value.(*Connection)
 		// do something with e.Value
 		if n, err := conn.Write(b); err != nil {
-			Log.Error("conn.Write() error(%v)", err)
+			Log.Error("user_key:\"%s\" conn.Write() error(%v)", key, err)
 			failed++
 			continue
 		} else {
 			succeed++
-			Log.Debug("conn.Write %d bytes", n)
+			Log.Error("user_key:\"%s\" conn.Write %d bytes", key, n)
 		}
 	}
 	c.mutex.Unlock()
