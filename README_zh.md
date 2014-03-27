@@ -96,7 +96,7 @@ $ vim etc/profile
 # 将以下环境变量添加到profile最后面
 export GOROOT=/usr/local/go
 export PATH=$PATH:$GOROOT/bin
-export GOPATH=/data/app/go
+export GOPATH=/data/apps/go
 $ source /etc/profile
 ```
 ### 六、部署gopush-cluster
@@ -130,10 +130,10 @@ $ go install
 $ cp message.conf $GOPATH/bin/
 $ cd ../comet/
 $ go install
-$ cp comet-example.conf /data/app/go/bin/
+$ cp comet-example.conf /data/apps/go/bin/
 $ cd ../web/
 $ go install
-$ cp web.conf /data/app/go/bin/
+$ cp web.conf /data/apps/go/bin/
 ```
 到此所有的环境都搭建完成！
 ### 七、启动gopush-cluster

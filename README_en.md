@@ -99,7 +99,7 @@ $ vim ~/.profile
 # append
 export GOROOT=/usr/local/go
 export PATH=$PATH:$GOROOT/bin
-export GOPATH=/data/app/go
+export GOPATH=/data/apps/go
 $ source /etc/profile
 ```
 ### gopush-cluster
@@ -136,10 +136,10 @@ $ go install
 $ cp message.conf $GOPATH/bin/
 $ cd ../comet/
 $ go install
-$ cp comet-example.conf /data/app/go/bin/
+$ cp comet-example.conf /data/apps/go/bin/
 $ cd ../web/
 $ go install
-$ cp web.conf /data/app/go/bin/
+$ cp web.conf /data/apps/go/bin/
 ```
 All done!!!
 
