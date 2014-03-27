@@ -16,10 +16,10 @@ import (
 var (
 	// Zookeeper connection
 	zk *zookeeper.Conn
-	// Ketama algorithm for Comet
+	// Ketama algorithm for check Comet node
 	CometHash *hash.Ketama
-	// Store the first alive server of every node
-	// If there is no alive server under the node, the value will be nil, but key is exist in map
+	// Store the first alive Comet service of every node
+	// If there is no alive service under the node, the map`s value will be nil, but key is exist in map
 	NodeInfoMap = make(map[string]*NodeInfo)
 )
 
@@ -54,7 +54,7 @@ func InitWatch() error {
 	}
 	zk = zkTmp
 
-	// Zookeeper client will reconnecting automatically
+	// Zookeeper client will reconnect automatically
 	for {
 		event := <-session
 		if event.State < zookeeper.STATE_CONNECTING {
@@ -68,11 +68,12 @@ func InitWatch() error {
 		}
 	}
 
+	Log.Info("Initialize zookeeper OK")
+
 	// Zookeeper create Public message subnode
 	if err := zkCreate(); err != nil {
 		return err
 	}
-	Log.Info("Initialize zookeeper OK")
 
 	// Init public message mid-creater
 	PubMID = timeID.NewTimeID()
@@ -91,7 +92,7 @@ func WatchStop() {
 
 // zkCreate zookeeper init subnode
 func zkCreate() error {
-	// Create zk public message lock root path
+	// Create zk public message-lock root path
 	Log.Debug("create zookeeper path:%s", Conf.ZKPIDPath)
 	_, err := zk.Create(Conf.ZKPIDPath, "", 0, zookeeper.WorldACL(zookeeper.PERM_ALL))
 	if err != nil {
@@ -282,7 +283,7 @@ func watchFirstService(node string) {
 			}
 			NodeInfoMap = tmpMap
 
-			// Update Comet hash, cause nodes are changed
+			// Update Comet hash, cause node has changed
 			CometHash = hash.NewKetama2(nodes, 255)
 		}
 	}()
@@ -290,7 +291,7 @@ func watchFirstService(node string) {
 	for {
 		subNodes, watch, err := getNodesW(path)
 		if err != nil {
-			// If no subNode, then recheck repeatedly
+			// If no subNode, then check repeatedly
 			if err == ErrNoChild {
 				Log.Warn("get service of node:\"%s\" error(%v), recheck after 5 seconds", node, err)
 				time.Sleep(5 * time.Second)

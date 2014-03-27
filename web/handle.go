@@ -48,7 +48,7 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 		result["msg"] = GetErrMsg(ret)
 		data, _ := json.Marshal(result)
 
-		Log.Info("request:Get_server, quest_url:\"%s\", response_json:\"%s\", ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
+		Log.Info("request:Get_server, request_url:\"%s\", response_json:\"%s\", ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
 
 		dataStr := ""
 		if callback == "" {
@@ -128,7 +128,7 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		result["msg"] = GetErrMsg(ret)
 		data, _ := json.Marshal(result)
 
-		Log.Info("request:Get_messages, quest_url:\"%s\", response_json:\"%s\"), ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
+		Log.Info("request:Get_messages, request_url:\"%s\", response_json:\"%s\"), ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
 
 		dataStr := ""
 		if callback == "" {
@@ -164,9 +164,9 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If one of midI or pMidI is 0, then response nil message,
-	// avoid client bug that always use the default value 0 of type int64 or long,so get the repetitive messages.
-	// When client install, the first it needs to request url /time/get and get the initial mid
+	// TODO: If one of midI or pMidI is 0, then respond nil message,
+	// for avoid client`s bug that always use the default 0 of integer variable,so that receive the repetitive messages.
+	// After the client installed, the first it needs to request url /time/get and get the initial message id
 	//if midI == 0 || pMidI == 0 {
 	//	ret = OK
 	//	return
@@ -229,7 +229,7 @@ func TimeGet(rw http.ResponseWriter, r *http.Request) {
 		result["msg"] = GetErrMsg(ret)
 		data, _ := json.Marshal(result)
 
-		Log.Info("request:Get_server_time, quest_url:\"%s\", response_json:\"%s\", ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
+		Log.Info("request:Get_server_time, request_url:\"%s\", response_json:\"%s\", ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
 
 		dataStr := ""
 		if callback == "" {
