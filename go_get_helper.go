@@ -17,7 +17,8 @@
 package main
 
 import (
-    "./message"
-    "./comet"
-    "./web"
+    "github.com/Terry-Mao/goconf"
+    "github.com/gdier/go-net-websocket"
+    "github.com/garyburd/redigo/redis"
+    "launchpad.net/gozk/zookeeper"
 )
