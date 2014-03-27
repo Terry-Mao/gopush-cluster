@@ -19,7 +19,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"launchpad.net/gozk/zookeeper"
+	"github.com/gdier/gozk-zookeeper"
 	"strings"
 )
 

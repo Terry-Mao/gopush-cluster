@@ -19,7 +19,7 @@ package main
 import (
 	"fmt"
 	timeID "../id"
-	"launchpad.net/gozk/zookeeper"
+	"github.com/gdier/gozk-zookeeper"
 	"sort"
 	"strings"
 )
