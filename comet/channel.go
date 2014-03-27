@@ -19,8 +19,8 @@ package main
 import (
 	"errors"
 	"fmt"
-	"../hash"
-	"../hlist"
+	"github.com/Terry-Mao/gopush-cluster/hash"
+	"github.com/Terry-Mao/gopush-cluster/hlist"
 	"net"
 	"sync"
 )

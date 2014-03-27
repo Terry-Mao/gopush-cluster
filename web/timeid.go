@@ -18,7 +18,7 @@ package main
 
 import (
 	"fmt"
-	timeID "../id"
+	timeID "github.com/Terry-Mao/gopush-cluster/id"
 	"github.com/gdier/gozk-zookeeper"
 	"sort"
 	"strings"

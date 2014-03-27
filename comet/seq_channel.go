@@ -18,9 +18,9 @@ package main
 
 import (
 	"errors"
-	"../hlist"
-	"../id"
-	myrpc "../rpc"
+	"github.com/Terry-Mao/gopush-cluster/hlist"
+	"github.com/Terry-Mao/gopush-cluster/id"
+	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"sync"
 )
 

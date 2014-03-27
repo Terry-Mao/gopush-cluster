@@ -17,7 +17,7 @@
 package main
 
 import (
-	myrpc "../rpc"
+	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net/rpc"
 	"time"
 )
