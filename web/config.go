@@ -43,7 +43,7 @@ type Config struct {
 	Dir         string        `goconf:"base:dir"`
 	LogPath     string        `goconf:"log:path"`
 	LogLevel    string        `goconf:"log:level"`
-	ZKAddr      string        `goconf:"zookeeper:addr"`
+	ZKAddr      []string      `goconf:"zookeeper:addr:,"`
 	ZKTimeout   time.Duration `goconf:"zookeeper:timeout:time"`
 	ZKCometPath string        `goconf:"zookeeper:cometpath"`
 	ZKPIDPath   string        `goconf:"zookeeper:pidpath"`
@@ -70,7 +70,7 @@ func NewConfig(file string) (*Config, error) {
 		Dir:         "./",
 		LogPath:     "./web.log",
 		LogLevel:    "DEBUG",
-		ZKAddr:      ":2181",
+		ZKAddr:      []string{":2181"},
 		ZKTimeout:   8 * time.Hour,
 		ZKCometPath: "/gopush-cluster",
 		ZKPIDPath:   "/gopush-pid",

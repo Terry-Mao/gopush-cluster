@@ -23,7 +23,6 @@ import (
 	"github.com/Terry-Mao/gopush-cluster/process"
 	"net"
 	"net/http"
-	"os"
 	"runtime"
 	"time"
 )
@@ -41,60 +40,53 @@ func main() {
 	// Parse cmd-line arguments
 	flag.Parse()
 	signalCH := InitSignal()
-
 	// Load config
 	Conf, err = NewConfig(ConfFile)
 	if err != nil {
-		panic(err)
+		Log.Error("NewConfig(\"%s\") error(%v)", ConfFile, err)
+		return
 	}
-
 	// Set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
-
 	// Load log
 	if Log, err = log.New(Conf.LogPath, Conf.LogLevel); err != nil {
-		panic(err)
+		Log.Error("log.New(\"%s\", %s) error(%v)", Conf.LogPath, Conf.LogLevel, err)
+		return
 	}
-	Log.Debug("initialize config %v", *Conf)
-
+	// if process exit, close log
+	defer Log.Close()
+	Log.Info("web start")
 	// Initialize zookeeper
-	if err := InitWatch(); err != nil {
-		Log.Error("InitWatch() failed(%v)", err)
-		os.Exit(-1)
+	zk, err := InitZK()
+	if err != nil {
+		Log.Error("InitZK() failed(%v)", err)
+		return
 	}
-
-	// Begin watch nodes
-	if err := BeginWatchNode(); err != nil {
-		Log.Error("BeginWatchNode() failed(%v)", err)
-		os.Exit(-1)
-	}
-
+	// if process exit, close zk
+	defer zk.Close()
 	// Initialize message server client
 	if err := InitMsgSvrClient(); err != nil {
 		Log.Error("InitMsgSvrClient() failed(%v)", err)
-		os.Exit(-1)
+		return
 	}
-
+	// Clost message service client
+	defer MsgSvrClose()
 	// start pprof http
 	perf.Init(Conf.PprofBind)
-
 	// Internal admin handle
 	go func() {
 		adminServeMux := http.NewServeMux()
-
 		adminServeMux.HandleFunc("/admin/push", AdminPushPrivate)
 		adminServeMux.HandleFunc("/admin/push/public", AdminPushPublic)
 		adminServeMux.HandleFunc("/admin/node/add", AdminNodeAdd)
 		adminServeMux.HandleFunc("/admin/node/del", AdminNodeDel)
 		adminServeMux.HandleFunc("/admin/msg/clean", AdminMsgClean)
-
 		err := http.ListenAndServe(Conf.AdminAddr, adminServeMux)
 		if err != nil {
 			Log.Error("http.ListenAndServe(\"%s\") failed(%v)", Conf.AdminAddr, err)
-			os.Exit(-1)
+			panic(err)
 		}
 	}()
-
 	// Start service
 	go func() {
 		// External service handle
@@ -102,34 +94,26 @@ func main() {
 		httpServeMux.HandleFunc("/server/get", ServerGet)
 		httpServeMux.HandleFunc("/msg/get", MsgGet)
 		httpServeMux.HandleFunc("/time/get", TimeGet)
-
 		server := &http.Server{Handler: httpServeMux, ReadTimeout: httpReadTimeout * time.Second}
 		l, err := net.Listen("tcp", Conf.Addr)
 		if err != nil {
 			Log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", Conf.Addr, err)
-			os.Exit(-1)
+			panic(err)
 		}
 		if err := server.Serve(l); err != nil {
 			Log.Error("server.Serve(\"%s\") error(%v)", Conf.Addr, err)
-			os.Exit(-1)
+			panic(err)
 		}
 	}()
-
 	// init process
 	// sleep one second, let the listen start
 	time.Sleep(time.Second)
 	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
 		Log.Error("process.Init() error(%v)", err)
-		os.Exit(-1)
+		return
 	}
-
 	// init signals, block wait signals
 	Log.Info("Web service start")
 	HandleSignal(signalCH)
-
-	// Clost message service client
-	MsgSvrClose()
-	// Stop watch
-	WatchStop()
 	Log.Warn("Web service end")
 }

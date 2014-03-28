@@ -80,15 +80,10 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 	}
 	bodyStr = string(body)
 
-	// TODO:If there is not a node then CometHash.Node() will panic
-	if NodeQuantity() == 0 {
-		ret = NoNodeErr
-		return
-	}
 	// Match a push-server with the value computed through ketama algorithm
-	svrInfo := GetNode(CometHash.Node(key))
+	svrInfo := FindNode(key)
 	if svrInfo == nil || svrInfo.PubRPC == nil {
-		Log.Error("no node:\"%s\"", CometHash.Node(key))
+		Log.Error("no node for key: \"%s\"", key)
 		ret = NoNodeErr
 		return
 	}
@@ -96,7 +91,7 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 	// RPC call publish interface
 	args := &myrpc.ChannelPushPrivateArgs{GroupID: groupID, Msg: string(body), Expire: expire, Key: key}
 	if err := svrInfo.PubRPC.Call("ChannelRPC.PushPrivate", args, &ret); err != nil {
-		Log.Error("RPC.Call(\"ChannelRPC.PushPrivate\") server:\"%v\" error(%v)", svrInfo.SubAddr, err)
+		Log.Error("RPC.Call(\"ChannelRPC.PushPrivate\") server:\"%v\" error(%v)", svrInfo.Addr, err)
 		ret = InternalErr
 		return
 	}
@@ -144,17 +139,20 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 	}
 	bodyStr = string(body)
 
-	// Lock here, make sure that get the unique mid
-	lockYes, pathCreated, err := PubMIDLock()
-	if pathCreated != "" {
-		defer PubMIDLockRelease(pathCreated)
-	}
-	if err != nil || lockYes == false {
-		Log.Error("PubMIDLock error(%v)", err)
-		ret = InternalErr
-		return
-	}
-	mid := PubMID.ID()
+	/*
+		// Lock here, make sure that get the unique mid
+		lockYes, pathCreated, err := PubMIDLock()
+		if pathCreated != "" {
+			defer PubMIDLockRelease(pathCreated)
+		}
+		if err != nil || lockYes == false {
+			Log.Error("PubMIDLock error(%v)", err)
+			ret = InternalErr
+			return
+		}
+		mid := PubMID.ID()
+	*/
+	mid := int64(0)
 
 	// Save public message
 	expire = time.Now().Add(time.Duration(expire) * time.Second).UnixNano()
@@ -175,7 +173,7 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 		// RPC call publish interface
 		args := &myrpc.ChannelPushPublicArgs{MsgID: mid, Msg: string(body)}
 		if err := info.PubRPC.Call("ChannelRPC.PushPublic", args, &ret); err != nil {
-			Log.Error("RPC.Call(\"ChannelRPC.PushPublic\") server:\"%v\" error(%v)", info.SubAddr, err)
+			Log.Error("RPC.Call(\"ChannelRPC.PushPublic\") server:\"%v\" error(%v)", info.Addr, err)
 			ret = InternalErr
 			return
 		}
@@ -227,18 +225,6 @@ func AdminNodeAdd(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add a node
-	if err := AddNode(node); err != nil {
-		if err == ErrNodeExist {
-			ret = NodeExist
-		} else {
-			ret = InternalErr
-		}
-
-		Log.Error("add node:\"%s\" error(%v)", node, err)
-		return
-	}
-
 	ret = OK
 	return
 }
@@ -283,14 +269,6 @@ func AdminNodeDel(rw http.ResponseWriter, r *http.Request) {
 	node := values.Get("node")
 	if node == "" {
 		ret = ParamErr
-		return
-	}
-
-	// Add a watch for node
-	Log.Debug("del node:\"%s\"", node)
-	if err := DelNode(node); err != nil {
-		Log.Error("del node error(%v)", err)
-		ret = InternalErr
 		return
 	}
 
@@ -355,22 +333,17 @@ func AdminMsgClean(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO:If there is not a node then CometHash.Node() will panic
-	if NodeQuantity() == 0 {
-		ret = NoNodeErr
-		return
-	}
 	// Match a push-server with the value computed through ketama algorithm
-	svrInfo := GetNode(CometHash.Node(key))
+	svrInfo := FindNode(key)
 	if svrInfo == nil || svrInfo.PubRPC == nil {
-		Log.Error("no node:\"%s\"", CometHash.Node(key))
+		Log.Error("no node for key: \"%s\"", key)
 		ret = NoNodeErr
 		return
 	}
 
 	// RPC call ChannelRPC.Close interface
 	if err := svrInfo.PubRPC.Call("ChannelRPC.Close", key, &ret); err != nil {
-		Log.Error("RPC.Call(\"ChannelRPC.Close\") server:\"%v\" key:\"%s\" error(%v)", svrInfo.SubAddr, key, err)
+		Log.Error("RPC.Call(\"ChannelRPC.Close\") server:\"%v\" key:\"%s\" error(%v)", svrInfo.Addr, key, err)
 		ret = InternalErr
 		return
 	}

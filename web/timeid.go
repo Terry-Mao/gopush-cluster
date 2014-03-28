@@ -17,28 +17,41 @@
 package main
 
 import (
-	"fmt"
 	timeID "github.com/Terry-Mao/gopush-cluster/id"
-	"launchpad.net/gozk/zookeeper"
-	"sort"
-	"strings"
+	"github.com/samuel/go-zookeeper/zk"
 )
 
-// Public message id-creater
-var PubMID *timeID.TimeID
+// public message id-creater
+var (
+	PubMID *LockTimeID
+)
 
+type LockTimeID struct {
+	conn *zk.Conn
+	id   *timeID.TimeID
+}
+
+func NewLockTimeID(conn *zk.Conn) *LockTimeID {
+	return &LockTimeID{conn: conn, id: timeID.NewTimeID()}
+}
+
+func (t *LockTimeID) ID() {
+	// TODO
+}
+
+/*
 // PubMIDLock public message mid lock, make sure that get the unique mid
-func PubMIDLock() (bool, string, error) {
+func (t *LockTimeID) Lock() (bool, string, error) {
 	prefix := "p"
 	splitSign := "@"
-	pathCreated, err := zk.Create(fmt.Sprintf("%s/%s%s", Conf.ZKPIDPath, prefix, splitSign),
+	pathCreated, err := t.conn.Create(fmt.Sprintf("%s/%s%s", Conf.ZKPIDPath, prefix, splitSign),
 		"0", zookeeper.EPHEMERAL|zookeeper.SEQUENCE, zookeeper.WorldACL(zookeeper.PERM_ALL))
 	if err != nil {
 		return false, pathCreated, fmt.Errorf("zk.Create(%s/%s%s) error(%v)", Conf.ZKPIDPath, prefix, splitSign, err)
 	}
 
 	for {
-		childrens, stat, err := zk.Children(Conf.ZKPIDPath)
+		childrens, stat, err := t.conn.Children(Conf.ZKPIDPath)
 		if err != nil {
 			return false, pathCreated, fmt.Errorf("zk.Children(%s) error(%v)", Conf.ZKPIDPath, err)
 		}
@@ -66,7 +79,7 @@ func PubMIDLock() (bool, string, error) {
 		if posReal > 0 {
 			// Watch the last one
 			watchPath := fmt.Sprintf("%s/%s", Conf.ZKPIDPath, realQueue[posReal-1])
-			_, watch, err := zk.ExistsW(watchPath)
+			_, watch, err := t.conn.ExistsW(watchPath)
 			if err != nil || zookeeper.IsError(err, zookeeper.ZNONODE) {
 				return false, pathCreated, fmt.Errorf("zk.ExistsW(%s) error(%v) or no node", watchPath, err)
 			}
@@ -96,3 +109,4 @@ func PubMIDLockRelease(pathCreated string) error {
 	}
 	return nil
 }
+*/

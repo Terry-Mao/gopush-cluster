@@ -77,13 +77,8 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO:If there is not a node then CometHash.Node() will panic
-	if NodeQuantity() == 0 {
-		ret = NoNodeErr
-		return
-	}
 	// Match a push-server with the value computed through ketama algorithm
-	svrInfo := GetNode(CometHash.Node(key))
+	svrInfo := FindNode(key)
 	if svrInfo == nil {
 		ret = NoNodeErr
 		return
@@ -91,13 +86,13 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 
 	// Fill the server infomation into response json
 	data := &ServerGetData{}
-	addr := svrInfo.SubAddr[protoI]
-	if addr == "" {
+	addr := svrInfo.Addr[protoI]
+	if addr == nil || len(addr) == 0 {
 		ret = UnknownProtocol
 		return
 	}
-	data.Server = addr
-
+	// TODO select the best ip
+	data.Server = addr[0]
 	result["data"] = data
 	ret = OK
 	return
@@ -245,6 +240,6 @@ func TimeGet(rw http.ResponseWriter, r *http.Request) {
 	val := r.URL.Query()
 	callback = val.Get("callback")
 
-	result["data"] = &TimeGetData{TimeID: PubMID.ID()}
+	//result["data"] = &TimeGetData{TimeID: PubMID.ID()}
 	ret = OK
 }
