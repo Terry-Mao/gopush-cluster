@@ -86,7 +86,7 @@ func InitConfig(file string) (*Config, error) {
 		StatBind:      []string{"localhost:6972"},
 		// zookeeper
 		ZookeeperAddr:    []string{"localhost:2181"},
-		ZookeeperTimeout: 8 * time.Hour,
+		ZookeeperTimeout: 30 * time.Second,
 		ZookeeperPath:    "/gopush-cluster",
 		ZookeeperNode:    "node1",
 		// rpc

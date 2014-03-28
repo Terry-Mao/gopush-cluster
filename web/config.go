@@ -71,7 +71,7 @@ func NewConfig(file string) (*Config, error) {
 		LogPath:     "./web.log",
 		LogLevel:    "DEBUG",
 		ZKAddr:      []string{":2181"},
-		ZKTimeout:   8 * time.Hour,
+		ZKTimeout:   30 * time.Second,
 		ZKCometPath: "/gopush-cluster",
 		ZKPIDPath:   "/gopush-pid",
 		MsgAddr:     ":8070",
