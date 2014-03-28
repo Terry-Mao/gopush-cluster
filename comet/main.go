@@ -40,7 +40,7 @@ func main() {
 		Log.Error("NewConfig(\"%s\") error(%v)", ConfFile, err)
 		return
 	}
-	// Set max routine
+	// set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
 	// init log
 	if Log, err = log.New(Conf.LogFile, Conf.LogLevel); err != nil {

@@ -78,11 +78,12 @@ func InitZK() (*zk.Conn, error) {
 		data += fmt.Sprintf("rpc://%s,", addr)
 	}
 	data = strings.TrimRight(data, ",")
-	tpath, err = conn.Create(fpath, []byte(data), zk.FlagEphemeral|zk.FlagSequence, zk.WorldACL(zk.PermAll))
+	tpath, err = conn.Create(fpath+"/", []byte(data), zk.FlagEphemeral|zk.FlagSequence, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		Log.Error("conn.Create(\"%s\", \"%s\", zk.FlagEphemeral|zk.FlagSequence) error(%v)", fpath, data, err)
 		return nil, err
 	}
 	Log.Debug("create a zookeeper node:%s", tpath)
+    // TODO watch
 	return conn, nil
 }
