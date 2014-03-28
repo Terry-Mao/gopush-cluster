@@ -84,6 +84,7 @@ type NodeEvent struct {
 
 func InitZK() (*zk.Conn, error) {
 	// connect to zookeeper, get event from chan in goroutine(log)
+    Log.Debug("zk timeout: %d", Conf.ZKTimeout)
 	conn, session, err := zk.Connect(Conf.ZKAddr, Conf.ZKTimeout)
 	if err != nil {
 		Log.Error("zk.Connect(\"%v\", %d) error(%v)", Conf.ZKAddr, Conf.ZKTimeout, err)
@@ -209,6 +210,7 @@ func registerNode(conn *zk.Conn, node, path string) (*NodeInfo, error) {
 		return nil, ErrCometRPC
 	}
 	info.PubRPC = r
+    Log.Info("zk path: \"%s\" register nodes: \"%s\"", path, node)
 	return info, nil
 }
 
@@ -249,6 +251,9 @@ func handleNodeEvent(conn *zk.Conn, path string, ch chan *NodeEvent) {
 func getNodes(conn *zk.Conn, path string) ([]string, error) {
 	nodes, stat, err := conn.Children(path)
 	if err != nil {
+        if err == zk.ErrNoNode {
+		    return nil, ErrNodeNotExist
+        }
 		Log.Error("zk.Children(\"%s\") error(%v)", path)
 		return nil, err
 	}
@@ -265,7 +270,10 @@ func getNodes(conn *zk.Conn, path string) ([]string, error) {
 func getNodesW(conn *zk.Conn, path string) ([]string, <-chan zk.Event, error) {
 	nodes, stat, watch, err := conn.ChildrenW(path)
 	if err != nil {
-		Log.Error("zk.Children(\"%s\") error(%v)", path)
+        if err == zk.ErrNoNode {
+		    return nil, nil, ErrNodeNotExist
+        }
+		Log.Error("zk.Children(\"%s\") error(%v)", path, err)
 		return nil, nil, err
 	}
 	if stat == nil {
