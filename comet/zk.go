@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"github.com/samuel/go-zookeeper/zk"
 	"strings"
+	"time"
 )
 
 func InitZK() (*zk.Conn, error) {
@@ -84,6 +85,27 @@ func InitZK() (*zk.Conn, error) {
 		return nil, err
 	}
 	Log.Debug("create a zookeeper node:%s", tpath)
-    // TODO watch
+	// watch self
+	go func() {
+		for {
+			Log.Info("zk path: \"%s\" set a watch", tpath)
+			exist, _, watch, err := conn.ExistsW(tpath)
+			if err != nil {
+				Log.Error("zk.ExistsW(\"%s\") error(%v)", tpath, err)
+				Log.Warn("zk path: \"%s\" set watch failed, comet kill itself", tpath)
+				KillSelf()
+				return
+			}
+
+			if !exist {
+				Log.Warn("zk path: \"%s\" not exist, comet kill itself", tpath)
+				KillSelf()
+				return
+			}
+
+			event := <-watch
+			Log.Info("zk path: \"%s\" receive a event %v", tpath, event)
+		}
+	}()
 	return conn, nil
 }

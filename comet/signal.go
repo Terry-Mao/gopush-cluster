@@ -34,7 +34,7 @@ func HandleSignal(c chan os.Signal) {
 	// Block until a signal is received.
 	for {
 		s := <-c
-		Log.Info("get a signal %s", s.String())
+		Log.Info("comet get a signal %s", s.String())
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGSTOP, syscall.SIGINT:
 			return
@@ -44,5 +44,11 @@ func HandleSignal(c chan os.Signal) {
 		default:
 			return
 		}
+	}
+}
+
+func KillSelf() {
+	if err := syscall.Kill(os.Getpid(), sys.SIGQUIT); err != nil {
+		Log.Error("syscall.Kill(%d, SIGQUIT) error(%v)", os.Getpid(), err)
 	}
 }
