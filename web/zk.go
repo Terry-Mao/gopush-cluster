@@ -68,7 +68,7 @@ type NodeInfo struct {
 
 // Close close the node rpc connection.
 func (n *NodeInfo) Close() {
-	if n.PubRPC != nil {
+	if n != nil && n.PubRPC != nil {
 		if err := n.PubRPC.Close(); err != nil {
 			Log.Error("rpc.Close() error(%v)", err)
 		}
@@ -123,6 +123,9 @@ func watchRoot(conn *zk.Conn, path string, ch chan *NodeEvent) error {
 			continue
 		} else if err == ErrNoChild {
 			Log.Warn("zk don't have any children in \"%s\", retry in %d second", path, waitNodeDelay)
+			for node, _ := range NodeInfoMap {
+				ch <- &NodeEvent{Event: EventNodeDel, Key: node}
+			}
 			time.Sleep(waitNodeDelaySecond)
 			continue
 		} else if err != nil {
@@ -237,6 +240,7 @@ func handleNodeEvent(conn *zk.Conn, path string, ch chan *NodeEvent) {
 			tmpMap[ev.Key] = nil
 			go watchNode(conn, ev.Key, path)
 		} else if ev.Event == EventNodeDel {
+			Log.Info("del node: %s", ev.Key)
 			if n, ok := tmpMap[ev.Key]; ok {
 				delete(tmpMap, ev.Key)
 				n.Close()
