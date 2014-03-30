@@ -48,7 +48,7 @@ func HandleSignal(c chan os.Signal) {
 }
 
 func KillSelf() {
-	if err := syscall.Kill(os.Getpid(), sys.SIGQUIT); err != nil {
+	if err := syscall.Kill(os.Getpid(), syscall.SIGQUIT); err != nil {
 		Log.Error("syscall.Kill(%d, SIGQUIT) error(%v)", os.Getpid(), err)
 	}
 }

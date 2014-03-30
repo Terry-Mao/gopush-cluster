@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"github.com/samuel/go-zookeeper/zk"
 	"strings"
-	"time"
 )
 
 func InitZK() (*zk.Conn, error) {
