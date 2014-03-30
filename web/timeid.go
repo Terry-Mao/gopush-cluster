@@ -36,7 +36,7 @@ func NewLockTimeID(conn *zk.Conn) *LockTimeID {
 }
 
 func (t *LockTimeID) ID() {
-	// TODO
+	// TODO test
 }
 
 /*
