@@ -84,7 +84,7 @@ type NodeEvent struct {
 
 func InitZK() (*zk.Conn, error) {
 	// connect to zookeeper, get event from chan in goroutine(log)
-    Log.Debug("zk timeout: %d", Conf.ZKTimeout)
+	Log.Debug("zk timeout: %d", Conf.ZKTimeout)
 	conn, session, err := zk.Connect(Conf.ZKAddr, Conf.ZKTimeout)
 	if err != nil {
 		Log.Error("zk.Connect(\"%v\", %d) error(%v)", Conf.ZKAddr, Conf.ZKTimeout, err)
@@ -130,14 +130,20 @@ func watchRoot(conn *zk.Conn, path string, ch chan *NodeEvent) error {
 			time.Sleep(waitNodeDelaySecond)
 			continue
 		}
+		nodesMap := make(map[string]bool, len(nodes))
 		// handle new add nodes
 		for _, node := range nodes {
-			ch <- &NodeEvent{Event: EventNodeAdd, Key: node}
+			if _, ok := NodeInfoMap[node]; !ok {
+				ch <- &NodeEvent{Event: EventNodeAdd, Key: node}
+			}
+			nodesMap[node] = true
 		}
 		// handle delete nodes
-		//for node, info := range NodeInfoMap {
-		// TODO MAP
-		//}
+		for node, _ := range NodeInfoMap {
+			if _, ok := nodesMap[node]; !ok {
+				ch <- &NodeEvent{Event: EventNodeDel, Key: node}
+			}
+		}
 		// blocking wait node changed
 		event := <-watch
 		Log.Info("zk path: \"%s\" receive a event %v", path, event)
@@ -210,7 +216,7 @@ func registerNode(conn *zk.Conn, node, path string) (*NodeInfo, error) {
 		return nil, ErrCometRPC
 	}
 	info.PubRPC = r
-    Log.Info("zk path: \"%s\" register nodes: \"%s\"", path, node)
+	Log.Info("zk path: \"%s\" register nodes: \"%s\"", path, node)
 	return info, nil
 }
 
@@ -251,9 +257,9 @@ func handleNodeEvent(conn *zk.Conn, path string, ch chan *NodeEvent) {
 func getNodes(conn *zk.Conn, path string) ([]string, error) {
 	nodes, stat, err := conn.Children(path)
 	if err != nil {
-        if err == zk.ErrNoNode {
-		    return nil, ErrNodeNotExist
-        }
+		if err == zk.ErrNoNode {
+			return nil, ErrNodeNotExist
+		}
 		Log.Error("zk.Children(\"%s\") error(%v)", path)
 		return nil, err
 	}
@@ -270,9 +276,9 @@ func getNodes(conn *zk.Conn, path string) ([]string, error) {
 func getNodesW(conn *zk.Conn, path string) ([]string, <-chan zk.Event, error) {
 	nodes, stat, watch, err := conn.ChildrenW(path)
 	if err != nil {
-        if err == zk.ErrNoNode {
-		    return nil, nil, ErrNodeNotExist
-        }
+		if err == zk.ErrNoNode {
+			return nil, nil, ErrNodeNotExist
+		}
 		Log.Error("zk.Children(\"%s\") error(%v)", path, err)
 		return nil, nil, err
 	}
