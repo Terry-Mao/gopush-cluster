@@ -254,7 +254,7 @@ func handleNodeEvent(conn *zk.Conn, path string, ch chan *NodeEvent) {
 		NodeInfoMap = tmpMap
 		// update comet hash, cause node has changed
 		cometHash = hash.NewKetama2(nodes, 255)
-        Log.Debug("NodeInfoMap len: %d", len(NodeInfoMap))
+		Log.Debug("NodeInfoMap len: %d", len(NodeInfoMap))
 	}
 }
 
