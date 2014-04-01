@@ -49,7 +49,6 @@ func main() {
 	}
 	// if process exit, close log
 	defer Log.Close()
-	Log.Info("comet start")
 	// create channel
 	UserChannel = NewChannelList()
 	// if process exit, close channel
@@ -79,6 +78,7 @@ func main() {
 		Log.Error("process.Init() error(%v)", err)
 		return
 	}
+	Log.Info("comet start")
 	// init signals, block wait signals
 	HandleSignal(signalCH)
 	// exit

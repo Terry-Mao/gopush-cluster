@@ -100,6 +100,9 @@ func (k *Ketama) initCircle2(node []string) {
 
 // Node get a consistent hashing node by key
 func (k *Ketama) Node(key string) string {
+    if len(k.nodes) == 0 {
+        return ""
+    }
 	h := NewMurmur3C()
 	h.Write([]byte(key))
 	idx := searchLeft(k.nodes, uint(h.Sum32()))

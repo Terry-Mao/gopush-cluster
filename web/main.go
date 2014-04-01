@@ -55,7 +55,6 @@ func main() {
 	}
 	// if process exit, close log
 	defer Log.Close()
-	Log.Info("web start")
 	// Initialize zookeeper
 	zk, err := InitZK()
 	if err != nil {

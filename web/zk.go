@@ -225,9 +225,9 @@ func registerNode(conn *zk.Conn, node, path string) (*NodeInfo, error) {
 
 // handleNodeEvent add and remove NodeInfo, copy the src map to a new map then replace the variable.
 func handleNodeEvent(conn *zk.Conn, path string, ch chan *NodeEvent) {
-	var nodes []string
 	for {
 		ev := <-ch
+        nodes := []string{}
 		// copy map from src
 		tmpMap := make(map[string]*NodeInfo)
 		for n, i := range NodeInfoMap {
