@@ -227,12 +227,10 @@ func registerNode(conn *zk.Conn, node, path string) (*NodeInfo, error) {
 func handleNodeEvent(conn *zk.Conn, path string, ch chan *NodeEvent) {
 	for {
 		ev := <-ch
-        nodes := []string{}
 		// copy map from src
 		tmpMap := make(map[string]*NodeInfo)
 		for n, i := range NodeInfoMap {
 			tmpMap[n] = i
-			nodes = append(nodes, n)
 		}
 		// handle event
 		if ev.Event == EventNodeAdd {
@@ -253,6 +251,10 @@ func handleNodeEvent(conn *zk.Conn, path string, ch chan *NodeEvent) {
 		// use the tmpMap atomic replace the global NodeInfoMap
 		NodeInfoMap = tmpMap
 		// update comet hash, cause node has changed
+		nodes := make([]string, len(tmpMap))
+		for k, _ := range tmpMap {
+			nodes = append(nodes, k)
+		}
 		cometHash = hash.NewKetama2(nodes, 255)
 		Log.Debug("NodeInfoMap len: %d", len(NodeInfoMap))
 	}
