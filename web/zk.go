@@ -38,8 +38,9 @@ const (
 	ProtocolRPCStr  = "rpc"
 
 	// node event
-	EventNodeAdd = 1
-	EventNodeDel = 2
+	EventNodeAdd    = 1
+	EventNodeDel    = 2
+	EventNodeUpdate = 3
 
 	// wait node
 	waitNodeDelay       = 5
@@ -68,7 +69,7 @@ type NodeInfo struct {
 
 // Close close the node rpc connection.
 func (n *NodeInfo) Close() {
-	if n != nil && n.PubRPC != nil {
+	if n.PubRPC != nil {
 		if err := n.PubRPC.Close(); err != nil {
 			Log.Error("rpc.Close() error(%v)", err)
 		}
@@ -78,6 +79,8 @@ func (n *NodeInfo) Close() {
 type NodeEvent struct {
 	// node name(node1, node2...)
 	Key string
+	// node info
+	Value *NodeInfo
 	// event type
 	Event int
 }
@@ -154,7 +157,7 @@ func watchRoot(conn *zk.Conn, path string, ch chan *NodeEvent) error {
 }
 
 // watchNode watch a named node for leader selection when failover
-func watchNode(conn *zk.Conn, node, path string) {
+func watchNode(conn *zk.Conn, node, path string, ch chan *NodeEvent) {
 	path = fmt.Sprintf("%s/%s", path, node)
 	for {
 		nodes, watch, err := getNodesW(conn, path)
@@ -173,10 +176,13 @@ func watchNode(conn *zk.Conn, node, path string) {
 		// leader selection
 		sort.Strings(nodes)
 		// register node
-		if _, err := registerNode(conn, nodes[0], path); err != nil {
+		if info, err := registerNode(conn, nodes[0], path); err != nil {
 			Log.Error("zk path: \"%s\" registerNode error(%v)", path, err)
 			time.Sleep(waitNodeDelaySecond)
 			continue
+		} else {
+			// update node info
+			ch <- &NodeEvent{Event: EventNodeUpdate, Key: node, Value: info}
 		}
 		// blocking receive event
 		event := <-watch
@@ -199,13 +205,7 @@ func registerNode(conn *zk.Conn, node, path string) (*NodeInfo, error) {
 		Log.Error("parseNode(\"%s\") error(%v)", string(data), err)
 		return nil, err
 	}
-	// if exist old node info, then replace(leader selection)
-	info, ok := NodeInfoMap[node]
-	if ok {
-		info.Addr = addr
-		info.Close()
-	}
-	info = &NodeInfo{Addr: addr}
+	info := &NodeInfo{Addr: addr}
 	rpcAddr, ok := addr[ProtocolRPC]
 	if !ok || len(rpcAddr) == 0 {
 		Log.Crit("zk nodes: \"%s\" don't have rpc addr", path)
@@ -228,25 +228,31 @@ func handleNodeEvent(conn *zk.Conn, path string, ch chan *NodeEvent) {
 	for {
 		ev := <-ch
 		// copy map from src
-		tmpMap := make(map[string]*NodeInfo)
-		for n, i := range NodeInfoMap {
-			tmpMap[n] = i
+		tmpMap := make(map[string]*NodeInfo, len(NodeInfoMap))
+		for k, v := range NodeInfoMap {
+			tmpMap[k] = v
 		}
 		// handle event
 		if ev.Event == EventNodeAdd {
-			Log.Info("add node: %s", ev.Key)
+			Log.Info("add node: \"%s\"", ev.Key)
 			tmpMap[ev.Key] = nil
-			go watchNode(conn, ev.Key, path)
+			go watchNode(conn, ev.Key, path, ch)
 		} else if ev.Event == EventNodeDel {
-			Log.Info("del node: %s", ev.Key)
-			if n, ok := tmpMap[ev.Key]; ok {
-				delete(tmpMap, ev.Key)
-				n.Close()
-				Log.Info("remove node: %s", ev.Key)
-			}
+			Log.Info("del node: \"%s\"", ev.Key)
+			delete(tmpMap, ev.Key)
+		} else if ev.Event == EventNodeUpdate {
+			Log.Info("update node: \"%s\"", ev.Key)
+			tmpMap[ev.Key] = ev.Value
 		} else {
 			Log.Crit("unknown node event: %d", ev.Event)
 			panic("unknown node event")
+		}
+		// if exist old node info, close
+		if info, ok := NodeInfoMap[ev.Key]; ok {
+			if info != nil {
+				info.Close()
+				Log.Info("close old node info: \"%s\"", ev.Key)
+			}
 		}
 		// use the tmpMap atomic replace the global NodeInfoMap
 		NodeInfoMap = tmpMap
@@ -303,7 +309,9 @@ func FindNode(key string) *NodeInfo {
 	if cometHash == nil || len(NodeInfoMap) == 0 {
 		return nil
 	}
-	return NodeInfoMap[cometHash.Node(key)]
+	node := cometHash.Node(key)
+	Log.Debug("cometHash hits \"%s\"", node)
+	return NodeInfoMap[node]
 }
 
 // parseNode parse the protocol data, the data format like: ws://ip:port1,tcp://ip:port2,rpc://ip:port3
