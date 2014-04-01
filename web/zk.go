@@ -251,7 +251,7 @@ func handleNodeEvent(conn *zk.Conn, path string, ch chan *NodeEvent) {
 		// use the tmpMap atomic replace the global NodeInfoMap
 		NodeInfoMap = tmpMap
 		// update comet hash, cause node has changed
-		nodes := make([]string, len(tmpMap))
+		nodes := make([]string, 0, len(tmpMap))
 		for k, _ := range tmpMap {
 			nodes = append(nodes, k)
 		}
