@@ -44,11 +44,14 @@ type Config struct {
 	LogFile          string            `goconf:"base:logfile"`
 	LogLevel         string            `goconf:"base:loglevel"`
 	PprofBind        []string          `goconf:"base:pprof.bind:,"`
+	StorageType      string            `goconf:"storage:type"`
 	RedisIdleTimeout time.Duration     `goconf:"redis:idletimeout:time"`
 	RedisMaxIdle     int               `goconf:"redis:maxidle"`
 	RedisMaxActive   int               `goconf:"redis:maxactive"`
 	RedisMaxStore    int               `goconf:"redis:maxstore"`
+	MYSQLDelLoopTime time.Duration     `goconf:"mysql:dellooptime:time"`
 	RedisAddrs       map[string]string `goconf:"-"`
+	DBSource         map[string]string `goconf:"-"`
 }
 
 // Initialize config
@@ -69,17 +72,21 @@ func NewConfig(fileName string) (*Config, error) {
 		LogFile:          "./message.log",
 		LogLevel:         "DEBUG",
 		PprofBind:        []string{"localhost:8170"},
+		StorageType:      "redis",
 		RedisIdleTimeout: 28800 * time.Second,
 		RedisMaxIdle:     50,
 		RedisMaxActive:   1000,
 		RedisMaxStore:    20,
 		RedisAddrs:       make(map[string]string),
+		MYSQLDelLoopTime: 1 * time.Hour,
+		DBSource:         make(map[string]string),
 	}
 	if err := gconf.Unmarshal(conf); err != nil {
 		Log.Error("goconf.Unmarshal() error(%v)", err)
 		return nil, err
 	}
 
+	//Load redis addresses
 	redisAddrsSec := gconf.Get("redis.addr")
 	if redisAddrsSec != nil {
 		for _, key := range redisAddrsSec.Keys() {
@@ -88,6 +95,18 @@ func NewConfig(fileName string) (*Config, error) {
 				return nil, fmt.Errorf("config section:\"redis.addrs\" key:\"%s\" error(%v)", key, err)
 			}
 			conf.RedisAddrs[key] = addr
+		}
+	}
+
+	//Load mysql sources
+	dbSource := gconf.Get("mysql.source")
+	if dbSource != nil {
+		for _, key := range redisAddrsSec.Keys() {
+			source, err := redisAddrsSec.String(key)
+			if err != nil {
+				return nil, fmt.Errorf("config section:\"mysql.source\" key:\"%s\" error(%v)", key, err)
+			}
+			conf.DBSource[key] = source
 		}
 	}
 

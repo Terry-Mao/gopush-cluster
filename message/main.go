@@ -62,7 +62,7 @@ func main() {
 	perf.Init(Conf.PprofBind)
 
 	// Initialize redis
-	InitRedis()
+	InitStorage()
 
 	// Start rpc
 	Log.Info("Message service start")

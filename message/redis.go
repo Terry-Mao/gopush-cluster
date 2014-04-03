@@ -17,6 +17,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
@@ -29,18 +30,11 @@ const (
 
 var (
 	RedisNoConnErr = errors.New("can't get a redis conn")
-	redisPool      = map[string]*redis.Pool{}
-	redisHash      *hash.Ketama
 )
 
-// Struct for delele message
-type DelMessageInfo struct {
-	Key  string
-	Msgs []string
-}
-
 // Initialize redis pool, Initialize consistency hash ring
-func InitRedis() {
+func NewRedis() *RedisStorage {
+	redisPool := map[string]*redis.Pool{}
 	// Redis pool
 	for n, addr := range Conf.RedisAddrs {
 		tmp := addr
@@ -59,20 +53,26 @@ func InitRedis() {
 		}
 	}
 
-	// Consistent hashing
-	redisHash = hash.NewKetama(len(redisPool), 255)
+	return &RedisStorage{Pool: redisPool, Ketama: hash.NewKetama(len(redisPool), 255)}
 }
 
-// SaveMessage save offline messages
-func SaveMessage(key, msg string, mid int64) error {
-	conn := getRedisConn(key)
+type RedisStorage struct {
+	Pool   map[string]*redis.Pool
+	Ketama *hash.Ketama
+}
+
+// Save offline messages
+func (s *RedisStorage) Save(key string, msg *Message, mid int64) error {
+	conn := s.getConn(key)
 	if conn == nil {
 		return RedisNoConnErr
 	}
 	defer conn.Close()
 
+	message, _ := json.Marshal(*msg)
+
 	//ZADD
-	if err := conn.Send("ZADD", key, mid, msg); err != nil {
+	if err := conn.Send("ZADD", key, mid, string(message)); err != nil {
 		return err
 	}
 	//ZREMRANGEBYRANK
@@ -98,34 +98,15 @@ func SaveMessage(key, msg string, mid int64) error {
 	return nil
 }
 
-// GetMessages get all of offline messages which larger than mid
-func GetMessages(key string, mid int64) ([]string, error) {
-	conn := getRedisConn(key)
+// Get all of offline messages which larger than mid
+func (s *RedisStorage) Get(key string, mid int64) ([]string, error) {
+	conn := s.getConn(key)
 	if conn == nil {
 		return nil, RedisNoConnErr
 	}
 	defer conn.Close()
 
-	//ZREMRANGEBYRANK
-	if err := conn.Send("ZREMRANGEBYRANK", key, 0, -1*(Conf.RedisMaxStore+1)); err != nil {
-		return nil, err
-	}
-	//ZRANGEBYSCORE
-	if err := conn.Send("ZRANGEBYSCORE", key, fmt.Sprintf("(%d", mid), "+inf"); err != nil {
-		return nil, err
-	}
-
-	if err := conn.Flush(); err != nil {
-		return nil, err
-	}
-
-	//ZREMRANGEBYRANK Receive
-	_, err := conn.Receive()
-	if err != nil {
-		return nil, err
-	}
-	//ZRANGEBYSCORE Receive
-	reply, err := redis.Strings(conn.Receive())
+	reply, err := redis.Strings(conn.Do("ZRANGEBYSCORE", key, fmt.Sprintf("(%d", mid), "+inf"))
 	if err != nil {
 		return nil, err
 	}
@@ -133,9 +114,9 @@ func GetMessages(key string, mid int64) ([]string, error) {
 	return reply, nil
 }
 
-// Delete Message
-func DelMessages(info *DelMessageInfo) error {
-	conn := getRedisConn(info.Key)
+// Delete multiple message
+func (s *RedisStorage) DelMulti(info *DelMessageInfo) error {
+	conn := s.getConn(info.Key)
 	if conn == nil {
 		return RedisNoConnErr
 	}
@@ -161,14 +142,14 @@ func DelMessages(info *DelMessageInfo) error {
 	return nil
 }
 
-// Delete Key
-func DelKey(key string) error {
-	conn := getRedisConn(key)
+// Delete key
+func (s *RedisStorage) DelKey(key string) error {
+	conn := s.getConn(key)
 	if conn == nil {
 		return RedisNoConnErr
 	}
-
 	defer conn.Close()
+
 	_, err := conn.Do("DEL", key)
 	if err != nil {
 		return err
@@ -177,17 +158,16 @@ func DelKey(key string) error {
 	return nil
 }
 
-// getRedisConn get the redis connection of matching with key
-func getRedisConn(key string) redis.Conn {
+// Get the connection of matching with key
+func (s *RedisStorage) getConn(key string) redis.Conn {
 	node := defaultRedisNode
-	// if multiple redispool use ketama
-	if len(redisPool) != 1 {
-		node = redisHash.Node(key)
+	if len(s.Pool) > 1 {
+		node = s.Ketama.Node(key)
 	}
 
-	p, ok := redisPool[node]
+	p, ok := s.Pool[node]
 	if !ok {
-		Log.Warn("no exists key:\"%s\" in redisPool map", key)
+		Log.Warn("no exists key:\"%s\" in redis pool", key)
 		return nil
 	}
 

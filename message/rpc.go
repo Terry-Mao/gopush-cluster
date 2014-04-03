@@ -78,10 +78,9 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 	}
 
 	// Json.Marshal and save the message
-	recordMsg := Message{Msg: m.Msg, Expire: m.Expire, MsgID: m.MsgID}
-	message, _ := json.Marshal(recordMsg)
-	if err := SaveMessage(m.Key, string(message), m.MsgID); err != nil {
-		Log.Error("SaveMessage(\"%s\",\"%s\",\"%d\") error(%v)", m.Key, string(message), m.MsgID, err)
+	recordMsg := &Message{Msg: m.Msg, Expire: m.Expire, MsgID: m.MsgID}
+	if err := UseStorage.Save(m.Key, recordMsg, m.MsgID); err != nil {
+		Log.Error("UseStorage.Save(\"%s\",\"%v\",\"%d\") error(%v)", m.Key, *recordMsg, m.MsgID, err)
 		*ret = myrpc.InternalErr
 		return nil
 	}
@@ -99,10 +98,9 @@ func (r *MessageRPC) SavePub(m *myrpc.MessageSavePubArgs, ret *int) error {
 	}
 
 	// Json.Marshal and save the message
-	recordMsg := Message{Msg: m.Msg, Expire: m.Expire, MsgID: m.MsgID}
-	message, _ := json.Marshal(recordMsg)
-	if err := SaveMessage(Conf.PKey, string(message), m.MsgID); err != nil {
-		Log.Error("SaveMessage(\"%s\",\"%s\",\"%d\") error(%v)", Conf.PKey, string(message), m.MsgID, err)
+	recordMsg := &Message{Msg: m.Msg, Expire: m.Expire, MsgID: m.MsgID}
+	if err := UseStorage.Save(Conf.PKey, recordMsg, m.MsgID); err != nil {
+		Log.Error("UseStorage.Save(\"%s\",\"%v\",\"%d\") error(%v)", Conf.PKey, *recordMsg, m.MsgID, err)
 		*ret = myrpc.InternalErr
 		return nil
 	}
@@ -115,17 +113,17 @@ func (r *MessageRPC) SavePub(m *myrpc.MessageSavePubArgs, ret *int) error {
 func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) error {
 	Log.Info("request message (mid:%d,pmid:%d,key:%s)", m.MsgID, m.PubMsgID, m.Key)
 	// Get all of offline messages which larger than MsgID that corresponding to m.Key
-	msgs, err := GetMessages(m.Key, m.MsgID)
+	msgs, err := UseStorage.Get(m.Key, m.MsgID)
 	if err != nil {
-		Log.Error("GetMessages(\"%s\", \"%d\") error(%v)", m.Key, m.MsgID, err)
+		Log.Error("UseStorage.Get(\"%s\", \"%d\") error(%v)", m.Key, m.MsgID, err)
 		rw.Ret = myrpc.InternalErr
 		return nil
 	}
 
 	// Get public offline messages which larger than PubMsgID
-	pMsgs, err := GetMessages(Conf.PKey, m.PubMsgID)
+	pMsgs, err := UseStorage.Get(Conf.PKey, m.PubMsgID)
 	if err != nil {
-		Log.Error("GetMessages(\"%s\", \"%d\") error(%v)", Conf.PKey, m.PubMsgID, err)
+		Log.Error("UseStorage.Get(\"%s\", \"%d\") error(%v)", Conf.PKey, m.PubMsgID, err)
 		rw.Ret = myrpc.InternalErr
 		return nil
 	}
@@ -154,12 +152,10 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 			rw.Ret = myrpc.InternalErr
 			return nil
 		}
-
 		if tNow > msg.Expire {
 			delMsgs = append(delMsgs, msgs[i])
 			continue
 		}
-
 		data = append(data, msgs[i])
 	}
 	for i := 0; i < numPMsg; i++ {
@@ -195,7 +191,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 
 // Clean offline message interface
 func (r *MessageRPC) CleanKey(key string, ret *int) error {
-	if err := DelKey(key); err != nil {
+	if err := UseStorage.DelKey(key); err != nil {
 		Log.Error("clean offline message key:\"%s\" error(%v)", key, err)
 		*ret = myrpc.InternalErr
 		return nil
@@ -215,9 +211,9 @@ func (r *MessageRPC) Ping(p int, ret *int) error {
 func DelProc() {
 	for {
 		info := <-DelChan
-		if err := DelMessages(info); err != nil {
-			Log.Error("DelMessages(key:\"%s\", Msgs:\"%s\") error(%v)", info.Key, info.Msgs, err)
+		if err := UseStorage.DelMulti(info); err != nil {
+			Log.Error("UseStorage.DelMulti(key:\"%s\", Msgs:\"%s\") error(%v)", info.Key, info.Msgs, err)
 		}
-		Log.Info("DelMessages(key:\"%s\", Msgs:\"%s\") OK", info.Key, info.Msgs)
+		Log.Info("UseStorage.DelMulti(key:\"%s\", Msgs:\"%s\") OK", info.Key, info.Msgs)
 	}
 }
