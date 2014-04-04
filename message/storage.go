@@ -21,6 +21,16 @@ const (
 	StorageTypeMysql = "mysql"
 )
 
+// The Message struct
+type Message struct {
+	// Message
+	Msg string `json:"msg"`
+	// Message expired unixnano
+	Expire int64 `json:"expire"`
+	// Message id
+	MsgID int64 `json:"mid"`
+}
+
 // Struct for delele message
 type DelMessageInfo struct {
 	Key  string

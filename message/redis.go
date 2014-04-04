@@ -32,10 +32,14 @@ var (
 	RedisNoConnErr = errors.New("can't get a redis conn")
 )
 
-// Initialize redis pool, Initialize consistency hash ring
+type RedisStorage struct {
+	Pool   map[string]*redis.Pool
+	Ketama *hash.Ketama
+}
+
+// NewRedis initialize the redis pool and consistency hash ring.
 func NewRedis() *RedisStorage {
 	redisPool := map[string]*redis.Pool{}
-	// Redis pool
 	for n, addr := range Conf.RedisAddrs {
 		tmp := addr
 		// WARN: closures use
@@ -56,12 +60,7 @@ func NewRedis() *RedisStorage {
 	return &RedisStorage{Pool: redisPool, Ketama: hash.NewKetama(len(redisPool), 255)}
 }
 
-type RedisStorage struct {
-	Pool   map[string]*redis.Pool
-	Ketama *hash.Ketama
-}
-
-// Save offline messages
+// Save implements the Storage Save method.
 func (s *RedisStorage) Save(key string, msg *Message, mid int64) error {
 	conn := s.getConn(key)
 	if conn == nil {
@@ -70,7 +69,6 @@ func (s *RedisStorage) Save(key string, msg *Message, mid int64) error {
 	defer conn.Close()
 
 	message, _ := json.Marshal(*msg)
-
 	//ZADD
 	if err := conn.Send("ZADD", key, mid, string(message)); err != nil {
 		return err
@@ -98,7 +96,7 @@ func (s *RedisStorage) Save(key string, msg *Message, mid int64) error {
 	return nil
 }
 
-// Get all of offline messages which larger than mid
+// Save implements the Storage Get method.
 func (s *RedisStorage) Get(key string, mid int64) ([]string, error) {
 	conn := s.getConn(key)
 	if conn == nil {
@@ -114,7 +112,7 @@ func (s *RedisStorage) Get(key string, mid int64) ([]string, error) {
 	return reply, nil
 }
 
-// Delete multiple message
+// DelMulti implements the Storage DelMulti method.
 func (s *RedisStorage) DelMulti(info *DelMessageInfo) error {
 	conn := s.getConn(info.Key)
 	if conn == nil {
@@ -142,7 +140,7 @@ func (s *RedisStorage) DelMulti(info *DelMessageInfo) error {
 	return nil
 }
 
-// Delete key
+// DelKey implements the Storage DelKey method.
 func (s *RedisStorage) DelKey(key string) error {
 	conn := s.getConn(key)
 	if conn == nil {
@@ -158,7 +156,7 @@ func (s *RedisStorage) DelKey(key string) error {
 	return nil
 }
 
-// Get the connection of matching with key
+// getConn get the connection of matching with key using ketama hashing.
 func (s *RedisStorage) getConn(key string) redis.Conn {
 	node := defaultRedisNode
 	if len(s.Pool) > 1 {

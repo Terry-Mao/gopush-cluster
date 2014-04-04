@@ -36,7 +36,15 @@ var (
 	MYSQLNoDBErr = errors.New("can't get a mysql db")
 )
 
-// Initialize mysql pool, Initialize consistency hash ring
+// MySQL Storage struct
+type MYSQLStorage struct {
+    // n
+	Pool   map[string]*sql.DB
+	Ketama *hash.Ketama
+}
+
+
+// NewMYSQL initialize mysql pool and consistency hash ring
 func NewMYSQL() *MYSQLStorage {
 	dbPool := make(map[string]*sql.DB)
 	for n, source := range Conf.DBSource {
@@ -49,15 +57,12 @@ func NewMYSQL() *MYSQLStorage {
 		dbPool[n] = db
 	}
 
-	return &MYSQLStorage{Pool: dbPool, Ketama: hash.NewKetama(len(dbPool), 255)}
+	s := &MYSQLStorage{Pool: dbPool, Ketama: hash.NewKetama(len(dbPool), 255)}
+    go s.delLoop()
+    return s
 }
 
-type MYSQLStorage struct {
-	Pool   map[string]*sql.DB
-	Ketama *hash.Ketama
-}
-
-// Save offline messages
+// Save implements the Storage Save method.
 func (s *MYSQLStorage) Save(key string, msg *Message, mid int64) error {
 	db := s.getConn(key)
 	if db == nil {
@@ -66,7 +71,7 @@ func (s *MYSQLStorage) Save(key string, msg *Message, mid int64) error {
 
 	message, _ := json.Marshal(*msg)
 	now := time.Now()
-	//TODO:change msg.Expire to second
+	// TODO:change msg.Expire to second
 	_, err := db.Exec(saveSQL, key, 0, mid, msg.Expire, string(message), now, now)
 	if err != nil {
 		Log.Error("db.Exec(%s,%s,%d,%d,%d,%s,now,now) failed (%v)", saveSQL, key, 0, mid, msg.Expire, string(message), now, now, err)
@@ -76,7 +81,7 @@ func (s *MYSQLStorage) Save(key string, msg *Message, mid int64) error {
 	return nil
 }
 
-// Get all of offline messages which larger than mid
+// Get implements the Storage Get method.
 func (s *MYSQLStorage) Get(key string, mid int64) ([]string, error) {
 	db := s.getConn(key)
 	if db == nil {
@@ -103,19 +108,19 @@ func (s *MYSQLStorage) Get(key string, mid int64) ([]string, error) {
 	return msg, nil
 }
 
-// Delete multiple messages
+// DelMulti implements the Storage DelMulti method.
 func (s *MYSQLStorage) DelMulti(info *DelMessageInfo) error {
-	//TODO:nothing to do, cause delete operation run loop periodically
+	// WARN: nothing to do, cause delete operation run loop periodically
 	return nil
 }
 
-// Delete key
+// DelKey implements the Storage DelKey method.
 func (s *MYSQLStorage) DelKey(key string) error {
-	//TODO:nothing to do, cause delete operation run loop periodically
+	// WARN: nothing to do, cause delete operation run loop periodically
 	return nil
 }
 
-// Delete all of expired messages
+// DelAllExpired enumerate the nodes then delete all expired message.
 func (s *MYSQLStorage) DelAllExpired() error {
 	now := time.Now()
 	for _, db := range s.Pool {
@@ -129,7 +134,7 @@ func (s *MYSQLStorage) DelAllExpired() error {
 	return nil
 }
 
-// Get the connection of matching with key
+// getConn get the connection of matching with key using ketama hash 
 func (s *MYSQLStorage) getConn(key string) *sql.DB {
 	node := defaultMYSQLNode
 	if len(s.Pool) > 1 {
@@ -138,7 +143,7 @@ func (s *MYSQLStorage) getConn(key string) *sql.DB {
 
 	p, ok := s.Pool[node]
 	if !ok {
-		Log.Warn("no exists key:\"%s\" in redis pool", key)
+		Log.Warn("no exists key:\"%s\" in mysql pool", key)
 		return nil
 	}
 
@@ -146,7 +151,7 @@ func (s *MYSQLStorage) getConn(key string) *sql.DB {
 	return p
 }
 
-// Loop delete expired messages
+// delLoop delete expired messages peroridly.
 func (s *MYSQLStorage) delLoop() {
 	for {
 		if err := s.DelAllExpired(); err != nil {

@@ -30,16 +30,6 @@ var (
 	DelChan chan *DelMessageInfo
 )
 
-// The Message struct
-type Message struct {
-	// Message
-	Msg string `json:"msg"`
-	// Message expired unixnano
-	Expire int64 `json:"expire"`
-	// Message id
-	MsgID int64 `json:"mid"`
-}
-
 // RPC For receive offline messages
 type MessageRPC struct {
 }
