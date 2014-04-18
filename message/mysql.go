@@ -28,7 +28,7 @@ import (
 const (
 	defaultMYSQLNode = "node1"
 	saveSQL          = "INSERT INTO message(sub,gid,mid,expire,msg,ctime,mtime) VALUES(?,?,?,?,?,?,?)"
-	getSQL           = "SELECT msg FROM message WHERE key=? AND mid>? AND expire>?"
+	getSQL           = "SELECT msg FROM message WHERE sub=? AND mid>? AND expire>?"
 	delExpireSQL     = "DELETE FROM message WHERE expire<=?"
 )
 
@@ -38,11 +38,10 @@ var (
 
 // MySQL Storage struct
 type MYSQLStorage struct {
-    // n
+	// n
 	Pool   map[string]*sql.DB
 	Ketama *hash.Ketama
 }
-
 
 // NewMYSQL initialize mysql pool and consistency hash ring
 func NewMYSQL() *MYSQLStorage {
@@ -58,8 +57,8 @@ func NewMYSQL() *MYSQLStorage {
 	}
 
 	s := &MYSQLStorage{Pool: dbPool, Ketama: hash.NewKetama(len(dbPool), 255)}
-    go s.delLoop()
-    return s
+	go s.delLoop()
+	return s
 }
 
 // Save implements the Storage Save method.
@@ -89,7 +88,7 @@ func (s *MYSQLStorage) Get(key string, mid int64) ([]string, error) {
 	}
 
 	var msg []string
-	now := time.Now()
+	now := time.Now().Unix()
 	rows, err := db.Query(getSQL, key, mid, now)
 	if err != nil {
 		Log.Error("db.Query(%s,%s,%d,now) failed (%v)", getSQL, key, mid, err)
@@ -121,20 +120,27 @@ func (s *MYSQLStorage) DelKey(key string) error {
 }
 
 // DelAllExpired enumerate the nodes then delete all expired message.
-func (s *MYSQLStorage) DelAllExpired() error {
-	now := time.Now()
+func (s *MYSQLStorage) DelAllExpired() (int64, error) {
+	var affect int64
+	now := time.Now().Unix()
 	for _, db := range s.Pool {
-		_, err := db.Exec(delExpireSQL, now)
+		res, err := db.Exec(delExpireSQL, now)
 		if err != nil {
 			Log.Error("db.Exec(%s,now) failed (%v)", delExpireSQL, err)
-			return err
+			return 0, err
 		}
+		aff, err := res.RowsAffected()
+		if err != nil {
+			Log.Error("db.Exec(%s,now) failed (%v)", delExpireSQL, err)
+			return 0, err
+		}
+		affect += aff
 	}
 
-	return nil
+	return affect, nil
 }
 
-// getConn get the connection of matching with key using ketama hash 
+// getConn get the connection of matching with key using ketama hash
 func (s *MYSQLStorage) getConn(key string) *sql.DB {
 	node := defaultMYSQLNode
 	if len(s.Pool) > 1 {
@@ -154,13 +160,14 @@ func (s *MYSQLStorage) getConn(key string) *sql.DB {
 // delLoop delete expired messages peroridly.
 func (s *MYSQLStorage) delLoop() {
 	for {
-		if err := s.DelAllExpired(); err != nil {
+		affect, err := s.DelAllExpired()
+		if err != nil {
 			Log.Error("delete all of expired messages failed (%v)", err)
 			time.Sleep(Conf.MYSQLDelLoopTime)
 			continue
 		}
 
-		Log.Info("delete all of expired messages OK")
+		Log.Info("delete all of expired messages OK, count:\"%d\"", affect)
 		time.Sleep(Conf.MYSQLDelLoopTime)
 	}
 }
