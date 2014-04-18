@@ -101,8 +101,8 @@ func NewConfig(fileName string) (*Config, error) {
 	//Load mysql sources
 	dbSource := gconf.Get("mysql.source")
 	if dbSource != nil {
-		for _, key := range redisAddrsSec.Keys() {
-			source, err := redisAddrsSec.String(key)
+		for _, key := range dbSource.Keys() {
+			source, err := dbSource.String(key)
 			if err != nil {
 				return nil, fmt.Errorf("config section:\"mysql.source\" key:\"%s\" error(%v)", key, err)
 			}

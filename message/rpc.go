@@ -132,7 +132,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 		delMsgs  []string
 		delPMsgs []string
 		msg      = &Message{}
-		tNow     = time.Now().UnixNano()
+		tNow     = time.Now().Unix()
 	)
 
 	// Checkout expired offline messages
