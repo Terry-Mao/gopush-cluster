@@ -69,8 +69,7 @@ func (s *MYSQLStorage) Save(key string, msg *Message, mid int64) error {
 	}
 
 	message, _ := json.Marshal(*msg)
-	now := time.Now()
-	// TODO:change msg.Expire to second
+	now := time.Now().Unix()
 	_, err := db.Exec(saveSQL, key, 0, mid, msg.Expire, string(message), now, now)
 	if err != nil {
 		Log.Error("db.Exec(%s,%s,%d,%d,%d,%s,now,now) failed (%v)", saveSQL, key, 0, mid, msg.Expire, string(message), now, now, err)
