@@ -33,20 +33,21 @@ gopush-cluster
 ```sh
 $ yum -y install java-1.7.0-openjdk$ yum -y install gcc-c++
 ```
+
 ### 二、搭建zookeeper
 1.新建目录
 ```sh
 $ mkdir -p /data/apps$ mkdir -p /data/logs$ mkdir -p /data/programfiles
 ```
+
 2.下载[zookeeper](http://www.apache.org/dyn/closer.cgi/zookeeper/)，推荐下载3.4.5版本
 ```sh
-$ cd /data/programfiles$ wget http://mirror.bit.edu.cn/apache/zookeeper/zookeeper-3.4.5/zookeeper-3.4.5.tar.gz$ tar -xvf zookeeper-3.4.5.tar.gz -C ./
+$ cd /data/programfiles
+$ wget http://mirror.bit.edu.cn/apache/zookeeper/zookeeper-3.4.5/zookeeper-3.4.5.tar.gz
+$ tar -xvf zookeeper-3.4.5.tar.gz -C ./
 ```
 3.编译及安装
 ``` sh
-$ cd zookeeper-3.4.5/src/c
-$ ./configure
-$ make && make install
 $ cp /data/programfiles/zookeeper-3.4.5/conf/zoo_sample.cfg /data/programfiles/zookeeper-3.4.5/conf/zoo.cfg
 ```
 4.启动zookeeper(zookeeper配置在这里不做详细介绍)
@@ -85,14 +86,14 @@ $ yum -y install git
 1.下载源码(根据自己的系统下载对应的安装包)
 ```sh
 $ cd /data/programfiles
-$ wget https://go.googlecode.com/files/go1.2.linux-amd64.tar.gz
+$ wget -c --no-check-certificate https://go.googlecode.com/files/go1.2.linux-amd64.tar.gz
 $ tar -xvf go1.2.linux-amd64.tar.gz
 $ cp -R go /usr/local/
 ```
 2.配置GO环境变量
-(这里我加在/etc/profile)
+(这里我加在/etc/profile.d/gopush-cluster.sh)
 ```sh
-$ vim etc/profile
+$ vim /etc/profile.d/gopush-cluster.sh
 # 将以下环境变量添加到profile最后面
 export GOROOT=/usr/local/go
 export PATH=$PATH:$GOROOT/bin
@@ -102,11 +103,7 @@ $ source /etc/profile
 ### 六、部署gopush-cluster
 1.下载gopush-cluster及依赖包
 ```sh
-$ go get -u github.com/Terry-Mao/gopush-cluster
-$ go get -u github.com/Terry-Mao/goconf
-$ go get -u github.com/garyburd/redigo/redis
-$ go get -u code.google.com/p/go.net/websocket
-$ go get -u launchpad.net/gozk/zookeeper
+$ ./dependencies.sh
 ```
 * 如果提示如下,说明需要安装谷歌的hg工具（安装mercurial,参考附资料1）
 
@@ -117,45 +114,37 @@ package code.google.com/p/go.net/websocket: exec: "hg": executable file not foun
 
 go: missing Bazaar command. See http://golang.org/s/gogetcmd
 
-package launchpad.net/gozk/zookeeper: exec: "bzr": executable file not found in $PATH
-* 如果提示如下,此时gozk已经下载下来了,需要修改gozk的cgo路径（参考附资料3）
-
-launchpad.net/gozk/zookeeper
-../zk.go:15:23: error: zookeeper.h: No such file or directory
-
 2.安装message、comet、web模块
 ```sh
 $ cd $GOPATH/src/github.com/Terry-Mao/gopush-cluster/message
 $ go install
-$ cp message.conf $GOPATH/bin/
+$ cp message-example.conf $GOPATH/bin/message.conf
 $ cd ../comet/
 $ go install
-$ cp comet-example.conf /data/apps/go/bin/
+$ cp comet-example.conf /data/apps/go/bin/comet.conf
 $ cd ../web/
 $ go install
-$ cp web.conf /data/apps/go/bin/
+$ cp web-example.conf /data/apps/go/bin/web.conf
 ```
 到此所有的环境都搭建完成！
 ### 七、启动gopush-cluster
 ```sh
 $ cd /$GOPATH/bin
 $ nohup ./message -c message.conf &
-$ nohup ./comet -c comet-example.conf &
+$ nohup ./comet -c comet.conf &
 $ nohup ./web -c web.conf &
 ```
-* 如果报错如下(参考附资料4)
 
-error while loading shared libraries: libzookeeper_mt.so.2: cannot open shared object file: No such file or directory
 ### 八、测试
 1.推送公信（消息过期时间为expire=600秒）
 ```sh
-$ curl -d "test2" http://localhost:8091/admin/push/public?expire=600
+$ curl -d "test2" 'http://localhost:8091/admin/push/public?expire=600'
 ```
 成功返回：{"msg":"ok","ret":0}
 
 2.推送私信（消息过期时间为expire=600秒）
 ```sh
-$ curl -d "test" http://localhost:8091/admin/push?key=Terry-Mao\&expire=600\&gid=0
+$ curl -d "test" 'http://localhost:8091/admin/push?key=Terry-Mao&expire=600&gid=0'
 ```
 成功返回：{“msg":"ok","ret":0}
 
