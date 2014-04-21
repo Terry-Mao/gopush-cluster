@@ -69,7 +69,7 @@ $ cp /data/programfiles/redis-2.6.4/redis.conf /etc/redis/
 $ cp /data/programfiles/redis-2.6.4/src/redis-server /etc/init.d/redis-server
 $ /etc/init.d/redis-server /etc/redis/redis.conf
 ```
-* 如果如下报错,则安装tcl8.5(参考附资料5)
+* 如果如下报错,则安装tcl8.5(参考附资料2)
 ```sh
 which: no tclsh8.5 in (/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/geffzhang/bin)
 You need 'tclsh8.5' in order to run the Redis test
@@ -87,13 +87,12 @@ $ yum -y install git
 ```sh
 $ cd /data/programfiles
 $ wget -c --no-check-certificate https://go.googlecode.com/files/go1.2.linux-amd64.tar.gz
-$ tar -xvf go1.2.linux-amd64.tar.gz
-$ cp -R go /usr/local/
+$ tar -xvf go1.2.linux-amd64.tar.gz -C /usr/local
 ```
 2.配置GO环境变量
-(这里我加在/etc/profile.d/gopush-cluster.sh)
+(这里我加在/etc/profile.d/golang.sh)
 ```sh
-$ vim /etc/profile.d/gopush-cluster.sh
+$ vim /etc/profile.d/golang.sh
 # 将以下环境变量添加到profile最后面
 export GOROOT=/usr/local/go
 export PATH=$PATH:$GOROOT/bin
@@ -194,27 +193,16 @@ $ yum -y install python-devel
 ```sh
 $ export PYTHONPATH=/usr/local/lib64/python2.6/site-packages
 ```
-2.下载安装bzr(只为下载包：launchpad.net/gozk/zookeeper)
+2.安装tcl8.5
 ```sh
-$ yum install bzr.x86_64
-```
-3.修正cgo路径
-```sh
-$ vim $GOPATH/src/launchpad.net/gozk/zookeeper/zk.go
-# 找到下面这行
-# cgo CFLAGS: -I/usr/include/c-client-src -I/usr/include/zookeeper
-# 更改为正确的路径:
-# cgo CFLAGS: -I/usr/local/include/zookeeper
-# 之后,不需要再尝试下载gozk包
-```
-4.报错：libzookeeper_mt.so.2无法找到
-```sh
-$ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-$ sudo ldconfig
-```
-5.安装tcl8.5
-```sh
-$ cd /data/programfiles$ wget http://downloads.sourceforge.net/tcl/tcl8.5.10-src.tar.gz$ tar -xvf tcl8.5.10-src.tar.gz -C ./$ cd tcl8.5.10$ cd unix$ ./configure$ make$ make install
+$ cd /data/programfiles
+$ wget http://downloads.sourceforge.net/tcl/tcl8.5.10-src.tar.gz
+$ tar -xvf tcl8.5.10-src.tar.gz -C ./
+$ cd tcl8.5.10
+$ cd unix
+$ ./configure
+$ make
+$ make install
 ```
 
 ## 配置
