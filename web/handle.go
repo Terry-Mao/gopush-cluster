@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 // Data struct as response of handle ServerGet
@@ -94,7 +95,10 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 
 	// Select the best ip
 	if Conf.Router != "" {
-		data.Server = routerCN.SelectBest(r.RemoteAddr, addr)
+		ip := strings.Split(r.RemoteAddr, ":")
+		bestIP := routerCN.SelectBest(ip[0], addr)
+		data.Server = bestIP
+		Log.Debug("select the best ip:\"%s\" match with remoteAddr:\"%s\" , from ip list:\"%v\"", bestIP, r.RemoteAddr, addr)
 	}
 	if data.Server == "" {
 		data.Server = addr[0]
