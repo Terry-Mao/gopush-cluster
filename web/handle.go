@@ -91,8 +91,15 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 		ret = UnknownProtocol
 		return
 	}
-	// TODO select the best ip
-	data.Server = addr[0]
+
+	// Select the best ip
+	if Conf.Router != "" {
+		data.Server = routerCN.SelectBest(r.RemoteAddr, addr)
+	}
+	if data.Server == "" {
+		data.Server = addr[0]
+	}
+
 	result["data"] = data
 	ret = OK
 	return

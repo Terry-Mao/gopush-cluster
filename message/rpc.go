@@ -162,6 +162,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	}
 
 	// Send to delete message process
+	// TODO:delete expired message is useless as far as mysql storage
 	if len(delMsgs) != 0 {
 		Log.Info("delete expire private messages:\"%s\"", msgs)
 		DelChan <- &DelMessageInfo{Key: m.Key, Msgs: delMsgs}

@@ -41,8 +41,10 @@ type Config struct {
 	User        string        `goconf:"base:user"`
 	PidFile     string        `goconf:"base:pidfile"`
 	Dir         string        `goconf:"base:dir"`
+	Router      string        `goconf:"base:router"`
 	LogPath     string        `goconf:"log:path"`
 	LogLevel    string        `goconf:"log:level"`
+	QQWryPath   string        `goconf:"res:qqwry.path"`
 	ZKAddr      []string      `goconf:"zookeeper:addr:,"`
 	ZKTimeout   time.Duration `goconf:"zookeeper:timeout:time"`
 	ZKCometPath string        `goconf:"zookeeper:cometpath"`
@@ -68,8 +70,10 @@ func NewConfig(file string) (*Config, error) {
 		User:        "nobody nobody",
 		PidFile:     "/tmp/gopush-cluster-web.pid",
 		Dir:         "./",
+		Router:      "",
 		LogPath:     "./web.log",
 		LogLevel:    "DEBUG",
+		QQWryPath:   "/tmp/QQWry.dat",
 		ZKAddr:      []string{":2181"},
 		ZKTimeout:   30 * time.Second,
 		ZKCometPath: "/gopush-cluster",

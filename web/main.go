@@ -72,6 +72,14 @@ func main() {
 	defer MsgSvrClose()
 	// start pprof http
 	perf.Init(Conf.PprofBind)
+	// Init network router
+	if Conf.Router != "" {
+		if err := InitRouter(); err != nil {
+			Log.Error("InitRouter() failed(%v)", err)
+			return
+		}
+	}
+
 	// Internal admin handle
 	go func() {
 		adminServeMux := http.NewServeMux()
