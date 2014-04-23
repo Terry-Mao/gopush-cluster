@@ -60,7 +60,7 @@ func InitZK() (*zk.Conn, error) {
 		data += fmt.Sprintf("tcp://%s,", addr)
 	}
 	data = strings.TrimRight(data, ",")
-	tpath, err = conn.Create(Conf.ZookeeperPath+"/", []byte(data), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
+	tpath, err = conn.Create(Conf.ZookeeperPath+"/", []byte(data), zk.FlagEphemeral|zk.FlagSequence, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		Log.Error("conn.Create(\"%s\", \"%s\", zk.FlagEphemeral|zk.FlagSequence) error(%v)", Conf.ZookeeperPath, data, err)
 		return nil, err
