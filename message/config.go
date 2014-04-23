@@ -35,7 +35,7 @@ func init() {
 
 // Config struct
 type Config struct {
-	Addr             string            `goconf:"base:addr"`
+	Addr             []string          `goconf:"base:addr:,"`
 	PKey             string            `goconf:"base:pkey"`
 	User             string            `goconf:"base:user"`
 	PidFile          string            `goconf:"base:pidfile"`
@@ -52,6 +52,10 @@ type Config struct {
 	MYSQLDelLoopTime time.Duration     `goconf:"mysql:dellooptime:time"`
 	RedisAddrs       map[string]string `goconf:"-"`
 	DBSource         map[string]string `goconf:"-"`
+	// zookeeper
+	ZookeeperAddr    []string      `goconf:"zookeeper:addr:,"`
+	ZookeeperTimeout time.Duration `goconf:"zookeeper:timeout:time"`
+	ZookeeperPath    string        `goconf:"zookeeper:path"`
 }
 
 // Initialize config
@@ -63,7 +67,7 @@ func NewConfig(fileName string) (*Config, error) {
 	}
 
 	conf := &Config{
-		Addr:             ":8070",
+		Addr:             []string{"localhost:8070"},
 		PKey:             "gopushpkey",
 		User:             "nobody nobody",
 		PidFile:          "/tmp/gopush-cluster-message.pid",
@@ -80,6 +84,10 @@ func NewConfig(fileName string) (*Config, error) {
 		RedisAddrs:       make(map[string]string),
 		MYSQLDelLoopTime: 1 * time.Hour,
 		DBSource:         make(map[string]string),
+		// zookeeper
+		ZookeeperAddr:    []string{"localhost:2181"},
+		ZookeeperTimeout: 30 * time.Second,
+		ZookeeperPath:    "/gopush-cluster-message",
 	}
 	if err := gconf.Unmarshal(conf); err != nil {
 		Log.Error("goconf.Unmarshal() error(%v)", err)

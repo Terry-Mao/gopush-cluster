@@ -21,7 +21,6 @@ import (
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"net/rpc"
-	"os"
 	"time"
 )
 
@@ -39,23 +38,25 @@ func StartRPC() {
 	DelChan = make(chan *DelMessageInfo, 10000)
 	msg := &MessageRPC{}
 	rpc.Register(msg)
-
+	for _, bind := range Conf.Addr {
+		Log.Info("start rpc listen addr:\"%s\"", bind)
+		go rpcListen(bind)
+	}
 	// Start a routine for delete message
 	go DelProc()
+}
 
-	l, err := net.Listen("tcp", Conf.Addr)
+func rpcListen(bind string) {
+	l, err := net.Listen("tcp", bind)
 	if err != nil {
-		Log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", Conf.Addr, err)
-		os.Exit(-1)
+		Log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
+		panic(err)
 	}
-
 	defer func() {
 		if err := l.Close(); err != nil {
 			Log.Error("listener.Close() error(%v)", err)
 		}
 	}()
-
-	Log.Info("start listen admin addr:\"%s\"", Conf.Addr)
 	rpc.Accept(l)
 }
 

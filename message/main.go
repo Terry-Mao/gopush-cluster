@@ -21,7 +21,6 @@ import (
 	"github.com/Terry-Mao/gopush-cluster/log"
 	"github.com/Terry-Mao/gopush-cluster/perf"
 	"github.com/Terry-Mao/gopush-cluster/process"
-	"os"
 	"runtime"
 	"time"
 )
@@ -35,42 +34,43 @@ func main() {
 	// Parse cmd-line arguments
 	flag.Parse()
 	signalCH := InitSignal()
-
 	// Load config
 	Conf, err = NewConfig(ConfFile)
 	if err != nil {
-		panic(err)
+		Log.Error("NewConfig(\"%s\") error(%v)", ConfFile, err)
+		return
 	}
-
 	// Set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
-
 	// Load log
 	if Log, err = log.New(Conf.LogFile, Conf.LogLevel); err != nil {
-		panic(err)
+		Log.Error("log.New(\"%s\", %s) error(%v)", Conf.LogFile, Conf.LogLevel, err)
+		return
 	}
-
+	// start pprof http
+	perf.Init(Conf.PprofBind)
+	// Initialize redis
+	InitStorage()
+	// Start rpc
+	StartRPC()
+	// init zookeeper
+	zkConn, err := InitZK()
+	if err != nil {
+		Log.Error("InitZookeeper() error(%v)", err)
+		return
+	}
+	// if process exit, close zk
+	defer zkConn.Close()
 	// init process
 	// sleep one second, let the listen start
 	time.Sleep(time.Second)
 	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
 		Log.Error("process.Init() error(%v)", err)
-		os.Exit(-1)
+		return
 	}
-
-	// start pprof http
-	perf.Init(Conf.PprofBind)
-
-	// Initialize redis
-	InitStorage()
-
-	// Start rpc
-	Log.Info("Message service start")
-	go StartRPC()
-
+	Log.Info("message start")
 	// init signals, block wait signals
 	HandleSignal(signalCH)
-
 	// exit
-	Log.Info("Message service end")
+	Log.Info("message stop")
 }
