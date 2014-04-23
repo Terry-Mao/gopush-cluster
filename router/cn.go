@@ -49,13 +49,15 @@ func (r *RouterCN) SelectBest(remoteAddr string, ips []string) string {
 		return ""
 	}
 
-	cc := r.netName(remoteAddr)
+	ipRemote := strings.Split(remoteAddr, ":")
+	cc := r.netName(ipRemote[0])
 	if cc == "" {
 		return ""
 	}
 
 	for i := 0; i < len(ips); i++ {
-		if cc == r.netName(ips[i]) {
+		ip := strings.Split(ips[i], ":")
+		if cc == r.netName(ip[0]) {
 			return ips[i]
 		}
 	}
