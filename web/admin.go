@@ -155,7 +155,7 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 	mid := int64(0)
 
 	// Save public message
-	expire = time.Now().Add(time.Duration(expire) * time.Second).UnixNano()
+	expire = time.Now().Add(time.Duration(expire) * time.Second).Unix()
 	reply, err := MessageRPCSavePub(string(body), mid, expire)
 	// Message save failed
 	if reply != OK {

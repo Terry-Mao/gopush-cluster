@@ -154,7 +154,7 @@ func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) e
 		return nil
 	}
 	// use the channel push message
-	if err = ch.PushMsg(args.Key, &Message{Msg: args.Msg, Expire: time.Now().UnixNano() + expire*Second, GroupID: args.GroupID}); err != nil {
+	if err = ch.PushMsg(args.Key, &Message{Msg: args.Msg, Expire: time.Now().Unix() + expire, GroupID: args.GroupID}); err != nil {
 		*ret = myrpc.InternalErr
 		return nil
 	}
