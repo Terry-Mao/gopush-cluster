@@ -46,13 +46,16 @@ func main() {
 	// Start rpc
 	StartRPC()
 	// init zookeeper
-	zkConn, err := InitZK()
+	zk, err := InitZK()
 	if err != nil {
-		glog.Errorf("InitZookeeper() error(%v)", err)
+		glog.Errorf("InitZK() error(%v)", err)
+		if zk != nil {
+			zk.Close()
+		}
 		return
 	}
 	// if process exit, close zk
-	defer zkConn.Close()
+	defer zk.Close()
 	// init process
 	// sleep one second, let the listen start
 	time.Sleep(time.Second)

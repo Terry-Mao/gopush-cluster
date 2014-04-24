@@ -47,8 +47,6 @@ func main() {
 	StartStats()
 	// start pprof
 	perf.Init(Conf.PprofBind)
-	// init message rpc, block until message rpc init.
-	InitMessageRPC()
 	// start rpc
 	StartRPC()
 	// start comet

@@ -47,9 +47,3 @@ func HandleSignal(c chan os.Signal) {
 		}
 	}
 }
-
-func KillSelf() {
-	if err := syscall.Kill(os.Getpid(), syscall.SIGQUIT); err != nil {
-		glog.Errorf("syscall.Kill(%d, SIGQUIT) error(%v)", os.Getpid(), err)
-	}
-}

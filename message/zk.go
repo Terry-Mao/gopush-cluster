@@ -21,71 +21,27 @@
 package main
 
 import (
-	"fmt"
+	myzk "github.com/Terry-Mao/gopush-cluster/zk"
 	"github.com/golang/glog"
 	"github.com/samuel/go-zookeeper/zk"
 	"strings"
 )
 
+// InitZK create zookeeper root path, and register a temp node.
 func InitZK() (*zk.Conn, error) {
-	// connect to zookeeper, get event from chan in goroutine(log)
-	conn, session, err := zk.Connect(Conf.ZookeeperAddr, Conf.ZookeeperTimeout)
+	conn, err := myzk.Connect(Conf.ZookeeperAddr, Conf.ZookeeperTimeout)
 	if err != nil {
-		glog.Errorf("zk.Connect(\"%v\", %d) error(%v)", Conf.ZookeeperAddr, Conf.ZookeeperTimeout, err)
+		glog.Errorf("zk.Connect() error(%v)", err)
 		return nil, err
 	}
-	go func() {
-		for {
-			event := <-session
-			glog.Infof("zookeeper get a event: %s", event.State.String())
-		}
-	}()
-	// create zk root path
-	tpath := ""
-	for _, str := range strings.Split(Conf.ZookeeperPath, "/")[1:] {
-		tpath += "/" + str
-		glog.V(1).Infof("create zookeeper path:%s", tpath)
-		_, err = conn.Create(tpath, []byte(""), 0, zk.WorldACL(zk.PermAll))
-		if err != nil {
-			if err == zk.ErrNodeExists {
-				glog.Warningf("zk.create(\"%s\") exists", tpath)
-			} else {
-				glog.Errorf("zk.create(\"%s\") error(%v)", tpath, err)
-				return nil, err
-			}
-		}
+	if err = myzk.Create(conn, Conf.ZookeeperPath); err != nil {
+		glog.Errorf("zk.Create() error(%v)", err)
+		return conn, err
 	}
 	// tcp, websocket and rpc bind address store in the zk
-	data := ""
-	for _, addr := range Conf.Addr {
-		data += fmt.Sprintf("tcp://%s,", addr)
+	if err = myzk.RegisterTemp(conn, Conf.ZookeeperPath, strings.Join(Conf.Addr, ",")); err != nil {
+		glog.Errorf("zk.RegisterTemp() error(%v)", err)
+		return conn, err
 	}
-	data = strings.TrimRight(data, ",")
-	tpath, err = conn.Create(Conf.ZookeeperPath+"/", []byte(data), zk.FlagEphemeral|zk.FlagSequence, zk.WorldACL(zk.PermAll))
-	if err != nil {
-		glog.Errorf("conn.Create(\"%s\", \"%s\", zk.FlagEphemeral|zk.FlagSequence) error(%v)", Conf.ZookeeperPath, data, err)
-		return nil, err
-	}
-	glog.V(1).Infof("create a zookeeper node:%s", tpath)
-	// watch self
-	go func() {
-		for {
-			glog.Infof("zk path: \"%s\" set a watch", tpath)
-			exist, _, watch, err := conn.ExistsW(tpath)
-			if err != nil {
-				glog.Errorf("zk.ExistsW(\"%s\") error(%v)", tpath, err)
-				glog.Warningf("zk path: \"%s\" set watch failed, message kill itself", tpath)
-				KillSelf()
-				return
-			}
-			if !exist {
-				glog.Warningf("zk path: \"%s\" not exist, message kill itself", tpath)
-				KillSelf()
-				return
-			}
-			event := <-watch
-			glog.Infof("zk path: \"%s\" receive a event %v", tpath, event)
-		}
-	}()
 	return conn, nil
 }

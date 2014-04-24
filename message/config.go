@@ -42,8 +42,6 @@ type Config struct {
 	PidFile          string            `goconf:"base:pidfile"`
 	Dir              string            `goconf:"base:dir"`
 	MaxProc          int               `goconf:"base:maxproc"`
-	LogFile          string            `goconf:"base:logfile"`
-	LogLevel         string            `goconf:"base:loglevel"`
 	PprofBind        []string          `goconf:"base:pprof.bind:,"`
 	StorageType      string            `goconf:"storage:type"`
 	RedisIdleTimeout time.Duration     `goconf:"redis:idletimeout:time"`
@@ -73,8 +71,6 @@ func NewConfig(fileName string) (*Config, error) {
 		PidFile:          "/tmp/gopush-cluster-message.pid",
 		Dir:              "./",
 		MaxProc:          runtime.NumCPU(),
-		LogFile:          "./message.log",
-		LogLevel:         "DEBUG",
 		PprofBind:        []string{"localhost:8170"},
 		StorageType:      "redis",
 		RedisIdleTimeout: 28800 * time.Second,

@@ -92,7 +92,8 @@ func (c *SeqChannel) AuthToken(key, token string) bool {
 // PushMsg implements the Channel PushMsg method.
 func (c *SeqChannel) PushMsg(key string, m *Message) error {
 	var succeed, failed uint64
-	if MsgRPC == nil {
+	client := MessageRPC.Get()
+	if client == nil {
 		return ErrMessageRPC
 	}
 	succeed, failed = 0, 0
@@ -105,7 +106,7 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 		glog.V(1).Infof("user_key:\"%s\" timeID:%d", key, m.MsgID)
 		args := &myrpc.MessageSaveArgs{MsgID: m.MsgID, Msg: m.Msg, Expire: m.Expire, Key: key}
 		reply := myrpc.OK
-		if err := MsgRPC.Call("MessageRPC.Save", args, &reply); err != nil {
+		if err := client.Call("MessageRPC.Save", args, &reply); err != nil {
 			c.mutex.Unlock()
 			glog.Errorf("MessageRPC.Save(\"%s\", %v) error(%v)", key, m, err)
 			return err

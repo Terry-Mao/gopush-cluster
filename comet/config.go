@@ -45,14 +45,14 @@ type Config struct {
 	PprofBind     []string `goconf:"base:pprof.bind:,"`
 	StatBind      []string `goconf:"base:stat.bind:,"`
 	// zookeeper
-	ZookeeperAddr    []string      `goconf:"zookeeper:addr:,"`
-	ZookeeperTimeout time.Duration `goconf:"zookeeper:timeout:time"`
-	ZookeeperPath    string        `goconf:"zookeeper:path"`
-	ZookeeperNode    string        `goconf:"zookeeper:node"`
+	ZookeeperAddr        []string      `goconf:"zookeeper:addr:,"`
+	ZookeeperTimeout     time.Duration `goconf:"zookeeper:timeout:time"`
+	ZookeeperCometPath   string        `goconf:"zookeeper:comet.path"`
+	ZookeeperCometNode   string        `goconf:"zookeeper:comet.node"`
+	ZookeeperMessagePath string        `goconf:"zookeeper:message.path"`
 	// rpc
-	RPCMessageAddr string        `goconf:"rpc:message.addr"`
-	RPCPing        time.Duration `goconf:"rpc:ping:time"`
-	RPCRetry       time.Duration `goconf:"rpc:retry:time"`
+	RPCPing  time.Duration `goconf:"rpc:ping:time"`
+	RPCRetry time.Duration `goconf:"rpc:retry:time"`
 	// channel
 	SndbufSize              int           `goconf:"channel:sndbuf.size:memory"`
 	RcvbufSize              int           `goconf:"channel:rcvbuf.size:memory"`
@@ -80,14 +80,14 @@ func InitConfig(file string) (*Config, error) {
 		PprofBind:     []string{"localhost:6971"},
 		StatBind:      []string{"localhost:6972"},
 		// zookeeper
-		ZookeeperAddr:    []string{"localhost:2181"},
-		ZookeeperTimeout: 30 * time.Second,
-		ZookeeperPath:    "/gopush-cluster-comet",
-		ZookeeperNode:    "node1",
+		ZookeeperAddr:        []string{"localhost:2181"},
+		ZookeeperTimeout:     30 * time.Second,
+		ZookeeperCometPath:   "/gopush-cluster-comet",
+		ZookeeperCometNode:   "node1",
+		ZookeeperMessagePath: "/gopush-cluster-message",
 		// rpc
-		RPCMessageAddr: "localhost:6972",
-		RPCPing:        1 * time.Second,
-		RPCRetry:       1 * time.Second,
+		RPCPing:  1 * time.Second,
+		RPCRetry: 1 * time.Second,
 		// channel
 		SndbufSize:              2048,
 		RcvbufSize:              256,

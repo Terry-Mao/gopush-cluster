@@ -25,54 +25,6 @@ import (
 	"time"
 )
 
-const ()
-
-var (
-	// rpc
-	MsgRPC *rpc.Client
-)
-
-// InitMessageRPC init the message rpc connection.
-func InitMessageRPC() {
-	go func() {
-		failed := false
-		// if process exit, then close message rpc
-		defer func() {
-			if MsgRPC != nil {
-				glog.Error("message rpc close")
-				if err := MsgRPC.Close(); err != nil {
-					glog.Errorf("MsgRPC.Close() error(%v)", err)
-				}
-			}
-		}()
-		for {
-			if !failed && MsgRPC != nil {
-				reply := 0
-				if err := MsgRPC.Call("MessageRPC.Ping", 0, &reply); err != nil {
-					glog.Errorf("rpc.Call(\"MessageRPC.Ping\") error(%v)", err)
-					failed = true
-				} else {
-					// every one second send a heartbeat ping
-					failed = false
-					glog.V(1).Info("rpc ping ok")
-					time.Sleep(Conf.RPCPing)
-					continue
-				}
-			}
-			// reconnect(init) message rpc
-			if rpcTmp, err := rpc.Dial("tcp", Conf.RPCMessageAddr); err != nil {
-				glog.Errorf("rpc.Dial(\"tcp\", %s) error(%s), reconnect retry after %d second", Conf.RPCMessageAddr, err, int64(Conf.RPCRetry)/Second)
-				time.Sleep(Conf.RPCRetry)
-				continue
-			} else {
-				MsgRPC = rpcTmp
-				failed = false
-				glog.Infof("rpc client reconnect \"%s\" ok", Conf.RPCMessageAddr)
-			}
-		}
-	}()
-}
-
 // StartRPC start rpc listen.
 func StartRPC() {
 	c := &ChannelRPC{}
@@ -196,12 +148,12 @@ func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
 	// find current node exists in new nodes
 	has := false
 	for _, str := range args.Nodes {
-		if str == Conf.ZookeeperNode {
+		if str == Conf.ZookeeperCometNode {
 			has = true
 		}
 	}
 	if !has {
-		glog.Error("make sure your migrate nodes right, there is no %s in nodes, this will cause all the node hit miss", Conf.ZookeeperNode)
+		glog.Error("make sure your migrate nodes right, there is no %s in nodes, this will cause all the node hit miss", Conf.ZookeeperCometNode)
 		*ret = myrpc.InternalErr
 		return nil
 	}
@@ -214,7 +166,7 @@ func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
 		c.Lock()
 		for k, v := range c.Data {
 			hn := ketama.Node(k)
-			if hn != Conf.ZookeeperNode {
+			if hn != Conf.ZookeeperCometNode {
 				channels = append(channels, v)
 				keys = append(keys, k)
 				glog.V(1).Infof("migrate key:\"%s\" hit node:\"%s\"", k, hn)

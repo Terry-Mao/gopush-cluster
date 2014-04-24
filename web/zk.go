@@ -30,18 +30,18 @@ import (
 
 const (
 	// protocol of Comet subcription
-	ProtocolUnknown = 0
-	ProtocolWS      = 1
-	ProtocolWSStr   = "ws"
-	ProtocolTCP     = 2
-	ProtocolTCPStr  = "tcp"
-	ProtocolRPC     = 3
-	ProtocolRPCStr  = "rpc"
+	protocolUnknown = 0
+	protocolWS      = 1
+	protocolWSStr   = "ws"
+	protocolTCP     = 2
+	protocolTCPStr  = "tcp"
+	protocolRPC     = 3
+	protocolRPCStr  = "rpc"
 
 	// node event
-	EventNodeAdd    = 1
-	EventNodeDel    = 2
-	EventNodeUpdate = 3
+	eventNodeAdd    = 1
+	eventNodeDel    = 2
+	eventNodeUpdate = 3
 
 	// wait node
 	waitNodeDelay       = 5
@@ -50,9 +50,9 @@ const (
 
 var (
 	// error
-	ErrNoChild      = errors.New("zk: children is nil")
-	ErrNodeNotExist = errors.New("zk: node not exist")
-	ErrCometRPC     = errors.New("comet rpc call failed")
+	errNoChild      = errors.New("zk: children is nil")
+	errNodeNotExist = errors.New("zk: node not exist")
+	errCometRPC     = errors.New("comet rpc call failed")
 
 	// Store the first alive Comet service of every node
 	// If there is no alive service under the node, the map`s value will be nil, but key is exist in map
@@ -121,14 +121,14 @@ func InitZK() (*zk.Conn, error) {
 func watchRoot(conn *zk.Conn, path string, ch chan *NodeEvent) error {
 	for {
 		nodes, watch, err := getNodesW(conn, path)
-		if err == ErrNodeNotExist {
+		if err == errNodeNotExist {
 			glog.Warningf("zk don't have node \"%s\", retry in %d second", path, waitNodeDelay)
 			time.Sleep(waitNodeDelaySecond)
 			continue
-		} else if err == ErrNoChild {
+		} else if err == errNoChild {
 			glog.Warningf("zk don't have any children in \"%s\", retry in %d second", path, waitNodeDelay)
 			for node, _ := range NodeInfoMap {
-				ch <- &NodeEvent{Event: EventNodeDel, Key: node}
+				ch <- &NodeEvent{Event: eventNodeDel, Key: node}
 			}
 			time.Sleep(waitNodeDelaySecond)
 			continue
@@ -141,14 +141,14 @@ func watchRoot(conn *zk.Conn, path string, ch chan *NodeEvent) error {
 		// handle new add nodes
 		for _, node := range nodes {
 			if _, ok := NodeInfoMap[node]; !ok {
-				ch <- &NodeEvent{Event: EventNodeAdd, Key: node}
+				ch <- &NodeEvent{Event: eventNodeAdd, Key: node}
 			}
 			nodesMap[node] = true
 		}
 		// handle delete nodes
 		for node, _ := range NodeInfoMap {
 			if _, ok := nodesMap[node]; !ok {
-				ch <- &NodeEvent{Event: EventNodeDel, Key: node}
+				ch <- &NodeEvent{Event: eventNodeDel, Key: node}
 			}
 		}
 		// blocking wait node changed
@@ -162,10 +162,10 @@ func watchNode(conn *zk.Conn, node, path string, ch chan *NodeEvent) {
 	path = fmt.Sprintf("%s/%s", path, node)
 	for {
 		nodes, watch, err := getNodesW(conn, path)
-		if err == ErrNodeNotExist {
+		if err == errNodeNotExist {
 			glog.Warningf("zk don't have node \"%s\"", path)
 			break
-		} else if err == ErrNoChild {
+		} else if err == errNoChild {
 			glog.Warningf("zk don't have any children in \"%s\", retry in %d second", path, waitNodeDelay)
 			time.Sleep(waitNodeDelaySecond)
 			continue
@@ -183,7 +183,7 @@ func watchNode(conn *zk.Conn, node, path string, ch chan *NodeEvent) {
 			continue
 		} else {
 			// update node info
-			ch <- &NodeEvent{Event: EventNodeUpdate, Key: node, Value: info}
+			ch <- &NodeEvent{Event: eventNodeUpdate, Key: node, Value: info}
 		}
 		// blocking receive event
 		event := <-watch
@@ -207,17 +207,17 @@ func registerNode(conn *zk.Conn, node, path string) (*NodeInfo, error) {
 		return nil, err
 	}
 	info := &NodeInfo{Addr: addr}
-	rpcAddr, ok := addr[ProtocolRPC]
+	rpcAddr, ok := addr[protocolRPC]
 	if !ok || len(rpcAddr) == 0 {
 		glog.Errorf("zk nodes: \"%s\" don't have rpc addr", path)
-		return nil, ErrCometRPC
+		return nil, errCometRPC
 	}
 	// init comet rpc
 	// TODO support many rpc
 	r, err := rpc.Dial("tcp", rpcAddr[0])
 	if err != nil {
 		glog.Errorf("rpc.Dial(\"%s\") error(%v)", rpcAddr[0], err)
-		return nil, ErrCometRPC
+		return nil, errCometRPC
 	}
 	info.PubRPC = r
 	glog.Infof("zk path: \"%s\" register nodes: \"%s\"", path, node)
@@ -234,14 +234,14 @@ func handleNodeEvent(conn *zk.Conn, path string, ch chan *NodeEvent) {
 			tmpMap[k] = v
 		}
 		// handle event
-		if ev.Event == EventNodeAdd {
+		if ev.Event == eventNodeAdd {
 			glog.Infof("add node: \"%s\"", ev.Key)
 			tmpMap[ev.Key] = nil
 			go watchNode(conn, ev.Key, path, ch)
-		} else if ev.Event == EventNodeDel {
+		} else if ev.Event == eventNodeDel {
 			glog.Infof("del node: \"%s\"", ev.Key)
 			delete(tmpMap, ev.Key)
-		} else if ev.Event == EventNodeUpdate {
+		} else if ev.Event == eventNodeUpdate {
 			glog.Infof("update node: \"%s\"", ev.Key)
 			tmpMap[ev.Key] = ev.Value
 		} else {
@@ -272,16 +272,16 @@ func getNodes(conn *zk.Conn, path string) ([]string, error) {
 	nodes, stat, err := conn.Children(path)
 	if err != nil {
 		if err == zk.ErrNoNode {
-			return nil, ErrNodeNotExist
+			return nil, errNodeNotExist
 		}
 		glog.Errorf("zk.Children(\"%s\") error(%v)", path)
 		return nil, err
 	}
 	if stat == nil {
-		return nil, ErrNodeNotExist
+		return nil, errNodeNotExist
 	}
 	if len(nodes) == 0 {
-		return nil, ErrNoChild
+		return nil, errNoChild
 	}
 	return nodes, nil
 }
@@ -291,16 +291,16 @@ func getNodesW(conn *zk.Conn, path string) ([]string, <-chan zk.Event, error) {
 	nodes, stat, watch, err := conn.ChildrenW(path)
 	if err != nil {
 		if err == zk.ErrNoNode {
-			return nil, nil, ErrNodeNotExist
+			return nil, nil, errNodeNotExist
 		}
 		glog.Errorf("zk.Children(\"%s\") error(%v)", path, err)
 		return nil, nil, err
 	}
 	if stat == nil {
-		return nil, nil, ErrNodeNotExist
+		return nil, nil, errNodeNotExist
 	}
 	if len(nodes) == 0 {
-		return nil, nil, ErrNoChild
+		return nil, nil, errNoChild
 	}
 	return nodes, watch, nil
 }
@@ -338,13 +338,13 @@ func parseNode(data string) (map[int][]string, error) {
 
 // protoInt get the figure corresponding with protocol string
 func protoInt(protocol string) int {
-	if protocol == ProtocolWSStr {
-		return ProtocolWS
-	} else if protocol == ProtocolTCPStr {
-		return ProtocolTCP
-	} else if protocol == ProtocolRPCStr {
-		return ProtocolRPC
+	if protocol == protocolWSStr {
+		return protocolWS
+	} else if protocol == protocolTCPStr {
+		return protocolTCP
+	} else if protocol == protocolRPCStr {
+		return protocolRPC
 	} else {
-		return ProtocolUnknown
+		return protocolUnknown
 	}
 }

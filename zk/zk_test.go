@@ -14,36 +14,30 @@
 // You should have received a copy of the GNU General Public License
 // along with gopush-cluster.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+// github.com/samuel/go-zookeeper
+// Copyright (c) 2013, Samuel Stauffer <samuel@descolada.com>
+// All rights reserved.
+
+package zk
 
 import (
-	"github.com/golang/glog"
-	"os"
-	"os/signal"
-	"syscall"
+	"testing"
+	"time"
 )
 
-// InitSignal register signals handler.
-func InitSignal() chan os.Signal {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, syscall.SIGSTOP)
-	return c
-}
-
-// HandleSignal fetch signal from chan then do exit or reload.
-func HandleSignal(c chan os.Signal) {
-	// Block until a signal is received.
-	for {
-		s := <-c
-		glog.Infof("comet get a signal %s", s.String())
-		switch s {
-		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGSTOP, syscall.SIGINT:
-			return
-		case syscall.SIGHUP:
-			// TODO reload
-			//return
-		default:
-			return
-		}
+func TestZK(t *testing.T) {
+	conn, err := Connect([]string{"10.33.21.152:2181"}, time.Second*30)
+	if err != nil {
+		t.Error(err)
+	}
+	defer conn.Close()
+	err = Create(conn, "/test/test")
+	if err != nil {
+		t.Error(err)
+	}
+	// registertmp
+	err = RegisterTemp(conn, "/test/test", "1")
+	if err != nil {
+		t.Error(err)
 	}
 }
