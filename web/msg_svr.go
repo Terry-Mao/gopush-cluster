@@ -18,6 +18,7 @@ package main
 
 import (
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
+	"github.com/golang/glog"
 	"net/rpc"
 	"time"
 )
@@ -34,7 +35,7 @@ func InitMsgSvrClient() error {
 		defer func() {
 			if MsgSvrClient != nil {
 				if err := MsgSvrClient.Close(); err != nil {
-					Log.Error("MsgSvrClient.Close() error(%v)", err)
+					glog.Errorf("MsgSvrClient.Close() error(%v)", err)
 				}
 			}
 		}()
@@ -42,12 +43,12 @@ func InitMsgSvrClient() error {
 			if !failed && MsgSvrClient != nil {
 				reply := 0
 				if err := MsgSvrClient.Call("MessageRPC.Ping", 0, &reply); err != nil {
-					Log.Error("rpc.Call(\"MessageRPC.Ping\")  error(%v)", err)
+					glog.Errorf("rpc.Call(\"MessageRPC.Ping\")  error(%v)", err)
 					failed = true
 				} else {
 					// every one second send a heartbeat ping
 					failed = false
-					Log.Debug("rpc ping ok")
+					glog.V(1).Info("rpc ping ok")
 					time.Sleep(Conf.MsgPing)
 					continue
 				}
@@ -55,13 +56,13 @@ func InitMsgSvrClient() error {
 			// reconnect(init) message rpc
 			rpcTmp, err := rpc.Dial("tcp", Conf.MsgAddr)
 			if err != nil {
-				Log.Error("rpc.Dial(\"tcp\", \"%s\") error(%v), reconnect retry after \"%d\" second", Conf.MsgAddr, err, int64(Conf.MsgRetry)/int64(time.Second))
+				glog.Errorf("rpc.Dial(\"tcp\", \"%s\") error(%v), reconnect retry after \"%d\" second", Conf.MsgAddr, err, int64(Conf.MsgRetry)/int64(time.Second))
 				time.Sleep(Conf.MsgRetry)
 				continue
 			}
 			MsgSvrClient = rpcTmp
 			failed = false
-			Log.Info("rpc client reconnect \"%s\" ok", Conf.MsgAddr)
+			glog.Infof("rpc client reconnect \"%s\" ok", Conf.MsgAddr)
 		}
 	}()
 
@@ -72,7 +73,7 @@ func InitMsgSvrClient() error {
 func MsgSvrClose() {
 	if MsgSvrClient != nil {
 		if err := MsgSvrClient.Close(); err != nil {
-			Log.Error("MsgSvrClient.Close() error(%v)", err)
+			glog.Errorf("MsgSvrClient.Close() error(%v)", err)
 		}
 	}
 }

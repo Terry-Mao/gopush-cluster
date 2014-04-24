@@ -19,6 +19,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/golang/glog"
 	"io"
 	"net/http"
 	"strconv"
@@ -47,9 +48,7 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 		result["ret"] = ret
 		result["msg"] = GetErrMsg(ret)
 		data, _ := json.Marshal(result)
-
-		Log.Info("request:Get_server, request_url:\"%s\", response_json:\"%s\", ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
-
+		glog.Infof("request:Get_server, request_url:\"%s\", response_json:\"%s\", ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
 		dataStr := ""
 		if callback == "" {
 			// Normal json
@@ -96,7 +95,7 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 	if Conf.Router != "" {
 		bestIP := routerCN.SelectBest(r.RemoteAddr, addr)
 		data.Server = bestIP
-		Log.Debug("select the best ip:\"%s\" match with remoteAddr:\"%s\" , from ip list:\"%v\"", bestIP, r.RemoteAddr, addr)
+		glog.V(1).Infof("select the best ip:\"%s\" match with remoteAddr:\"%s\" , from ip list:\"%v\"", bestIP, r.RemoteAddr, addr)
 	}
 	if data.Server == "" {
 		data.Server = addr[0]
@@ -131,9 +130,7 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 		result["ret"] = ret
 		result["msg"] = GetErrMsg(ret)
 		data, _ := json.Marshal(result)
-
-		Log.Info("request:Get_messages, request_url:\"%s\", response_json:\"%s\"), ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
-
+		glog.Infof("request:Get_messages, request_url:\"%s\", response_json:\"%s\"), ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
 		dataStr := ""
 		if callback == "" {
 			// Normal json
@@ -179,13 +176,13 @@ func MsgGet(rw http.ResponseWriter, r *http.Request) {
 	// RPC get offline messages
 	reply, err := MessageRPCGet(key, midI, pMidI)
 	if err != nil {
-		Log.Error("RPC.Call(\"MessageRPC.Get\")  Key:\"%s\", MsgID:\"%d\" error(%v)", key, midI, err)
+		glog.Errorf("RPC.Call(\"MessageRPC.Get\")  Key:\"%s\", MsgID:\"%d\" error(%v)", key, midI, err)
 		ret = InternalErr
 		return
 	}
 
 	if reply.Ret != OK {
-		Log.Error("RPC.Call(\"MessageRPC.Get\")  Key:\"%s\", MsgID:\"%d\" errorCode(\"%d\")", key, midI, reply.Ret)
+		glog.Errorf("RPC.Call(\"MessageRPC.Get\")  Key:\"%s\", MsgID:\"%d\" errorCode(\"%d\")", key, midI, reply.Ret)
 		ret = reply.Ret
 		return
 	}
@@ -232,9 +229,7 @@ func TimeGet(rw http.ResponseWriter, r *http.Request) {
 		result["ret"] = ret
 		result["msg"] = GetErrMsg(ret)
 		data, _ := json.Marshal(result)
-
-		Log.Info("request:Get_server_time, request_url:\"%s\", response_json:\"%s\", ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
-
+		glog.Infof("request:Get_server_time, request_url:\"%s\", response_json:\"%s\", ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
 		dataStr := ""
 		if callback == "" {
 			// Normal json

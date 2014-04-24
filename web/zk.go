@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
+	"github.com/golang/glog"
 	"github.com/samuel/go-zookeeper/zk"
 	"net/rpc"
 	"sort"
@@ -71,7 +72,7 @@ type NodeInfo struct {
 func (n *NodeInfo) Close() {
 	if n.PubRPC != nil {
 		if err := n.PubRPC.Close(); err != nil {
-			Log.Error("rpc.Close() error(%v)", err)
+			glog.Errorf("rpc.Close() error(%v)", err)
 		}
 	}
 }
@@ -87,26 +88,26 @@ type NodeEvent struct {
 
 func InitZK() (*zk.Conn, error) {
 	// connect to zookeeper, get event from chan in goroutine(log)
-	Log.Debug("zk timeout: %d", Conf.ZKTimeout)
+	glog.V(1).Infof("zk timeout: %d", Conf.ZKTimeout)
 	conn, session, err := zk.Connect(Conf.ZKAddr, Conf.ZKTimeout)
 	if err != nil {
-		Log.Error("zk.Connect(\"%v\", %d) error(%v)", Conf.ZKAddr, Conf.ZKTimeout, err)
+		glog.Errorf("zk.Connect(\"%v\", %d) error(%v)", Conf.ZKAddr, Conf.ZKTimeout, err)
 		return nil, err
 	}
 	go func() {
 		for {
 			event := <-session
-			Log.Info("zookeeper get a event: %s", event.State.String())
+			glog.Infof("zookeeper get a event: %s", event.State.String())
 		}
 	}()
 	// Create zk public message-lock root path
-	Log.Debug("create zookeeper path: %s", Conf.ZKPIDPath)
+	glog.V(1).Infof("create zookeeper path: %s", Conf.ZKPIDPath)
 	_, err = conn.Create(Conf.ZKPIDPath, []byte(""), 0, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		if err == zk.ErrNodeExists {
-			Log.Warn("zk.create(\"%s\") exists", Conf.ZKPIDPath)
+			glog.Warningf("zk.create(\"%s\") exists", Conf.ZKPIDPath)
 		} else {
-			Log.Error("zk.create(\"%s\") error(%v)", Conf.ZKPIDPath, err)
+			glog.Errorf("zk.create(\"%s\") error(%v)", Conf.ZKPIDPath, err)
 			return nil, err
 		}
 	}
@@ -121,18 +122,18 @@ func watchRoot(conn *zk.Conn, path string, ch chan *NodeEvent) error {
 	for {
 		nodes, watch, err := getNodesW(conn, path)
 		if err == ErrNodeNotExist {
-			Log.Warn("zk don't have node \"%s\", retry in %d second", path, waitNodeDelay)
+			glog.Warningf("zk don't have node \"%s\", retry in %d second", path, waitNodeDelay)
 			time.Sleep(waitNodeDelaySecond)
 			continue
 		} else if err == ErrNoChild {
-			Log.Warn("zk don't have any children in \"%s\", retry in %d second", path, waitNodeDelay)
+			glog.Warningf("zk don't have any children in \"%s\", retry in %d second", path, waitNodeDelay)
 			for node, _ := range NodeInfoMap {
 				ch <- &NodeEvent{Event: EventNodeDel, Key: node}
 			}
 			time.Sleep(waitNodeDelaySecond)
 			continue
 		} else if err != nil {
-			Log.Error("getNodes error(%v), retry in %d second", err, waitNodeDelay)
+			glog.Errorf("getNodes error(%v), retry in %d second", err, waitNodeDelay)
 			time.Sleep(waitNodeDelaySecond)
 			continue
 		}
@@ -152,7 +153,7 @@ func watchRoot(conn *zk.Conn, path string, ch chan *NodeEvent) error {
 		}
 		// blocking wait node changed
 		event := <-watch
-		Log.Info("zk path: \"%s\" receive a event %v", path, event)
+		glog.Infof("zk path: \"%s\" receive a event %v", path, event)
 	}
 }
 
@@ -162,14 +163,14 @@ func watchNode(conn *zk.Conn, node, path string, ch chan *NodeEvent) {
 	for {
 		nodes, watch, err := getNodesW(conn, path)
 		if err == ErrNodeNotExist {
-			Log.Warn("zk don't have node \"%s\"", path)
+			glog.Warningf("zk don't have node \"%s\"", path)
 			break
 		} else if err == ErrNoChild {
-			Log.Warn("zk don't have any children in \"%s\", retry in %d second", path, waitNodeDelay)
+			glog.Warningf("zk don't have any children in \"%s\", retry in %d second", path, waitNodeDelay)
 			time.Sleep(waitNodeDelaySecond)
 			continue
 		} else if err != nil {
-			Log.Error("zk path: \"%s\" getNodes error(%v), retry in %d second", path, err, waitNodeDelay)
+			glog.Errorf("zk path: \"%s\" getNodes error(%v), retry in %d second", path, err, waitNodeDelay)
 			time.Sleep(waitNodeDelaySecond)
 			continue
 		}
@@ -177,7 +178,7 @@ func watchNode(conn *zk.Conn, node, path string, ch chan *NodeEvent) {
 		sort.Strings(nodes)
 		// register node
 		if info, err := registerNode(conn, nodes[0], path); err != nil {
-			Log.Error("zk path: \"%s\" registerNode error(%v)", path, err)
+			glog.Errorf("zk path: \"%s\" registerNode error(%v)", path, err)
 			time.Sleep(waitNodeDelaySecond)
 			continue
 		} else {
@@ -186,40 +187,40 @@ func watchNode(conn *zk.Conn, node, path string, ch chan *NodeEvent) {
 		}
 		// blocking receive event
 		event := <-watch
-		Log.Info("zk path: \"%s\" receive a event: (%v)", path, event)
+		glog.Infof("zk path: \"%s\" receive a event: (%v)", path, event)
 	}
 	// WARN, if no persistence node and comet rpc not config
-	Log.Warn("zk path: \"%s\" never watch again till recreate", path)
+	glog.Warningf("zk path: \"%s\" never watch again till recreate", path)
 }
 
 func registerNode(conn *zk.Conn, node, path string) (*NodeInfo, error) {
 	path = path + "/" + node
 	data, _, err := conn.Get(path)
 	if err != nil {
-		Log.Error("zk.Get(\"%s\") error(%v)", path, err)
+		glog.Errorf("zk.Get(\"%s\") error(%v)", path, err)
 		return nil, err
 	}
 	// fetch and parse comet info
 	addr, err := parseNode(string(data))
 	if err != nil {
-		Log.Error("parseNode(\"%s\") error(%v)", string(data), err)
+		glog.Errorf("parseNode(\"%s\") error(%v)", string(data), err)
 		return nil, err
 	}
 	info := &NodeInfo{Addr: addr}
 	rpcAddr, ok := addr[ProtocolRPC]
 	if !ok || len(rpcAddr) == 0 {
-		Log.Crit("zk nodes: \"%s\" don't have rpc addr", path)
+		glog.Errorf("zk nodes: \"%s\" don't have rpc addr", path)
 		return nil, ErrCometRPC
 	}
 	// init comet rpc
 	// TODO support many rpc
 	r, err := rpc.Dial("tcp", rpcAddr[0])
 	if err != nil {
-		Log.Crit("rpc.Dial(\"%s\") error(%v)", rpcAddr[0], err)
+		glog.Errorf("rpc.Dial(\"%s\") error(%v)", rpcAddr[0], err)
 		return nil, ErrCometRPC
 	}
 	info.PubRPC = r
-	Log.Info("zk path: \"%s\" register nodes: \"%s\"", path, node)
+	glog.Infof("zk path: \"%s\" register nodes: \"%s\"", path, node)
 	return info, nil
 }
 
@@ -234,24 +235,24 @@ func handleNodeEvent(conn *zk.Conn, path string, ch chan *NodeEvent) {
 		}
 		// handle event
 		if ev.Event == EventNodeAdd {
-			Log.Info("add node: \"%s\"", ev.Key)
+			glog.Infof("add node: \"%s\"", ev.Key)
 			tmpMap[ev.Key] = nil
 			go watchNode(conn, ev.Key, path, ch)
 		} else if ev.Event == EventNodeDel {
-			Log.Info("del node: \"%s\"", ev.Key)
+			glog.Infof("del node: \"%s\"", ev.Key)
 			delete(tmpMap, ev.Key)
 		} else if ev.Event == EventNodeUpdate {
-			Log.Info("update node: \"%s\"", ev.Key)
+			glog.Infof("update node: \"%s\"", ev.Key)
 			tmpMap[ev.Key] = ev.Value
 		} else {
-			Log.Crit("unknown node event: %d", ev.Event)
+			glog.Errorf("unknown node event: %d", ev.Event)
 			panic("unknown node event")
 		}
 		// if exist old node info, close
 		if info, ok := NodeInfoMap[ev.Key]; ok {
 			if info != nil {
 				info.Close()
-				Log.Info("close old node info: \"%s\"", ev.Key)
+				glog.Infof("close old node info: \"%s\"", ev.Key)
 			}
 		}
 		// use the tmpMap atomic replace the global NodeInfoMap
@@ -262,7 +263,7 @@ func handleNodeEvent(conn *zk.Conn, path string, ch chan *NodeEvent) {
 			nodes = append(nodes, k)
 		}
 		cometHash = hash.NewKetama2(nodes, 255)
-		Log.Debug("NodeInfoMap len: %d", len(NodeInfoMap))
+		glog.V(1).Infof("NodeInfoMap len: %d", len(NodeInfoMap))
 	}
 }
 
@@ -273,7 +274,7 @@ func getNodes(conn *zk.Conn, path string) ([]string, error) {
 		if err == zk.ErrNoNode {
 			return nil, ErrNodeNotExist
 		}
-		Log.Error("zk.Children(\"%s\") error(%v)", path)
+		glog.Errorf("zk.Children(\"%s\") error(%v)", path)
 		return nil, err
 	}
 	if stat == nil {
@@ -292,7 +293,7 @@ func getNodesW(conn *zk.Conn, path string) ([]string, <-chan zk.Event, error) {
 		if err == zk.ErrNoNode {
 			return nil, nil, ErrNodeNotExist
 		}
-		Log.Error("zk.Children(\"%s\") error(%v)", path, err)
+		glog.Errorf("zk.Children(\"%s\") error(%v)", path, err)
 		return nil, nil, err
 	}
 	if stat == nil {
@@ -310,7 +311,7 @@ func FindNode(key string) *NodeInfo {
 		return nil
 	}
 	node := cometHash.Node(key)
-	Log.Debug("cometHash hits \"%s\"", node)
+	glog.V(1).Infof("cometHash hits \"%s\"", node)
 	return NodeInfoMap[node]
 }
 

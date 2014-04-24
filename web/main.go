@@ -18,17 +18,13 @@ package main
 
 import (
 	"flag"
-	"github.com/Terry-Mao/gopush-cluster/log"
 	"github.com/Terry-Mao/gopush-cluster/perf"
 	"github.com/Terry-Mao/gopush-cluster/process"
+	"github.com/golang/glog"
 	"net"
 	"net/http"
 	"runtime"
 	"time"
-)
-
-var (
-	Log = log.DefaultLogger
 )
 
 const (
@@ -39,33 +35,27 @@ func main() {
 	var err error
 	// Parse cmd-line arguments
 	flag.Parse()
+	defer glog.Flush()
 	signalCH := InitSignal()
 	// Load config
 	Conf, err = NewConfig(ConfFile)
 	if err != nil {
-		Log.Error("NewConfig(\"%s\") error(%v)", ConfFile, err)
+		glog.Errorf("NewConfig(\"%s\") error(%v)", ConfFile, err)
 		return
 	}
 	// Set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
-	// Load log
-	if Log, err = log.New(Conf.LogPath, Conf.LogLevel); err != nil {
-		Log.Error("log.New(\"%s\", %s) error(%v)", Conf.LogPath, Conf.LogLevel, err)
-		return
-	}
-	// if process exit, close log
-	defer Log.Close()
 	// Initialize zookeeper
 	zk, err := InitZK()
 	if err != nil {
-		Log.Error("InitZK() failed(%v)", err)
+		glog.Errorf("InitZK() failed(%v)", err)
 		return
 	}
 	// if process exit, close zk
 	defer zk.Close()
 	// Initialize message server client
 	if err := InitMsgSvrClient(); err != nil {
-		Log.Error("InitMsgSvrClient() failed(%v)", err)
+		glog.Errorf("InitMsgSvrClient() failed(%v)", err)
 		return
 	}
 	// Clost message service client
@@ -75,7 +65,7 @@ func main() {
 	// Init network router
 	if Conf.Router != "" {
 		if err := InitRouter(); err != nil {
-			Log.Error("InitRouter() failed(%v)", err)
+			glog.Errorf("InitRouter() failed(%v)", err)
 			return
 		}
 	}
@@ -90,7 +80,7 @@ func main() {
 		adminServeMux.HandleFunc("/admin/msg/clean", AdminMsgClean)
 		err := http.ListenAndServe(Conf.AdminAddr, adminServeMux)
 		if err != nil {
-			Log.Error("http.ListenAndServe(\"%s\") failed(%v)", Conf.AdminAddr, err)
+			glog.Errorf("http.ListenAndServe(\"%s\") failed(%v)", Conf.AdminAddr, err)
 			panic(err)
 		}
 	}()
@@ -104,11 +94,11 @@ func main() {
 		server := &http.Server{Handler: httpServeMux, ReadTimeout: httpReadTimeout * time.Second}
 		l, err := net.Listen("tcp", Conf.Addr)
 		if err != nil {
-			Log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", Conf.Addr, err)
+			glog.Errorf("net.Listen(\"tcp\", \"%s\") error(%v)", Conf.Addr, err)
 			panic(err)
 		}
 		if err := server.Serve(l); err != nil {
-			Log.Error("server.Serve(\"%s\") error(%v)", Conf.Addr, err)
+			glog.Errorf("server.Serve(\"%s\") error(%v)", Conf.Addr, err)
 			panic(err)
 		}
 	}()
@@ -116,11 +106,11 @@ func main() {
 	// sleep one second, let the listen start
 	time.Sleep(time.Second)
 	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
-		Log.Error("process.Init() error(%v)", err)
+		glog.Errorf("process.Init() error(%v)", err)
 		return
 	}
 	// init signals, block wait signals
-	Log.Info("Web service start")
+	glog.Infof("Web service start")
 	HandleSignal(signalCH)
-	Log.Warn("Web service end")
+	glog.Infof("Web service end")
 }

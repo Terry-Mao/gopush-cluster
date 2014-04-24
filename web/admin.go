@@ -19,6 +19,7 @@ package main
 import (
 	"encoding/json"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
+	"github.com/golang/glog"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -48,7 +49,7 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(data))
 
-		Log.Info("request:push_private, request_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
+		glog.Infof("request:push_private, request_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
 	}(&bodyStr)
 
 	// Get params
@@ -74,7 +75,7 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 	// Get message
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log.Error("ioutil.ReadAll() quest_url:\"%s\" error(%v)", r.URL.String(), err)
+		glog.Errorf("ioutil.ReadAll() quest_url:\"%s\" error(%v)", r.URL.String(), err)
 		ret = InternalErr
 		return
 	}
@@ -83,7 +84,7 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 	// Match a push-server with the value computed through ketama algorithm
 	svrInfo := FindNode(key)
 	if svrInfo == nil || svrInfo.PubRPC == nil {
-		Log.Error("no node for key: \"%s\"", key)
+		glog.Errorf("no node for key: \"%s\"", key)
 		ret = NoNodeErr
 		return
 	}
@@ -91,7 +92,7 @@ func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
 	// RPC call publish interface
 	args := &myrpc.ChannelPushPrivateArgs{GroupID: groupID, Msg: string(body), Expire: expire, Key: key}
 	if err := svrInfo.PubRPC.Call("ChannelRPC.PushPrivate", args, &ret); err != nil {
-		Log.Error("RPC.Call(\"ChannelRPC.PushPrivate\") server:\"%v\" error(%v)", svrInfo.Addr, err)
+		glog.Errorf("RPC.Call(\"ChannelRPC.PushPrivate\") server:\"%v\" error(%v)", svrInfo.Addr, err)
 		ret = InternalErr
 		return
 	}
@@ -120,7 +121,7 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(data))
 
-		Log.Info("request:push_public, request_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
+		glog.Infof("request:push_public, request_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
 	}(&bodyStr)
 
 	// Get params
@@ -133,7 +134,7 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log.Error("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
+		glog.Errorf("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
 		ret = InternalErr
 		return
 	}
@@ -146,7 +147,7 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 			defer PubMIDLockRelease(pathCreated)
 		}
 		if err != nil || lockYes == false {
-			Log.Error("PubMIDLock error(%v)", err)
+			glog.Errorf("PubMIDLock error(%v)", err)
 			ret = InternalErr
 			return
 		}
@@ -159,21 +160,21 @@ func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
 	reply, err := MessageRPCSavePub(string(body), mid, expire)
 	// Message save failed
 	if reply != OK {
-		Log.Error("RPC.Call(\"MessageRPC.SavePub\") error (ret:\"%d\")", reply)
+		glog.Errorf("RPC.Call(\"MessageRPC.SavePub\") error (ret:\"%d\")", reply)
 		ret = InternalErr
 		return
 	}
 
 	for node, info := range NodeInfoMap {
 		if info == nil || info.PubRPC == nil {
-			Log.Error("abnormal node:\"%s\", interrupt pushing public message to node:\"%s\"", node)
+			glog.Errorf("abnormal node:\"%s\", interrupt pushing public message to node:\"%s\"", node)
 			continue
 		}
 
 		// RPC call publish interface
 		args := &myrpc.ChannelPushPublicArgs{MsgID: mid, Msg: string(body)}
 		if err := info.PubRPC.Call("ChannelRPC.PushPublic", args, &ret); err != nil {
-			Log.Error("RPC.Call(\"ChannelRPC.PushPublic\") server:\"%v\" error(%v)", info.Addr, err)
+			glog.Errorf("RPC.Call(\"ChannelRPC.PushPublic\") server:\"%v\" error(%v)", info.Addr, err)
 			ret = InternalErr
 			return
 		}
@@ -202,13 +203,13 @@ func AdminNodeAdd(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(data))
 
-		Log.Info("request:node_add, request_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+		glog.Infof("request:node_add, request_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
 
 	// Get params
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log.Error("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
+		glog.Errorf("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
 		ret = InternalErr
 		return
 	}
@@ -249,13 +250,13 @@ func AdminNodeDel(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(data))
 
-		Log.Info("request:node_del, request_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
+		glog.Infof("request:node_del, request_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
 	}()
 
 	// Get params
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log.Error("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
+		glog.Errorf("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
 		ret = InternalErr
 		return
 	}
@@ -297,13 +298,13 @@ func AdminMsgClean(rw http.ResponseWriter, r *http.Request) {
 
 		io.WriteString(rw, string(data))
 
-		Log.Info("request:clean_cache, request_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
+		glog.Infof("request:clean_cache, request_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
 	}(&bodyStr)
 
 	// Get params
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		Log.Error("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
+		glog.Errorf("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
 		ret = InternalErr
 		return
 	}
@@ -324,7 +325,7 @@ func AdminMsgClean(rw http.ResponseWriter, r *http.Request) {
 	// RPC call clean key interface
 	reply, err := MessageRPCCleanKey(key)
 	if err != nil {
-		Log.Error("RPC.Call(\"ChannelRPC.CleanKey\") key:\"%s\" error(%v)", key, err)
+		glog.Errorf("RPC.Call(\"ChannelRPC.CleanKey\") key:\"%s\" error(%v)", key, err)
 		return
 	}
 
@@ -336,14 +337,14 @@ func AdminMsgClean(rw http.ResponseWriter, r *http.Request) {
 	// Match a push-server with the value computed through ketama algorithm
 	svrInfo := FindNode(key)
 	if svrInfo == nil || svrInfo.PubRPC == nil {
-		Log.Error("no node for key: \"%s\"", key)
+		glog.Errorf("no node for key: \"%s\"", key)
 		ret = NoNodeErr
 		return
 	}
 
 	// RPC call ChannelRPC.Close interface
 	if err := svrInfo.PubRPC.Call("ChannelRPC.Close", key, &ret); err != nil {
-		Log.Error("RPC.Call(\"ChannelRPC.Close\") server:\"%v\" key:\"%s\" error(%v)", svrInfo.Addr, key, err)
+		glog.Errorf("RPC.Call(\"ChannelRPC.Close\") server:\"%v\" key:\"%s\" error(%v)", svrInfo.Addr, key, err)
 		ret = InternalErr
 		return
 	}

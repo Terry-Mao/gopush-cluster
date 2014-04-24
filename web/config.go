@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"github.com/Terry-Mao/goconf"
+	"github.com/golang/glog"
 	"runtime"
 	"time"
 )
@@ -42,8 +43,6 @@ type Config struct {
 	PidFile     string        `goconf:"base:pidfile"`
 	Dir         string        `goconf:"base:dir"`
 	Router      string        `goconf:"base:router"`
-	LogPath     string        `goconf:"log:path"`
-	LogLevel    string        `goconf:"log:level"`
 	QQWryPath   string        `goconf:"res:qqwry.path"`
 	ZKAddr      []string      `goconf:"zookeeper:addr:,"`
 	ZKTimeout   time.Duration `goconf:"zookeeper:timeout:time"`
@@ -58,9 +57,9 @@ type Config struct {
 func NewConfig(file string) (*Config, error) {
 	gconf := goconf.New()
 	if err := gconf.Parse(file); err != nil {
+		glog.Errorf("goconf.Parse(\"%s\") error(%v)", file, err)
 		return nil, err
 	}
-
 	// Default config
 	conf := &Config{
 		Addr:        ":80",
@@ -71,8 +70,6 @@ func NewConfig(file string) (*Config, error) {
 		PidFile:     "/tmp/gopush-cluster-web.pid",
 		Dir:         "./",
 		Router:      "",
-		LogPath:     "./web.log",
-		LogLevel:    "DEBUG",
 		QQWryPath:   "/tmp/QQWry.dat",
 		ZKAddr:      []string{":2181"},
 		ZKTimeout:   30 * time.Second,
@@ -82,10 +79,9 @@ func NewConfig(file string) (*Config, error) {
 		MsgPing:     1 * time.Second,
 		MsgRetry:    3 * time.Second,
 	}
-
 	if err := gconf.Unmarshal(conf); err != nil {
+		glog.Errorf("goconf.Unmarshall() error(%v)", err)
 		return nil, err
 	}
-
 	return conf, nil
 }

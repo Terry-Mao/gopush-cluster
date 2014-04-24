@@ -22,6 +22,7 @@ import (
 	"errors"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang/glog"
 	"time"
 )
 
@@ -49,7 +50,7 @@ func NewMYSQL() *MYSQLStorage {
 	for n, source := range Conf.DBSource {
 		db, err := sql.Open("mysql", source)
 		if err != nil {
-			Log.Error("sql.Open(\"mysql\", %s) failed (%v)", source, err)
+			glog.Errorf("sql.Open(\"mysql\", %s) failed (%v)", source, err)
 			panic(err)
 		}
 
@@ -72,7 +73,7 @@ func (s *MYSQLStorage) Save(key string, msg *Message, mid int64) error {
 	now := time.Now()
 	_, err := db.Exec(saveSQL, key, 0, mid, msg.Expire, string(message), now, now)
 	if err != nil {
-		Log.Error("db.Exec(%s,%s,%d,%d,%d,%s,now,now) failed (%v)", saveSQL, key, 0, mid, msg.Expire, string(message), err)
+		glog.Errorf("db.Exec(%s,%s,%d,%d,%d,%s,now,now) failed (%v)", saveSQL, key, 0, mid, msg.Expire, string(message), err)
 		return err
 	}
 
@@ -90,14 +91,14 @@ func (s *MYSQLStorage) Get(key string, mid int64) ([]string, error) {
 	now := time.Now().Unix()
 	rows, err := db.Query(getSQL, key, mid, now)
 	if err != nil {
-		Log.Error("db.Query(%s,%s,%d,now) failed (%v)", getSQL, key, mid, err)
+		glog.Errorf("db.Query(%s,%s,%d,now) failed (%v)", getSQL, key, mid, err)
 		return nil, err
 	}
 
 	for rows.Next() {
 		var m string
 		if err := rows.Scan(&m); err != nil {
-			Log.Error("rows.Scan() failed (%v)", err)
+			glog.Errorf("rows.Scan() failed (%v)", err)
 			return nil, err
 		}
 		msg = append(msg, m)
@@ -125,12 +126,12 @@ func (s *MYSQLStorage) DelAllExpired() (int64, error) {
 	for _, db := range s.Pool {
 		res, err := db.Exec(delExpireSQL, now)
 		if err != nil {
-			Log.Error("db.Exec(%s,now) failed (%v)", delExpireSQL, err)
+			glog.Errorf("db.Exec(%s,now) failed (%v)", delExpireSQL, err)
 			return 0, err
 		}
 		aff, err := res.RowsAffected()
 		if err != nil {
-			Log.Error("db.Exec(%s,now) failed (%v)", delExpireSQL, err)
+			glog.Errorf("db.Exec(%s,now) failed (%v)", delExpireSQL, err)
 			return 0, err
 		}
 		affect += aff
@@ -145,14 +146,12 @@ func (s *MYSQLStorage) getConn(key string) *sql.DB {
 	if len(s.Pool) > 1 {
 		node = s.Ketama.Node(key)
 	}
-
 	p, ok := s.Pool[node]
 	if !ok {
-		Log.Warn("no exists key:\"%s\" in mysql pool", key)
+		glog.Warningf("no exists key:\"%s\" in mysql pool", key)
 		return nil
 	}
-
-	Log.Debug("key:\"%s\", hit node:\"%s\"", key, node)
+	glog.V(1).Infof("key:\"%s\", hit node:\"%s\"", key, node)
 	return p
 }
 
@@ -161,12 +160,12 @@ func (s *MYSQLStorage) delLoop() {
 	for {
 		affect, err := s.DelAllExpired()
 		if err != nil {
-			Log.Error("delete all of expired messages failed (%v)", err)
+			glog.Errorf("delete all of expired messages failed (%v)", err)
 			time.Sleep(Conf.MYSQLDelLoopTime)
 			continue
 		}
 
-		Log.Info("delete all of expired messages OK, count:\"%d\"", affect)
+		glog.Infof("delete all of expired messages OK, count:\"%d\"", affect)
 		time.Sleep(Conf.MYSQLDelLoopTime)
 	}
 }

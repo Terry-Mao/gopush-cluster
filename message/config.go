@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/Terry-Mao/goconf"
+	"github.com/golang/glog"
 	"runtime"
 	"time"
 )
@@ -62,10 +63,9 @@ type Config struct {
 func NewConfig(fileName string) (*Config, error) {
 	gconf := goconf.New()
 	if err := gconf.Parse(fileName); err != nil {
-		Log.Error("goconf.Parse(\"%s\") error(%v)", fileName, err)
+		glog.Errorf("goconf.Parse(\"%s\") error(%v)", fileName, err)
 		return nil, err
 	}
-
 	conf := &Config{
 		Addr:             []string{"localhost:8070"},
 		PKey:             "gopushpkey",
@@ -90,10 +90,9 @@ func NewConfig(fileName string) (*Config, error) {
 		ZookeeperPath:    "/gopush-cluster-message",
 	}
 	if err := gconf.Unmarshal(conf); err != nil {
-		Log.Error("goconf.Unmarshal() error(%v)", err)
+		glog.Errorf("goconf.Unmarshal() error(%v)", err)
 		return nil, err
 	}
-
 	//Load redis addresses
 	redisAddrsSec := gconf.Get("redis.addr")
 	if redisAddrsSec != nil {
@@ -105,7 +104,6 @@ func NewConfig(fileName string) (*Config, error) {
 			conf.RedisAddrs[key] = addr
 		}
 	}
-
 	//Load mysql sources
 	dbSource := gconf.Get("mysql.source")
 	if dbSource != nil {

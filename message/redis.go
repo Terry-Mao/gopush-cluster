@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	"github.com/garyburd/redigo/redis"
+	"github.com/golang/glog"
 )
 
 const (
@@ -50,7 +51,7 @@ func NewRedis() *RedisStorage {
 			Dial: func() (redis.Conn, error) {
 				conn, err := redis.Dial("tcp", tmp)
 				if err != nil {
-					Log.Error("redis.Dial(\"tcp\", \"%s\") error(%v)", tmp, err)
+					glog.Errorf("redis.Dial(\"tcp\", \"%s\") error(%v)", tmp, err)
 				}
 				return conn, err
 			},
@@ -165,10 +166,10 @@ func (s *RedisStorage) getConn(key string) redis.Conn {
 
 	p, ok := s.Pool[node]
 	if !ok {
-		Log.Warn("no exists key:\"%s\" in redis pool", key)
+		glog.Warningf("no exists key:\"%s\" in redis pool", key)
 		return nil
 	}
 
-	Log.Debug("key:\"%s\", hit node:\"%s\"", key, node)
+	glog.V(1).Infof("key:\"%s\", hit node:\"%s\"", key, node)
 	return p.Get()
 }

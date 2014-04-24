@@ -20,6 +20,7 @@ import (
 	"errors"
 	"flag"
 	"github.com/Terry-Mao/goconf"
+	"github.com/golang/glog"
 )
 
 var (
@@ -34,8 +35,6 @@ func init() {
 
 type Config struct {
 	// base
-	LogFile   string `goconf:"base:logfile"`
-	LogLevel  string `goconf:"base:loglevel"`
 	Addr      string `goconf:"base:addr"`
 	Key       string `goconf:"base:key"`
 	Heartbeat int    `goconf:"base:heartbeat"`
@@ -45,19 +44,17 @@ type Config struct {
 func InitConfig(file string) (*Config, error) {
 	cf := &Config{
 		// base
-		LogFile:   "./comet-test.log",
-		LogLevel:  "ERROR",
 		Addr:      "localhost:6969",
 		Key:       "Terry-Mao",
 		Heartbeat: 30,
 	}
 	c := goconf.New()
 	if err := c.Parse(file); err != nil {
-		Log.Error("goconf.Parse(\"%s\") failed (%s)", file, err.Error())
+		glog.Errorf("goconf.Parse(\"%s\") failed (%s)", file, err.Error())
 		return nil, err
 	}
 	if err := c.Unmarshal(cf); err != nil {
-		Log.Error("goconf.Unmarshal() failed (%s)", err.Error())
+		glog.Errorf("goconf.Unmarshal() failed (%s)", err.Error())
 		return nil, err
 	}
 	return cf, nil

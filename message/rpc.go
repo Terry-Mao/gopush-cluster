@@ -19,6 +19,7 @@ package main
 import (
 	"encoding/json"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
+	"github.com/golang/glog"
 	"net"
 	"net/rpc"
 	"time"
@@ -39,7 +40,7 @@ func StartRPC() {
 	msg := &MessageRPC{}
 	rpc.Register(msg)
 	for _, bind := range Conf.Addr {
-		Log.Info("start rpc listen addr:\"%s\"", bind)
+		glog.Infof("start rpc listen addr:\"%s\"", bind)
 		go rpcListen(bind)
 	}
 	// Start a routine for delete message
@@ -49,12 +50,12 @@ func StartRPC() {
 func rpcListen(bind string) {
 	l, err := net.Listen("tcp", bind)
 	if err != nil {
-		Log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
+		glog.Errorf("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
 		panic(err)
 	}
 	defer func() {
 		if err := l.Close(); err != nil {
-			Log.Error("listener.Close() error(%v)", err)
+			glog.Errorf("listener.Close() error(%v)", err)
 		}
 	}()
 	rpc.Accept(l)
@@ -62,7 +63,7 @@ func rpcListen(bind string) {
 
 // Store offline pravite message interface
 func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
-	Log.Info("save pravite message (mid:%d,msg:%s,expire:%d,key:%s)", m.MsgID, m.Msg, m.Expire, m.Key)
+	glog.Infof("save pravite message (mid:%d,msg:%s,expire:%d,key:%s)", m.MsgID, m.Msg, m.Expire, m.Key)
 	if m == nil || m.MsgID < 0 {
 		*ret = myrpc.ParamErr
 		return nil
@@ -71,7 +72,7 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 	// Json.Marshal and save the message
 	recordMsg := &Message{Msg: m.Msg, Expire: m.Expire, MsgID: m.MsgID}
 	if err := UseStorage.Save(m.Key, recordMsg, m.MsgID); err != nil {
-		Log.Error("UseStorage.Save(\"%s\",\"%v\",\"%d\") error(%v)", m.Key, *recordMsg, m.MsgID, err)
+		glog.Errorf("UseStorage.Save(\"%s\",\"%v\",\"%d\") error(%v)", m.Key, *recordMsg, m.MsgID, err)
 		*ret = myrpc.InternalErr
 		return nil
 	}
@@ -82,7 +83,7 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 
 // Store offline public message interface
 func (r *MessageRPC) SavePub(m *myrpc.MessageSavePubArgs, ret *int) error {
-	Log.Info("save public message (mid:%d,msg:%s,expire:%d,key:%s)", m.MsgID, m.Msg, m.Expire, Conf.PKey)
+	glog.Infof("save public message (mid:%d,msg:%s,expire:%d,key:%s)", m.MsgID, m.Msg, m.Expire, Conf.PKey)
 	if m == nil || m.MsgID < 0 {
 		*ret = myrpc.ParamErr
 		return nil
@@ -91,7 +92,7 @@ func (r *MessageRPC) SavePub(m *myrpc.MessageSavePubArgs, ret *int) error {
 	// Json.Marshal and save the message
 	recordMsg := &Message{Msg: m.Msg, Expire: m.Expire, MsgID: m.MsgID}
 	if err := UseStorage.Save(Conf.PKey, recordMsg, m.MsgID); err != nil {
-		Log.Error("UseStorage.Save(\"%s\",\"%v\",\"%d\") error(%v)", Conf.PKey, *recordMsg, m.MsgID, err)
+		glog.Errorf("UseStorage.Save(\"%s\",\"%v\",\"%d\") error(%v)", Conf.PKey, *recordMsg, m.MsgID, err)
 		*ret = myrpc.InternalErr
 		return nil
 	}
@@ -102,11 +103,11 @@ func (r *MessageRPC) SavePub(m *myrpc.MessageSavePubArgs, ret *int) error {
 
 // Get offline message interface
 func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) error {
-	Log.Info("request message (mid:%d,pmid:%d,key:%s)", m.MsgID, m.PubMsgID, m.Key)
+	glog.Infof("request message (mid:%d,pmid:%d,key:%s)", m.MsgID, m.PubMsgID, m.Key)
 	// Get all of offline messages which larger than MsgID that corresponding to m.Key
 	msgs, err := UseStorage.Get(m.Key, m.MsgID)
 	if err != nil {
-		Log.Error("UseStorage.Get(\"%s\", \"%d\") error(%v)", m.Key, m.MsgID, err)
+		glog.Errorf("UseStorage.Get(\"%s\", \"%d\") error(%v)", m.Key, m.MsgID, err)
 		rw.Ret = myrpc.InternalErr
 		return nil
 	}
@@ -114,7 +115,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	// Get public offline messages which larger than PubMsgID
 	pMsgs, err := UseStorage.Get(Conf.PKey, m.PubMsgID)
 	if err != nil {
-		Log.Error("UseStorage.Get(\"%s\", \"%d\") error(%v)", Conf.PKey, m.PubMsgID, err)
+		glog.Errorf("UseStorage.Get(\"%s\", \"%d\") error(%v)", Conf.PKey, m.PubMsgID, err)
 		rw.Ret = myrpc.InternalErr
 		return nil
 	}
@@ -123,7 +124,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	numPMsg := len(pMsgs)
 	if numMsg == 0 && numPMsg == 0 {
 		rw.Ret = myrpc.OK
-		Log.Info("response message nil, request key(\"%s\") mid(\"%d\") pmid(\"%d\")", m.Key, m.MsgID, m.PubMsgID)
+		glog.Infof("response message nil, request key(\"%s\") mid(\"%d\") pmid(\"%d\")", m.Key, m.MsgID, m.PubMsgID)
 		return nil
 	}
 
@@ -139,7 +140,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	// Checkout expired offline messages
 	for i := 0; i < numMsg; i++ {
 		if err := json.Unmarshal([]byte(msgs[i]), &msg); err != nil {
-			Log.Error("internal message:\"%s\" error(%v)", msgs[i], err)
+			glog.Errorf("internal message:\"%s\" error(%v)", msgs[i], err)
 			rw.Ret = myrpc.InternalErr
 			return nil
 		}
@@ -151,7 +152,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	}
 	for i := 0; i < numPMsg; i++ {
 		if err := json.Unmarshal([]byte(pMsgs[i]), &msg); err != nil {
-			Log.Error("internal message:\"%s\" error(%v)", pMsgs[i], err)
+			glog.Errorf("internal message:\"%s\" error(%v)", pMsgs[i], err)
 			rw.Ret = myrpc.InternalErr
 			return nil
 		}
@@ -165,18 +166,18 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	// Send to delete message process
 	// TODO:delete expired message is useless as far as mysql storage
 	if len(delMsgs) != 0 {
-		Log.Info("delete expire private messages:\"%s\"", msgs)
+		glog.Infof("delete expire private messages:\"%s\"", msgs)
 		DelChan <- &DelMessageInfo{Key: m.Key, Msgs: delMsgs}
 	}
 	if len(delPMsgs) != 0 {
-		Log.Info("delete expire public messages:\"%s\"", pMsgs)
+		glog.Infof("delete expire public messages:\"%s\"", pMsgs)
 		DelChan <- &DelMessageInfo{Key: Conf.PKey, Msgs: delPMsgs}
 	}
 
 	rw.Ret = myrpc.OK
 	rw.Msgs = data
 	rw.PubMsgs = pData
-	Log.Info("response private_message(%s) public_message(%s)", data, pData)
+	glog.Infof("response private_message(%s) public_message(%s)", data, pData)
 
 	return nil
 }
@@ -184,11 +185,11 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 // Clean offline message interface
 func (r *MessageRPC) CleanKey(key string, ret *int) error {
 	if err := UseStorage.DelKey(key); err != nil {
-		Log.Error("clean offline message key:\"%s\" error(%v)", key, err)
+		glog.Errorf("clean offline message key:\"%s\" error(%v)", key, err)
 		*ret = myrpc.InternalErr
 		return nil
 	}
-	Log.Info("Clean Offline message key:\"%s\" OK", key)
+	glog.Infof("Clean Offline message key:\"%s\" OK", key)
 
 	return nil
 }
@@ -204,8 +205,8 @@ func DelProc() {
 	for {
 		info := <-DelChan
 		if err := UseStorage.DelMulti(info); err != nil {
-			Log.Error("UseStorage.DelMulti(key:\"%s\", Msgs:\"%s\") error(%v)", info.Key, info.Msgs, err)
+			glog.Errorf("UseStorage.DelMulti(key:\"%s\", Msgs:\"%s\") error(%v)", info.Key, info.Msgs, err)
 		}
-		Log.Info("UseStorage.DelMulti(key:\"%s\", Msgs:\"%s\") OK", info.Key, info.Msgs)
+		glog.Infof("UseStorage.DelMulti(key:\"%s\", Msgs:\"%s\") OK", info.Key, info.Msgs)
 	}
 }

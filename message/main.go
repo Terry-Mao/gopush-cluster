@@ -18,35 +18,27 @@ package main
 
 import (
 	"flag"
-	"github.com/Terry-Mao/gopush-cluster/log"
 	"github.com/Terry-Mao/gopush-cluster/perf"
 	"github.com/Terry-Mao/gopush-cluster/process"
+	"github.com/golang/glog"
 	"runtime"
 	"time"
-)
-
-var (
-	Log = log.DefaultLogger
 )
 
 func main() {
 	var err error
 	// Parse cmd-line arguments
 	flag.Parse()
+	defer glog.Flush()
 	signalCH := InitSignal()
 	// Load config
 	Conf, err = NewConfig(ConfFile)
 	if err != nil {
-		Log.Error("NewConfig(\"%s\") error(%v)", ConfFile, err)
+		glog.Errorf("NewConfig(\"%s\") error(%v)", ConfFile, err)
 		return
 	}
 	// Set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
-	// Load log
-	if Log, err = log.New(Conf.LogFile, Conf.LogLevel); err != nil {
-		Log.Error("log.New(\"%s\", %s) error(%v)", Conf.LogFile, Conf.LogLevel, err)
-		return
-	}
 	// start pprof http
 	perf.Init(Conf.PprofBind)
 	// Initialize redis
@@ -56,7 +48,7 @@ func main() {
 	// init zookeeper
 	zkConn, err := InitZK()
 	if err != nil {
-		Log.Error("InitZookeeper() error(%v)", err)
+		glog.Errorf("InitZookeeper() error(%v)", err)
 		return
 	}
 	// if process exit, close zk
@@ -65,12 +57,12 @@ func main() {
 	// sleep one second, let the listen start
 	time.Sleep(time.Second)
 	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
-		Log.Error("process.Init() error(%v)", err)
+		glog.Errorf("process.Init() error(%v)", err)
 		return
 	}
-	Log.Info("message start")
+	glog.Info("message start")
 	// init signals, block wait signals
 	HandleSignal(signalCH)
 	// exit
-	Log.Info("message stop")
+	glog.Info("message stop")
 }
