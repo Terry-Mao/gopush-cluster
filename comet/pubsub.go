@@ -18,6 +18,7 @@ package main
 
 import (
 	"errors"
+	"github.com/golang/glog"
 	"time"
 )
 
@@ -60,7 +61,7 @@ func StartComet() {
 			// Start tcp push service
 			StartTCP()
 		} else {
-			Log.Warn("unknown gopush-cluster protocol %s, (\"websocket\" or \"tcp\")", proto)
+			glog.Warningf("unknown gopush-cluster protocol %s, (\"websocket\" or \"tcp\")", proto)
 		}
 	}
 }

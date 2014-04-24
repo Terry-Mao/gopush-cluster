@@ -18,6 +18,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/golang/glog"
 )
 
 // The Message struct.
@@ -36,7 +37,7 @@ type Message struct {
 func (m *Message) Bytes() ([]byte, error) {
 	byteJson, err := json.Marshal(m)
 	if err != nil {
-		Log.Error("json.Marshal(%v) error(%v)", m, err)
+		glog.Errorf("json.Marshal(%v) error(%v)", m, err)
 		return nil, err
 	}
 

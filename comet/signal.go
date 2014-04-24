@@ -17,6 +17,7 @@
 package main
 
 import (
+	"github.com/golang/glog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -34,7 +35,7 @@ func HandleSignal(c chan os.Signal) {
 	// Block until a signal is received.
 	for {
 		s := <-c
-		Log.Info("comet get a signal %s", s.String())
+		glog.Infof("comet get a signal %s", s.String())
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGSTOP, syscall.SIGINT:
 			return
@@ -49,6 +50,6 @@ func HandleSignal(c chan os.Signal) {
 
 func KillSelf() {
 	if err := syscall.Kill(os.Getpid(), syscall.SIGQUIT); err != nil {
-		Log.Error("syscall.Kill(%d, SIGQUIT) error(%v)", os.Getpid(), err)
+		glog.Errorf("syscall.Kill(%d, SIGQUIT) error(%v)", os.Getpid(), err)
 	}
 }

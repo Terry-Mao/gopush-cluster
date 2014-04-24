@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	"github.com/Terry-Mao/gopush-cluster/hlist"
+	"github.com/golang/glog"
 	"net"
 	"sync"
 )
@@ -94,7 +95,7 @@ func (c *ChannelBucket) Unlock() {
 func NewChannelList() *ChannelList {
 	l := &ChannelList{Channels: []*ChannelBucket{}}
 	// split hashmap to many bucket
-	Log.Debug("create %d ChannelBucket", Conf.ChannelBucket)
+	glog.V(1).Infof("create %d ChannelBucket", Conf.ChannelBucket)
 	for i := 0; i < Conf.ChannelBucket; i++ {
 		c := &ChannelBucket{
 			Data:  map[string]Channel{},
@@ -119,7 +120,7 @@ func (l *ChannelList) bucket(key string) *ChannelBucket {
 	h := hash.NewMurmur3C()
 	h.Write([]byte(key))
 	idx := uint(h.Sum32()) & uint(Conf.ChannelBucket-1)
-	Log.Debug("user_key:\"%s\" hit channel bucket index:%d", key, idx)
+	glog.V(1).Infof("user_key:\"%s\" hit channel bucket index:%d", key, idx)
 	return l.Channels[idx]
 }
 
@@ -131,14 +132,14 @@ func (l *ChannelList) New(key string) (Channel, error) {
 	if c, ok := b.Data[key]; ok {
 		b.Unlock()
 		ChStat.IncrAccess()
-		Log.Info("user_key:\"%s\" refresh channel bucket expire time", key)
+		glog.Infof("user_key:\"%s\" refresh channel bucket expire time", key)
 		return c, nil
 	} else {
 		c = NewSeqChannel()
 		b.Data[key] = c
 		b.Unlock()
 		ChStat.IncrCreate()
-		Log.Info("user_key:\"%s\" create a new channel", key)
+		glog.Infof("user_key:\"%s\" create a new channel", key)
 		return c, nil
 	}
 }
@@ -154,17 +155,17 @@ func (l *ChannelList) Get(key string, newOne bool) (Channel, error) {
 			b.Data[key] = c
 			b.Unlock()
 			ChStat.IncrCreate()
-			Log.Info("user_key:\"%s\" create a new channel", key)
+			glog.Infof("user_key:\"%s\" create a new channel", key)
 			return c, nil
 		} else {
 			b.Unlock()
-			Log.Warn("user_key:\"%s\" channle not exists", key)
+			glog.Warningf("user_key:\"%s\" channle not exists", key)
 			return nil, ErrChannelNotExist
 		}
 	} else {
 		b.Unlock()
 		ChStat.IncrAccess()
-		Log.Info("user_key:\"%s\" refresh channel bucket expire time", key)
+		glog.Infof("user_key:\"%s\" refresh channel bucket expire time", key)
 		return c, nil
 	}
 }
@@ -176,20 +177,20 @@ func (l *ChannelList) Delete(key string) (Channel, error) {
 	b.Lock()
 	if c, ok := b.Data[key]; !ok {
 		b.Unlock()
-		Log.Warn("user_key:\"%s\" delete channle not exists", key)
+		glog.Warningf("user_key:\"%s\" delete channle not exists", key)
 		return nil, ErrChannelNotExist
 	} else {
 		delete(b.Data, key)
 		b.Unlock()
 		ChStat.IncrDelete()
-		Log.Info("user_key:\"%s\" delete channel", key)
+		glog.Infof("user_key:\"%s\" delete channel", key)
 		return c, nil
 	}
 }
 
 // Close close all channel.
 func (l *ChannelList) Close() {
-	Log.Info("channel close")
+	glog.Info("channel close")
 	chs := make([]Channel, 0, l.Count())
 	for _, c := range l.Channels {
 		c.Lock()
@@ -201,7 +202,7 @@ func (l *ChannelList) Close() {
 	// close all channels
 	for _, c := range chs {
 		if err := c.Close(); err != nil {
-			Log.Error("c.Close() error(%v)", err)
+			glog.Errorf("c.Close() error(%v)", err)
 		}
 	}
 }

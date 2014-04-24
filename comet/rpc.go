@@ -19,6 +19,7 @@ package main
 import (
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
+	"github.com/golang/glog"
 	"net"
 	"net/rpc"
 	"time"
@@ -38,9 +39,9 @@ func InitMessageRPC() {
 		// if process exit, then close message rpc
 		defer func() {
 			if MsgRPC != nil {
-				Log.Error("message rpc close")
+				glog.Error("message rpc close")
 				if err := MsgRPC.Close(); err != nil {
-					Log.Error("MsgRPC.Close() error(%v)", err)
+					glog.Errorf("MsgRPC.Close() error(%v)", err)
 				}
 			}
 		}()
@@ -48,25 +49,25 @@ func InitMessageRPC() {
 			if !failed && MsgRPC != nil {
 				reply := 0
 				if err := MsgRPC.Call("MessageRPC.Ping", 0, &reply); err != nil {
-					Log.Error("rpc.Call(\"MessageRPC.Ping\") error(%v)", err)
+					glog.Errorf("rpc.Call(\"MessageRPC.Ping\") error(%v)", err)
 					failed = true
 				} else {
 					// every one second send a heartbeat ping
 					failed = false
-					Log.Debug("rpc ping ok")
+					glog.V(1).Info("rpc ping ok")
 					time.Sleep(Conf.RPCPing)
 					continue
 				}
 			}
 			// reconnect(init) message rpc
 			if rpcTmp, err := rpc.Dial("tcp", Conf.RPCMessageAddr); err != nil {
-				Log.Error("rpc.Dial(\"tcp\", %s) error(%s), reconnect retry after %d second", Conf.RPCMessageAddr, err, int64(Conf.RPCRetry)/Second)
+				glog.Errorf("rpc.Dial(\"tcp\", %s) error(%s), reconnect retry after %d second", Conf.RPCMessageAddr, err, int64(Conf.RPCRetry)/Second)
 				time.Sleep(Conf.RPCRetry)
 				continue
 			} else {
 				MsgRPC = rpcTmp
 				failed = false
-				Log.Info("rpc client reconnect \"%s\" ok", Conf.RPCMessageAddr)
+				glog.Infof("rpc client reconnect \"%s\" ok", Conf.RPCMessageAddr)
 			}
 		}
 	}()
@@ -77,7 +78,7 @@ func StartRPC() {
 	c := &ChannelRPC{}
 	rpc.Register(c)
 	for _, bind := range Conf.RPCBind {
-		Log.Info("start listen rpc addr:\"%s\"", bind)
+		glog.Infof("start listen rpc addr:\"%s\"", bind)
 		go rpcListen(bind)
 	}
 }
@@ -85,14 +86,14 @@ func StartRPC() {
 func rpcListen(bind string) {
 	l, err := net.Listen("tcp", bind)
 	if err != nil {
-		Log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
+		glog.Errorf("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
 		panic(err)
 	}
 	// if process exit, then close the rpc bind
 	defer func() {
-		Log.Info("rpc addr: \"%s\" close", bind)
+		glog.Infof("rpc addr: \"%s\" close", bind)
 		if err := l.Close(); err != nil {
-			Log.Error("listener.Close() error(%v)", err)
+			glog.Errorf("listener.Close() error(%v)", err)
 		}
 	}()
 	rpc.Accept(l)
@@ -200,7 +201,7 @@ func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
 		}
 	}
 	if !has {
-		Log.Crit("make sure your migrate nodes right, there is no %s in nodes, this will cause all the node hit miss", Conf.ZookeeperNode)
+		glog.Error("make sure your migrate nodes right, there is no %s in nodes, this will cause all the node hit miss", Conf.ZookeeperNode)
 		*ret = myrpc.InternalErr
 		return nil
 	}
@@ -216,25 +217,25 @@ func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
 			if hn != Conf.ZookeeperNode {
 				channels = append(channels, v)
 				keys = append(keys, k)
-				Log.Debug("migrate key:\"%s\" hit node:\"%s\"", k, hn)
+				glog.V(1).Infof("migrate key:\"%s\" hit node:\"%s\"", k, hn)
 			}
 		}
 		for _, k := range keys {
 			delete(c.Data, k)
-			Log.Info("migrate delete channel key \"%s\"", k)
+			glog.Infof("migrate delete channel key \"%s\"", k)
 		}
 		c.Unlock()
-		Log.Info("migrate channel bucket:%d finished", i)
+		glog.Infof("migrate channel bucket:%d finished", i)
 	}
 	// close all the migrate channels
-	Log.Info("close all the migrate channels")
+	glog.Info("close all the migrate channels")
 	for _, channel := range channels {
 		if err := channel.Close(); err != nil {
-			Log.Error("channel.Close() error(%v)", err)
+			glog.Errorf("channel.Close() error(%v)", err)
 			continue
 		}
 	}
 	*ret = myrpc.OK
-	Log.Info("close all the migrate channels finished")
+	glog.Info("close all the migrate channels finished")
 	return nil
 }

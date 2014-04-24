@@ -22,6 +22,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/golang/glog"
 	"github.com/samuel/go-zookeeper/zk"
 	"strings"
 )
@@ -30,39 +31,39 @@ func InitZK() (*zk.Conn, error) {
 	// connect to zookeeper, get event from chan in goroutine(log)
 	conn, session, err := zk.Connect(Conf.ZookeeperAddr, Conf.ZookeeperTimeout)
 	if err != nil {
-		Log.Error("zk.Connect(\"%v\", %d) error(%v)", Conf.ZookeeperAddr, Conf.ZookeeperTimeout, err)
+		glog.Errorf("zk.Connect(\"%v\", %d) error(%v)", Conf.ZookeeperAddr, Conf.ZookeeperTimeout, err)
 		return nil, err
 	}
 	go func() {
 		for {
 			event := <-session
-			Log.Info("zookeeper get a event: %s", event.State.String())
+			glog.Infof("zookeeper get a event: %s", event.State.String())
 		}
 	}()
 	// create zk root path
 	tpath := ""
 	for _, str := range strings.Split(Conf.ZookeeperPath, "/")[1:] {
 		tpath += "/" + str
-		Log.Debug("create zookeeper path:%s", tpath)
+		glog.V(1).Infof("create zookeeper path:%s", tpath)
 		_, err = conn.Create(tpath, []byte(""), 0, zk.WorldACL(zk.PermAll))
 		if err != nil {
 			if err == zk.ErrNodeExists {
-				Log.Warn("zk.create(\"%s\") exists", tpath)
+				glog.Warningf("zk.create(\"%s\") exists", tpath)
 			} else {
-				Log.Error("zk.create(\"%s\") error(%v)", tpath, err)
+				glog.Errorf("zk.create(\"%s\") error(%v)", tpath, err)
 				return nil, err
 			}
 		}
 	}
 	// create node path
 	fpath := fmt.Sprintf("%s/%s", Conf.ZookeeperPath, Conf.ZookeeperNode)
-	Log.Debug("create zookeeper path:%s", fpath)
+	glog.V(1).Infof("create zookeeper path:%s", fpath)
 	_, err = conn.Create(fpath, []byte(""), 0, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		if err == zk.ErrNodeExists {
-			Log.Warn("zk.Create(\"%s\") exists", fpath)
+			glog.Warningf("zk.Create(\"%s\") exists", fpath)
 		} else {
-			Log.Error("zk.Create(\"%s\") error(%v)", fpath, err)
+			glog.Errorf("zk.Create(\"%s\") error(%v)", fpath, err)
 			return nil, err
 		}
 	}
@@ -80,30 +81,28 @@ func InitZK() (*zk.Conn, error) {
 	data = strings.TrimRight(data, ",")
 	tpath, err = conn.Create(fpath+"/", []byte(data), zk.FlagEphemeral|zk.FlagSequence, zk.WorldACL(zk.PermAll))
 	if err != nil {
-		Log.Error("conn.Create(\"%s\", \"%s\", zk.FlagEphemeral|zk.FlagSequence) error(%v)", fpath, data, err)
+		glog.Errorf("conn.Create(\"%s\", \"%s\", zk.FlagEphemeral|zk.FlagSequence) error(%v)", fpath, data, err)
 		return nil, err
 	}
-	Log.Debug("create a zookeeper node:%s", tpath)
+	glog.V(1).Infof("create a zookeeper node:%s", tpath)
 	// watch self
 	go func() {
 		for {
-			Log.Info("zk path: \"%s\" set a watch", tpath)
+			glog.Infof("zk path: \"%s\" set a watch", tpath)
 			exist, _, watch, err := conn.ExistsW(tpath)
 			if err != nil {
-				Log.Error("zk.ExistsW(\"%s\") error(%v)", tpath, err)
-				Log.Warn("zk path: \"%s\" set watch failed, comet kill itself", tpath)
+				glog.Errorf("zk.ExistsW(\"%s\") error(%v)", tpath, err)
+				glog.Warningf("zk path: \"%s\" set watch failed, comet kill itself", tpath)
 				KillSelf()
 				return
 			}
-
 			if !exist {
-				Log.Warn("zk path: \"%s\" not exist, comet kill itself", tpath)
+				glog.Warningf("zk path: \"%s\" not exist, comet kill itself", tpath)
 				KillSelf()
 				return
 			}
-
 			event := <-watch
-			Log.Info("zk path: \"%s\" receive a event %v", tpath, event)
+			glog.Infof("zk path: \"%s\" receive a event %v", tpath, event)
 		}
 	}()
 	return conn, nil

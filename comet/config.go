@@ -17,17 +17,16 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"github.com/Terry-Mao/goconf"
+	"github.com/golang/glog"
 	"runtime"
 	"time"
 )
 
 var (
-	Conf               *Config
-	ConfFile           string
-	ErrNoConfigSection = errors.New("no config section")
+	Conf     *Config
+	ConfFile string
 )
 
 func init() {
@@ -40,8 +39,6 @@ type Config struct {
 	PidFile       string   `goconf:"base:pidfile"`
 	Dir           string   `goconf:"base:dir"`
 	MaxProc       int      `goconf:"base:maxproc"`
-	LogFile       string   `goconf:"base:logfile"`
-	LogLevel      string   `goconf:"base:loglevel"`
 	TCPBind       []string `goconf:"base:tcp.bind:,"`
 	WebsocketBind []string `goconf:"base:websocket.bind:,"`
 	RPCBind       []string `goconf:"base:rpc.bind:,"`
@@ -77,8 +74,6 @@ func InitConfig(file string) (*Config, error) {
 		PidFile:       "/tmp/gopush-cluster-comet.pid",
 		Dir:           "./",
 		MaxProc:       runtime.NumCPU(),
-		LogFile:       "./comet.log",
-		LogLevel:      "ERROR",
 		WebsocketBind: []string{"localhost:6968"},
 		TCPBind:       []string{"localhost:6969"},
 		RPCBind:       []string{"localhost:6970"},
@@ -107,11 +102,11 @@ func InitConfig(file string) (*Config, error) {
 	}
 	c := goconf.New()
 	if err := c.Parse(file); err != nil {
-		Log.Error("goconf.Parse(\"%s\") error(%v)", file, err)
+		glog.Errorf("goconf.Parse(\"%s\") error(%v)", file, err)
 		return nil, err
 	}
 	if err := c.Unmarshal(cf); err != nil {
-		Log.Error("goconf.Unmarshall() error(%v)", err)
+		glog.Errorf("goconf.Unmarshall() error(%v)", err)
 		return nil, err
 	}
 	return cf, nil

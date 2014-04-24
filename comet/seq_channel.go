@@ -21,6 +21,7 @@ import (
 	"github.com/Terry-Mao/gopush-cluster/hlist"
 	"github.com/Terry-Mao/gopush-cluster/id"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
+	"github.com/golang/glog"
 	"sync"
 )
 
@@ -66,7 +67,7 @@ func (c *SeqChannel) AddToken(key, token string) error {
 	c.mutex.Lock()
 	if err := c.token.Add(token); err != nil {
 		c.mutex.Unlock()
-		Log.Error("user_key:\"%s\" c.token.Add(\"%s\") error(%v)", key, token, err)
+		glog.Errorf("user_key:\"%s\" c.token.Add(\"%s\") error(%v)", key, token, err)
 		return err
 	}
 	c.mutex.Unlock()
@@ -81,7 +82,7 @@ func (c *SeqChannel) AuthToken(key, token string) bool {
 	c.mutex.Lock()
 	if err := c.token.Auth(token); err != nil {
 		c.mutex.Unlock()
-		Log.Error("user_key:\"%s\" c.token.Auth(\"%s\") error(%v)", key, token, err)
+		glog.Errorf("user_key:\"%s\" c.token.Auth(\"%s\") error(%v)", key, token, err)
 		return false
 	}
 	c.mutex.Unlock()
@@ -101,18 +102,18 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 	if m.GroupID != myrpc.PublicGroupID && m.Expire > 0 {
 		// rewrite message id
 		m.MsgID = c.timeID.ID()
-		Log.Debug("user_key:\"%s\" timeID:%d", key, m.MsgID)
+		glog.V(1).Infof("user_key:\"%s\" timeID:%d", key, m.MsgID)
 		args := &myrpc.MessageSaveArgs{MsgID: m.MsgID, Msg: m.Msg, Expire: m.Expire, Key: key}
 		reply := myrpc.OK
 		if err := MsgRPC.Call("MessageRPC.Save", args, &reply); err != nil {
 			c.mutex.Unlock()
-			Log.Error("MessageRPC.Save(\"%s\", %v) error(%v)", key, m, err)
+			glog.Errorf("MessageRPC.Save(\"%s\", %v) error(%v)", key, m, err)
 			return err
 		}
 		// message save failed
 		if reply != myrpc.OK {
 			c.mutex.Unlock()
-			Log.Error("MessageRPC.Save(\"%s\", %v) error(ret=%d)", key, m, reply)
+			glog.Errorf("MessageRPC.Save(\"%s\", %v) error(ret=%d)", key, m, reply)
 			return ErrMessageSave
 		}
 	}
@@ -127,16 +128,16 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 		conn, _ := e.Value.(*Connection)
 		// do something with e.Value
 		if n, err := conn.Write(b); err != nil {
-			Log.Error("user_key:\"%s\" conn.Write() error(%v)", key, err)
+			glog.Errorf("user_key:\"%s\" conn.Write() error(%v)", key, err)
 			failed++
 			continue
 		} else {
 			succeed++
-			Log.Error("user_key:\"%s\" conn.Write %d bytes", key, n)
+			glog.Errorf("user_key:\"%s\" conn.Write %d bytes", key, n)
 		}
 	}
 	c.mutex.Unlock()
-	Log.Info("user_key:\"%s\" push message \"%s\":%d, (succeed:%d, failed:%d)", key, m.Msg, m.MsgID, succeed, failed)
+	glog.Infof("user_key:\"%s\" push message \"%s\":%d, (succeed:%d, failed:%d)", key, m.Msg, m.MsgID, succeed, failed)
 	// message stat
 	MsgStat.IncrFailed(failed)
 	MsgStat.IncrSucceed(succeed)
@@ -148,20 +149,20 @@ func (c *SeqChannel) AddConn(key string, conn *Connection) (*hlist.Element, erro
 	c.mutex.Lock()
 	if c.conn.Len()+1 > Conf.MaxSubscriberPerChannel {
 		c.mutex.Unlock()
-		Log.Error("user_key:\"%s\" exceed conn", key)
+		glog.Errorf("user_key:\"%s\" exceed conn", key)
 		return nil, ErrMaxConn
 	}
 	// send first heartbeat to tell client service is ready for accept heartbeat
 	if _, err := conn.Conn.Write(HeartbeatReply); err != nil {
 		c.mutex.Unlock()
-		Log.Error("user_key:\"%s\" write first heartbeat to client error(%v)", key, err)
+		glog.Errorf("user_key:\"%s\" write first heartbeat to client error(%v)", key, err)
 		return nil, err
 	}
 	// add conn
 	e := c.conn.PushFront(conn)
 	c.mutex.Unlock()
 	ConnStat.IncrAdd()
-	Log.Info("user_key:\"%s\" add conn = %d", key, c.conn.Len())
+	glog.Infof("user_key:\"%s\" add conn = %d", key, c.conn.Len())
 	return e, nil
 }
 
@@ -171,7 +172,7 @@ func (c *SeqChannel) RemoveConn(key string, e *hlist.Element) error {
 	c.conn.Remove(e)
 	c.mutex.Unlock()
 	ConnStat.IncrRemove()
-	Log.Info("user_key:\"%s\" remove conn = %d", key, c.conn.Len())
+	glog.Infof("user_key:\"%s\" remove conn = %d", key, c.conn.Len())
 	return nil
 }
 
@@ -185,7 +186,7 @@ func (c *SeqChannel) Close() error {
 		} else {
 			if err := conn.Conn.Close(); err != nil {
 				// ignore close error
-				Log.Warn("conn.Close() error(%v)", err)
+				glog.Warningf("conn.Close() error(%v)", err)
 			}
 		}
 	}
