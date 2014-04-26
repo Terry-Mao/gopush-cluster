@@ -36,11 +36,10 @@ var (
 
 // random load balancing object
 type RandLB struct {
-	Clients   map[string]*rpc.Client
-	addrs     []string
-	length    int
-	status    map[string]chan int
-	retryExit chan int
+	Clients map[string]*rpc.Client
+	addrs   []string
+	length  int
+	exitCH  chan int
 }
 
 // NewRandLB new a random load balancing object.
@@ -70,39 +69,31 @@ func (r *RandLB) Get() *rpc.Client {
 		return nil
 	}
 	addr := r.addrs[rand.Intn(r.length)]
+	glog.V(1).Infof("rand hit rpc node: \"%s\"", addr)
 	client, _ := r.Clients[addr]
 	return client
 }
 
 // Stop stop the retry connect goroutine and ping goroutines.
 func (r *RandLB) Stop() {
-	if r.retryExit != nil {
-		r.retryExit <- 1
-	}
-	if r.status != nil {
-		for _, ch := range r.status {
-			ch <- 1
-		}
+	if r.exitCH != nil {
+		close(r.exitCH)
 	}
 }
 
 // ping do a ping, if failed then retry.
 func (r *RandLB) ping(service string, retry, ping time.Duration) {
-	retryCH := make(chan string, randLBRetryCHLength)
 	method := fmt.Sprintf("%s.Ping", service)
-	r.status = make(map[string]chan int, r.length)
-	r.retryExit = make(chan int, 1)
+	retryCH := make(chan string, randLBRetryCHLength)
+	r.exitCH = make(chan int, 1)
 	for _, addr := range r.addrs {
-		ch := make(chan int, 1)
-		r.status[addr] = ch
 		// warn: closures problem
 		go func(addr string) {
 			glog.Infof("\"%s\" rpc ping goroutine start", addr)
 			ret := 0
 			for {
-				// get status
 				select {
-				case <-ch:
+				case <-r.exitCH:
 					glog.Infof("\"%s\" rpc ping goroutine exit", addr)
 					return
 				default:
@@ -130,7 +121,7 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 		for {
 			select {
 			case retryAddr = <-retryCH:
-			case <-r.retryExit:
+			case <-r.exitCH:
 				glog.Info("rpc retry connect goroutine exit")
 				return
 			}
