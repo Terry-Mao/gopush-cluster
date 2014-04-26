@@ -127,14 +127,14 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 	// push message
 	for e := c.conn.Front(); e != nil; e = e.Next() {
 		conn, _ := e.Value.(*Connection)
-		// do something with e.Value
+		// WARN: Write would block, SNDBUF will full when connection broken or the receiver slow network.
 		if n, err := conn.Write(b); err != nil {
 			glog.Errorf("user_key:\"%s\" conn.Write() error(%v)", key, err)
 			failed++
 			continue
 		} else {
 			succeed++
-			glog.Errorf("user_key:\"%s\" conn.Write %d bytes", key, n)
+			glog.V(1).Infof("user_key:\"%s\" conn.Write %d bytes", key, n)
 		}
 	}
 	c.mutex.Unlock()
