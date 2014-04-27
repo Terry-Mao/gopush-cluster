@@ -16,6 +16,10 @@
 
 package main
 
+import (
+	"encoding/json"
+)
+
 const (
 	StorageTypeRedis = "redis"
 	StorageTypeMysql = "mysql"
@@ -24,17 +28,17 @@ const (
 // The Message struct
 type Message struct {
 	// Message
-	Msg string `json:"msg"`
+	Msg json.RawMessage `json:"msg"`
 	// Message expired unixnano
-	Expire int64 `json:"expire"`
+	Expire uint `json:"expire"`
 	// Message id
-	MsgID int64 `json:"mid"`
+	MsgId int64 `json:"mid"`
 }
 
 // Struct for delele message
 type DelMessageInfo struct {
 	Key  string
-	Msgs []string
+	Msgs []interface{}
 }
 
 var UseStorage Storage
@@ -44,7 +48,7 @@ type Storage interface {
 	// Save message
 	Save(key string, msg *Message, mid int64) error
 	// Get messages
-	Get(key string, mid int64) ([]string, error)
+	Get(key string, mid int64) ([]interface{}, error)
 	// Delete key
 	DelKey(key string) error
 	// Delete multiple messages

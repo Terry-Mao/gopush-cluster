@@ -71,7 +71,7 @@ func (s *MYSQLStorage) Save(key string, msg *Message, mid int64) error {
 
 	message, _ := json.Marshal(*msg)
 	now := time.Now()
-	_, err := db.Exec(saveSQL, key, 0, mid, msg.Expire, string(message), now, now)
+	_, err := db.Exec(saveSQL, key, 0, mid, msg.Expire, message, now, now)
 	if err != nil {
 		glog.Errorf("db.Exec(%s,%s,%d,%d,%d,%s,now,now) failed (%v)", saveSQL, key, 0, mid, msg.Expire, string(message), err)
 		return err
@@ -81,13 +81,13 @@ func (s *MYSQLStorage) Save(key string, msg *Message, mid int64) error {
 }
 
 // Get implements the Storage Get method.
-func (s *MYSQLStorage) Get(key string, mid int64) ([]string, error) {
+func (s *MYSQLStorage) Get(key string, mid int64) ([]interface{}, error) {
 	db := s.getConn(key)
 	if db == nil {
 		return nil, MYSQLNoDBErr
 	}
 
-	var msg []string
+	var msg []interface{}
 	now := time.Now().Unix()
 	rows, err := db.Query(getSQL, key, mid, now)
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *MYSQLStorage) Get(key string, mid int64) ([]string, error) {
 	}
 
 	for rows.Next() {
-		var m string
+		var m []byte
 		if err := rows.Scan(&m); err != nil {
 			glog.Errorf("rows.Scan() failed (%v)", err)
 			return nil, err

@@ -17,6 +17,7 @@
 package main
 
 import (
+	"encoding/json"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/golang/glog"
 	"net/rpc"
@@ -90,9 +91,9 @@ func MessageRPCGet(key string, mid, pMid int64) (*myrpc.MessageGetResp, error) {
 }
 
 // MessageRPCSave message-service save private message RPC insterface
-func MessageRPCSave(key, msg string, mid, expire int64) (int, error) {
+func MessageRPCSave(key string, msg []byte, mid int64, expire uint) (int, error) {
 	reply := OK
-	args := &myrpc.MessageSaveArgs{MsgID: mid, Msg: msg, Expire: expire, Key: key}
+	args := &myrpc.MessageSaveArgs{MsgId: mid, Msg: json.RawMessage(msg), Expire: expire, Key: key}
 	if err := MsgSvrClient.Call("MessageRPC.Save", args, &reply); err != nil {
 		return InternalErr, err
 	}

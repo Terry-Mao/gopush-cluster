@@ -17,16 +17,16 @@
 package rpc
 
 import (
-    "encoding/json"
+	"encoding/json"
 )
 
 // Message Save Args
 type MessageSaveArgs struct {
-	Key    string // subscriber key
-	Msg    json.RawMessage // message content
-    MsgId   int64 // message id
-	GroupId uint    // message group id
-	Expire uint  // message expire second
+	Key     string          // subscriber key
+	Msg     json.RawMessage // message content
+	MsgId   int64           // message id
+	GroupId uint            // message group id
+	Expire  uint            // message expire second
 }
 
 // Public Message Save Args
@@ -45,7 +45,7 @@ type MessageGetArgs struct {
 
 // Message Get Response
 type MessageGetResp struct {
-	Ret     int      // response
-	Msgs    []string // messages
-	PubMsgs []string // public messages
+	Ret     int               // response
+	Msgs    []json.RawMessage // messages
+	PubMsgs []json.RawMessage // public messages
 }

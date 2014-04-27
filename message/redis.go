@@ -71,7 +71,7 @@ func (s *RedisStorage) Save(key string, msg *Message, mid int64) error {
 
 	message, _ := json.Marshal(*msg)
 	//ZADD
-	if err := conn.Send("ZADD", key, mid, string(message)); err != nil {
+	if err := conn.Send("ZADD", key, mid, message); err != nil {
 		return err
 	}
 	//ZREMRANGEBYRANK
@@ -98,14 +98,14 @@ func (s *RedisStorage) Save(key string, msg *Message, mid int64) error {
 }
 
 // Save implements the Storage Get method.
-func (s *RedisStorage) Get(key string, mid int64) ([]string, error) {
+func (s *RedisStorage) Get(key string, mid int64) ([]interface{}, error) {
 	conn := s.getConn(key)
 	if conn == nil {
 		return nil, RedisNoConnErr
 	}
 	defer conn.Close()
 
-	reply, err := redis.Strings(conn.Do("ZRANGEBYSCORE", key, fmt.Sprintf("(%d", mid), "+inf"))
+	reply, err := redis.Values(conn.Do("ZRANGEBYSCORE", key, fmt.Sprintf("(%d", mid), "+inf"))
 	if err != nil {
 		return nil, err
 	}

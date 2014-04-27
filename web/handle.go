@@ -108,8 +108,8 @@ func ServerGet(rw http.ResponseWriter, r *http.Request) {
 
 // Data struct as response of handle ServerGet
 type MsgGetData struct {
-	Msgs  []string `json:"msgs"`
-	PMsgs []string `json:"pmsgs"`
+	Msgs  []json.RawMessage `json:"msgs"`
+	PMsgs []json.RawMessage `json:"pmsgs"`
 }
 
 // MsgGet handle for msg get

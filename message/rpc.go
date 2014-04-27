@@ -63,16 +63,16 @@ func rpcListen(bind string) {
 
 // Store offline pravite message interface
 func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
-	glog.Infof("save pravite message (mid:%d,msg:%s,expire:%d,key:%s)", m.MsgID, m.Msg, m.Expire, m.Key)
-	if m == nil || m.MsgID < 0 {
+	glog.Infof("save pravite message (mid:%d,msg:%s,expire:%d,key:%s)", m.MsgId, string(m.Msg), m.Expire, m.Key)
+	if m == nil || m.MsgId < 0 {
 		*ret = myrpc.ParamErr
 		return nil
 	}
 
 	// Json.Marshal and save the message
-	recordMsg := &Message{Msg: m.Msg, Expire: m.Expire, MsgID: m.MsgID}
-	if err := UseStorage.Save(m.Key, recordMsg, m.MsgID); err != nil {
-		glog.Errorf("UseStorage.Save(\"%s\",\"%v\",\"%d\") error(%v)", m.Key, *recordMsg, m.MsgID, err)
+	recordMsg := &Message{Msg: m.Msg, Expire: uint(time.Now().Unix()) + m.Expire, MsgId: m.MsgId}
+	if err := UseStorage.Save(m.Key, recordMsg, m.MsgId); err != nil {
+		glog.Errorf("UseStorage.Save(\"%s\",\"%v\",\"%d\") error(%v)", m.Key, *recordMsg, m.MsgId, err)
 		*ret = myrpc.InternalErr
 		return nil
 	}
@@ -83,21 +83,21 @@ func (r *MessageRPC) Save(m *myrpc.MessageSaveArgs, ret *int) error {
 
 // Store offline public message interface
 func (r *MessageRPC) SavePub(m *myrpc.MessageSavePubArgs, ret *int) error {
-	glog.Infof("save public message (mid:%d,msg:%s,expire:%d,key:%s)", m.MsgID, m.Msg, m.Expire, Conf.PKey)
+	/*glog.Infof("save public message (mid:%d,msg:%s,expire:%d,key:%s)", m.MsgID, string(m.Msg), m.Expire, Conf.PKey)
 	if m == nil || m.MsgID < 0 {
 		*ret = myrpc.ParamErr
 		return nil
 	}
 
 	// Json.Marshal and save the message
-	recordMsg := &Message{Msg: m.Msg, Expire: m.Expire, MsgID: m.MsgID}
+	recordMsg := &Message{Msg: json.RawMessage(m.Msg), Expire: m.Expire, MsgId: m.MsgID}
 	if err := UseStorage.Save(Conf.PKey, recordMsg, m.MsgID); err != nil {
 		glog.Errorf("UseStorage.Save(\"%s\",\"%v\",\"%d\") error(%v)", Conf.PKey, *recordMsg, m.MsgID, err)
 		*ret = myrpc.InternalErr
 		return nil
 	}
 
-	*ret = myrpc.OK
+	*ret = myrpc.OK*/
 	return nil
 }
 
@@ -129,29 +129,31 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	}
 
 	var (
-		data     []string
-		pData    []string
-		delMsgs  []string
-		delPMsgs []string
+		data     []json.RawMessage
+		pData    []json.RawMessage
+		delMsgs  []interface{}
+		delPMsgs []interface{}
 		msg      = &Message{}
-		tNow     = time.Now().Unix()
+		tNow     = uint(time.Now().Unix())
 	)
 
 	// Checkout expired offline messages
 	for i := 0; i < numMsg; i++ {
-		if err := json.Unmarshal([]byte(msgs[i]), &msg); err != nil {
+		if err := json.Unmarshal(msgs[i].([]byte), msg); err != nil {
 			glog.Errorf("internal message:\"%s\" error(%v)", msgs[i], err)
 			rw.Ret = myrpc.InternalErr
 			return nil
 		}
+		test, _ := json.Marshal(msg)
+		glog.Infof("test %s", string(test))
 		if tNow > msg.Expire {
 			delMsgs = append(delMsgs, msgs[i])
 			continue
 		}
-		data = append(data, msgs[i])
+		data = append(data, json.RawMessage(msgs[i].([]byte)))
 	}
 	for i := 0; i < numPMsg; i++ {
-		if err := json.Unmarshal([]byte(pMsgs[i]), &msg); err != nil {
+		if err := json.Unmarshal(pMsgs[i].([]byte), msg); err != nil {
 			glog.Errorf("internal message:\"%s\" error(%v)", pMsgs[i], err)
 			rw.Ret = myrpc.InternalErr
 			return nil
@@ -160,7 +162,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 			delPMsgs = append(delPMsgs, pMsgs[i])
 			continue
 		}
-		pData = append(pData, pMsgs[i])
+		pData = append(pData, json.RawMessage(pMsgs[i].([]byte)))
 	}
 
 	// Send to delete message process
@@ -177,7 +179,7 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 	rw.Ret = myrpc.OK
 	rw.Msgs = data
 	rw.PubMsgs = pData
-	glog.Infof("response private_message(%s) public_message(%s)", data, pData)
+	glog.Infof("response private_num:\"%d\" publish_num:\"%d\"", len(data), len(pData))
 
 	return nil
 }
@@ -205,8 +207,8 @@ func DelProc() {
 	for {
 		info := <-DelChan
 		if err := UseStorage.DelMulti(info); err != nil {
-			glog.Errorf("UseStorage.DelMulti(key:\"%s\", Msgs:\"%s\") error(%v)", info.Key, info.Msgs, err)
+			glog.Errorf("UseStorage.DelMulti(key:\"%s\", Msgs:\"%v\") error(%v)", info.Key, info.Msgs, err)
 		}
-		glog.Infof("UseStorage.DelMulti(key:\"%s\", Msgs:\"%s\") OK", info.Key, info.Msgs)
+		glog.Infof("UseStorage.DelMulti(key:\"%s\") num:\"%d\" OK", info.Key, len(info.Msgs))
 	}
 }
