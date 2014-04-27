@@ -95,11 +95,10 @@ func (c *ChannelRPC) Close(key *string, ret *int) error {
 
 // PushPrivate expored a method for publishing a user private message for the channel
 func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) error {
-	if args == nil || args.Key == "" || args.Msg == "" {
+	if args == nil || args.Key == "" || args.Msg == nil {
 		*ret = myrpc.ParamErr
 		return nil
 	}
-	expire := args.Expire
 	// get a user channel
 	ch, err := UserChannel.New(args.Key)
 	if err != nil {
@@ -107,7 +106,7 @@ func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) e
 		return nil
 	}
 	// use the channel push message
-	if err = ch.PushMsg(args.Key, &Message{Msg: args.Msg, Expire: time.Now().Unix() + expire, GroupID: args.GroupID}); err != nil {
+	if err = ch.PushMsg(args.Key, &Message{Msg: args.Msg, Expire: args.Expire, GroupID: args.GroupID}); err != nil {
 		*ret = myrpc.InternalErr
 		return nil
 	}

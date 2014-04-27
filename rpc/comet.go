@@ -16,6 +16,10 @@
 
 package rpc
 
+import (
+    "encoding/json"
+)
+
 const (
 	PrivateGroupID = 0
 	PublicGroupID  = 1
@@ -23,10 +27,10 @@ const (
 
 // Channel Push Private Message Args
 type ChannelPushPrivateArgs struct {
-	GroupID int    // message group id
-	Msg     string // message content
-	Expire  int64  // message expire second
 	Key     string // subscriber key
+	Msg     json.RawMessage // message content
+	GroupID int    // message group id
+	Expire  int64  // message expire second
 }
 
 // Channel Push Public Message Args

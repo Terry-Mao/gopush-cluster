@@ -16,12 +16,17 @@
 
 package rpc
 
+import (
+    "encoding/json"
+)
+
 // Message Save Args
 type MessageSaveArgs struct {
-	MsgID  int64  // message id
-	Msg    string // message content
-	Expire int64  // message expire second
 	Key    string // subscriber key
+	Msg    json.RawMessage // message content
+    MsgId   int64 // message id
+	GroupId int    // message group id
+	Expire int64  // message expire second
 }
 
 // Public Message Save Args

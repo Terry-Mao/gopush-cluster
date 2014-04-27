@@ -64,6 +64,7 @@ func (c *Connection) Write(msg []byte) (int, error) {
 		return c.Conn.Write(msg)
 	} else if c.Proto == TCPProto {
 		// redis protocol
+        // TODO json marshal twice 
 		return c.Conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(msg), string(msg))))
 	} else {
 		return 0, ErrConnProto

@@ -26,7 +26,7 @@ type Message struct {
 	// Message expired time
 	Expire int64 `json:"-"`
 	// Message
-	Msg string `json:"msg"`
+	Msg json.RawMessage `json:"msg"`
 	// Message id
 	MsgID int64 `json:"mid"`
 	// Group id
