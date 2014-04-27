@@ -105,7 +105,8 @@ func SubscribeHandle(ws *websocket.Conn) {
 	}
 	heartbeat := i + delayHeartbeatSec
 	token := params.Get("token")
-	glog.Infof("<%s> subscribe to key = %s, heartbeat = %d, token = %s", addr, key, heartbeat, token)
+    version := params.Get("ver")
+	glog.Infof("<%s> subscribe to key = %s, heartbeat = %d, token = %s, version = %s", addr, key, heartbeat, token, version)
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key, true)
 	if err != nil {
@@ -120,7 +121,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 		return
 	}
 	// add a conn to the channel
-	connElem, err := c.AddConn(key, &Connection{Conn: ws, Proto: WebsocketProto})
+	connElem, err := c.AddConn(key, &Connection{Conn: ws, Proto: WebsocketProto, Version: version})
 	if err != nil {
 		glog.Errorf("<%s> user_key:\"%s\" add conn error(%s)", addr, key, err)
 		return

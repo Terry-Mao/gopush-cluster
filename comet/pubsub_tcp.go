@@ -181,7 +181,7 @@ func handleTCPConn(conn net.Conn, rc chan *bufio.Reader) {
 func SubscribeTCPHandle(conn net.Conn, args []string) {
 	argLen := len(args)
 	addr := conn.RemoteAddr().String()
-	if argLen < 2 {
+	if argLen < 3 {
 		conn.Write(ParamReply)
 		glog.Errorf("<%s> subscriber missing argument", addr)
 		return
@@ -206,11 +206,15 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		return
 	}
 	heartbeat := i + delayHeartbeatSec
+    version := ""
+    if argLen > 2 {
+        version = args[2]
+    }
 	token := ""
-	if argLen > 2 {
-		token = args[2]
+	if argLen > 3 {
+		token = args[3]
 	}
-	glog.Infof("<%s> subscribe to key = %s, heartbeat = %d, token = %s", addr, key, heartbeat, token)
+	glog.Infof("<%s> subscribe to key = %s, heartbeat = %d, token = %s, version = %s", addr, key, heartbeat, token, version)
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key, true)
 	if err != nil {
@@ -225,7 +229,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		return
 	}
 	// add a conn to the channel
-	connElem, err := c.AddConn(key, &Connection{Conn: conn, Proto: TCPProto})
+	connElem, err := c.AddConn(key, &Connection{Conn: conn, Proto: TCPProto, Version: version})
 	if err != nil {
 		glog.Errorf("<%s> user_key:\"%s\" add conn error(%v)", addr, key, err)
 		return
