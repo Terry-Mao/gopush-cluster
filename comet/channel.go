@@ -35,7 +35,7 @@ var (
 // The subscriber interface.
 type Channel interface {
 	// PushMsg push a message to the subscriber.
-	PushMsg(key string, m *Message) error
+	PushMsg(key string, m *Message, expire uint) error
 	// Add a token for one subscriber
 	// The request token not equal the subscriber token will return errors.
 	AddToken(key, token string) error
@@ -64,7 +64,7 @@ func (c *Connection) Write(msg []byte) (int, error) {
 		return c.Conn.Write(msg)
 	} else if c.Proto == TCPProto {
 		// redis protocol
-        // TODO json marshal twice 
+		// TODO json marshal twice
 		return c.Conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(msg), string(msg))))
 	} else {
 		return 0, ErrConnProto

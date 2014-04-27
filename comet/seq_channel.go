@@ -90,7 +90,7 @@ func (c *SeqChannel) AuthToken(key, token string) bool {
 }
 
 // PushMsg implements the Channel PushMsg method.
-func (c *SeqChannel) PushMsg(key string, m *Message) error {
+func (c *SeqChannel) PushMsg(key string, m *Message, expire uint) error {
 	var succeed, failed uint64
 	client := MessageRPC.Get()
 	if client == nil {
@@ -100,11 +100,11 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 	c.mutex.Lock()
 	// private message need persistence
 	// if message expired no need persistence, only send online message
-	if m.GroupID != myrpc.PublicGroupID && m.Expire > 0 {
+	if m.GroupId != myrpc.PublicGroupId && expire > 0 {
 		// rewrite message id
-		m.MsgID = c.timeID.ID()
-		glog.V(1).Infof("user_key:\"%s\" timeID:%d", key, m.MsgID)
-		args := &myrpc.MessageSaveArgs{MsgID: m.MsgID, Msg: m.Msg, Expire: m.Expire, Key: key}
+		m.MsgId = c.timeID.ID()
+		glog.V(1).Infof("user_key:\"%s\" timeID:%d", key, m.MsgId)
+		args := &myrpc.MessageSaveArgs{Key: key, Msg: m.Msg, MsgId: m.MsgId, GroupId: m.GroupId, Expire: expire}
 		reply := myrpc.OK
 		if err := client.Call("MessageRPC.Save", args, &reply); err != nil {
 			c.mutex.Unlock()
@@ -138,7 +138,7 @@ func (c *SeqChannel) PushMsg(key string, m *Message) error {
 		}
 	}
 	c.mutex.Unlock()
-	glog.Infof("user_key:\"%s\" push message \"%s\":%d, (succeed:%d, failed:%d)", key, m.Msg, m.MsgID, succeed, failed)
+	glog.Infof("user_key:\"%s\" push message \"%s\":%d, (succeed:%d, failed:%d)", key, m.Msg, m.MsgId, succeed, failed)
 	// message stat
 	MsgStat.IncrFailed(failed)
 	MsgStat.IncrSucceed(succeed)

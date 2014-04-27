@@ -26,49 +26,49 @@ import (
 )
 
 func main() {
-    var err error
-    // parse cmd-line arguments
-    flag.Parse()
-    defer glog.Flush()
-    signalCH := InitSignal()
-    // init config
-    Conf, err = InitConfig(ConfFile)
-    if err != nil {
-        glog.Errorf("NewConfig(\"%s\") error(%v)", ConfFile, err)
-        return
-    }
-    // set max routine
-    runtime.GOMAXPROCS(Conf.MaxProc)
-    // create channel
-    UserChannel = NewChannelList()
-    // if process exit, close channel
-    defer UserChannel.Close()
-    // start stats
-    StartStats()
-    // start pprof
-    perf.Init(Conf.PprofBind)
-    // start rpc
-    StartRPC()
-    // start comet
-    StartComet()
-    // init zookeeper
-    zkConn, err := InitZK()
-    if err != nil {
-        glog.Errorf("InitZookeeper() error(%v)", err)
-        return
-    }
-    // if process exit, close zk
-    defer zkConn.Close()
-    // init process
-    // sleep one second, let the listen start
-    time.Sleep(time.Second)
-    if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
-        glog.Errorf("process.Init() error(%v)", err)
-        return
-    }
-    glog.Info("comet start")
-    // init signals, block wait signals
-    HandleSignal(signalCH)
-    // exit
-    glog.Info("comet stop")
+	var err error
+	// parse cmd-line arguments
+	flag.Parse()
+	defer glog.Flush()
+	signalCH := InitSignal()
+	// init config
+	Conf, err = InitConfig(ConfFile)
+	if err != nil {
+		glog.Errorf("NewConfig(\"%s\") error(%v)", ConfFile, err)
+		return
+	}
+	// set max routine
+	runtime.GOMAXPROCS(Conf.MaxProc)
+	// create channel
+	UserChannel = NewChannelList()
+	// if process exit, close channel
+	defer UserChannel.Close()
+	// start stats
+	StartStats()
+	// start pprof
+	perf.Init(Conf.PprofBind)
+	// start rpc
+	StartRPC()
+	// start comet
+	StartComet()
+	// init zookeeper
+	zkConn, err := InitZK()
+	if err != nil {
+		glog.Errorf("InitZookeeper() error(%v)", err)
+		return
+	}
+	// if process exit, close zk
+	defer zkConn.Close()
+	// init process
+	// sleep one second, let the listen start
+	time.Sleep(time.Second)
+	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
+		glog.Errorf("process.Init() error(%v)", err)
+		return
+	}
+	glog.Info("comet start")
+	// init signals, block wait signals
+	HandleSignal(signalCH)
+	// exit
+	glog.Info("comet stop")
 }

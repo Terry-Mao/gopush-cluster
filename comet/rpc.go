@@ -22,7 +22,6 @@ import (
 	"github.com/golang/glog"
 	"net"
 	"net/rpc"
-	"time"
 )
 
 // StartRPC start rpc listen.
@@ -106,7 +105,7 @@ func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) e
 		return nil
 	}
 	// use the channel push message
-	if err = ch.PushMsg(args.Key, &Message{Msg: args.Msg, Expire: args.Expire, GroupID: args.GroupID}); err != nil {
+	if err = ch.PushMsg(args.Key, &Message{Msg: args.Msg, GroupId: args.GroupId}, args.Expire); err != nil {
 		*ret = myrpc.InternalErr
 		return nil
 	}
@@ -116,25 +115,27 @@ func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) e
 
 // PushPublic expored a method for publishing a public message for the channel
 func (c *ChannelRPC) PushPublic(args *myrpc.ChannelPushPublicArgs, ret *int) error {
-	// get all the channel lock
-	m := &Message{Msg: args.Msg, MsgID: args.MsgID, GroupID: myrpc.PublicGroupID}
-	for _, c := range UserChannel.Channels {
-		c.Lock()
-		cm := make(map[string]Channel, len(c.Data))
-		for k, v := range c.Data {
-			cm[k] = v
-		}
-		c.Unlock()
-		// multiple routine push message
-		go func() {
-			for k, v := range cm {
-				if err := v.PushMsg(k, m); err != nil {
-					continue
-				}
+	/*
+		// get all the channel lock
+		m := &Message{Msg: args.Msg, MsgID: args.MsgID, GroupID: myrpc.PublicGroupID}
+		for _, c := range UserChannel.Channels {
+			c.Lock()
+			cm := make(map[string]Channel, len(c.Data))
+			for k, v := range c.Data {
+				cm[k] = v
 			}
-		}()
-	}
-	*ret = myrpc.OK
+			c.Unlock()
+			// multiple routine push message
+			go func() {
+				for k, v := range cm {
+					if err := v.PushMsg(k, m); err != nil {
+						continue
+					}
+				}
+			}()
+		}
+		*ret = myrpc.OK
+	*/
 	return nil
 }
 

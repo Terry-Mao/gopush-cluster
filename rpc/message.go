@@ -25,8 +25,8 @@ type MessageSaveArgs struct {
 	Key    string // subscriber key
 	Msg    json.RawMessage // message content
     MsgId   int64 // message id
-	GroupId int    // message group id
-	Expire int64  // message expire second
+	GroupId uint    // message group id
+	Expire uint  // message expire second
 }
 
 // Public Message Save Args

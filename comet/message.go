@@ -23,14 +23,12 @@ import (
 
 // The Message struct.
 type Message struct {
-	// Message expired time
-	Expire int64 `json:"-"`
 	// Message
 	Msg json.RawMessage `json:"msg"`
 	// Message id
-	MsgID int64 `json:"mid"`
+	MsgId int64 `json:"mid"`
 	// Group id
-	GroupID int `json:"gid"`
+	GroupId uint `json:"gid"`
 }
 
 // Bytes get a message reply bytes.

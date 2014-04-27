@@ -21,16 +21,16 @@ import (
 )
 
 const (
-	PrivateGroupID = 0
-	PublicGroupID  = 1
+	PrivateGroupId = 0
+	PublicGroupId  = 1
 )
 
 // Channel Push Private Message Args
 type ChannelPushPrivateArgs struct {
 	Key     string // subscriber key
 	Msg     json.RawMessage // message content
-	GroupID int    // message group id
-	Expire  int64  // message expire second
+	GroupId uint    // message group id
+	Expire  uint  // message expire second
 }
 
 // Channel Push Public Message Args
