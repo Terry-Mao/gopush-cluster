@@ -27,9 +27,9 @@ const (
 
 // The Message struct
 type Message struct {
-	Msg json.RawMessage // message content 
-	MsgId int64 // message id
-    GroupId int // group id
+	Msg     json.RawMessage // message content
+	MsgId   int64           // message id
+	GroupId int             // group id
 }
 
 // Struct for delele message
@@ -59,8 +59,8 @@ func InitStorage() error {
 	} else if Conf.StorageType == StorageTypeMysql {
 		UseStorage = NewMYSQL()
 	} else {
-        glog.Errorf("unknown storage type: \"%s\"", Conf.StorageType)
-        return ErrStorageType
-    }
+		glog.Errorf("unknown storage type: \"%s\"", Conf.StorageType)
+		return ErrStorageType
+	}
 	return nil
 }

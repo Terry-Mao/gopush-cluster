@@ -67,8 +67,8 @@ func (s *MySQLStorage) Save(key string, msg json.RawMessage, mid int64, gid int,
 		return ErrNoMySQLConn
 	}
 	now := time.Now()
-    _, err := db.Exec(saveSQL, key, gid, mid, expire, msg, now, now)
-    if err != nil {
+	_, err := db.Exec(saveSQL, key, gid, mid, expire, msg, now, now)
+	if err != nil {
 		glog.Errorf("db.Exec(%s,%s,%d,%d,%d,%s,now,now) failed (%v)", saveSQL, key, 0, mid, expire, string(msg), err)
 		return err
 	}
@@ -87,9 +87,9 @@ func (s *MySQLStorage) Get(key string, mid int64) ([]*Message, error) {
 		glog.Errorf("db.Query(%s,%s,%d,now) failed (%v)", getSQL, key, mid, err)
 		return nil, err
 	}
-    msgs := []*Message{}
+	msgs := []*Message{}
 	for rows.Next() {
-        m := &Message{}
+		m := &Message{}
 		if err := rows.Scan(&m.MsgId, &m.GroupId, &m.Msg); err != nil {
 			glog.Errorf("rows.Scan() failed (%v)", err)
 			return nil, err
