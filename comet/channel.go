@@ -104,7 +104,6 @@ func (c *Connection) HandleWrite(key string) {
 // Stop stop the HandleWrite goroutine.
 func (c *Connection) Stop(key string) {
 	close(c.Buf)
-	glog.Infof("user_key: \"%s\" stop the HandleWrite goroutine", key)
 }
 
 // Write different message to client by different protocol
