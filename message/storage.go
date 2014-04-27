@@ -27,12 +27,9 @@ const (
 
 // The Message struct
 type Message struct {
-	// Message
-	Msg json.RawMessage `json:"msg"`
-	// Message expired unixnano
-	Expire uint `json:"expire"`
-	// Message id
-	MsgId int64 `json:"mid"`
+	Msg json.RawMessage // message content 
+	MsgId int64 // message id
+    GroupId int // group id
 }
 
 // Struct for delele message
@@ -46,21 +43,24 @@ var UseStorage Storage
 // Stored messages interface
 type Storage interface {
 	// Save message
-	Save(key string, msg *Message, mid int64) error
+	Save(key string, msg json.RawMessage, mid int64, gid int, expire uint) error
 	// Get messages
-	Get(key string, mid int64) ([]interface{}, error)
+	Get(key string, mid int64) ([]json.RawMessage, error)
 	// Delete key
 	DelKey(key string) error
 	// Delete multiple messages
 	DelMulti(info *DelMessageInfo) error
 }
 
+// InitStorage init the storage type(mysql or redis).
 func InitStorage() error {
 	if Conf.StorageType == StorageTypeRedis {
 		UseStorage = NewRedis()
 	} else if Conf.StorageType == StorageTypeMysql {
 		UseStorage = NewMYSQL()
-	}
-
+	} else {
+        glog.Errorf("unknown storage type: \"%s\"", Conf.StorageType)
+        return ErrStorageType
+    }
 	return nil
 }

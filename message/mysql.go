@@ -29,23 +29,23 @@ import (
 const (
 	defaultMYSQLNode = "node1"
 	saveSQL          = "INSERT INTO message(sub,gid,mid,expire,msg,ctime,mtime) VALUES(?,?,?,?,?,?,?)"
-	getSQL           = "SELECT msg FROM message WHERE sub=? AND mid>? AND expire>?"
+	getSQL           = "SELECT mid, gid, msg FROM message WHERE sub=? AND mid>? AND expire>?"
 	delExpireSQL     = "DELETE FROM message WHERE expire<=?"
 )
 
 var (
-	MYSQLNoDBErr = errors.New("can't get a mysql db")
+	ErrNoMySQLConn = errors.New("can't get a mysql db")
 )
 
 // MySQL Storage struct
-type MYSQLStorage struct {
+type MySQLStorage struct {
 	// n
 	Pool   map[string]*sql.DB
 	Ketama *hash.Ketama
 }
 
 // NewMYSQL initialize mysql pool and consistency hash ring
-func NewMYSQL() *MYSQLStorage {
+func NewMYSQL() *MySQLStorage {
 	dbPool := make(map[string]*sql.DB)
 	for n, source := range Conf.DBSource {
 		db, err := sql.Open("mysql", source)
@@ -53,74 +53,67 @@ func NewMYSQL() *MYSQLStorage {
 			glog.Errorf("sql.Open(\"mysql\", %s) failed (%v)", source, err)
 			panic(err)
 		}
-
 		dbPool[n] = db
 	}
-
-	s := &MYSQLStorage{Pool: dbPool, Ketama: hash.NewKetama(len(dbPool), 255)}
+	s := &MySQLStorage{Pool: dbPool, Ketama: hash.NewKetama(len(dbPool), 255)}
 	go s.delLoop()
 	return s
 }
 
 // Save implements the Storage Save method.
-func (s *MYSQLStorage) Save(key string, msg *Message, mid int64) error {
+func (s *MySQLStorage) Save(key string, msg json.RawMessage, mid int64, gid int, expire uint) error {
 	db := s.getConn(key)
 	if db == nil {
-		return MYSQLNoDBErr
+		return ErrNoMySQLConn
 	}
-
-	message, _ := json.Marshal(*msg)
 	now := time.Now()
-	_, err := db.Exec(saveSQL, key, 0, mid, msg.Expire, message, now, now)
-	if err != nil {
-		glog.Errorf("db.Exec(%s,%s,%d,%d,%d,%s,now,now) failed (%v)", saveSQL, key, 0, mid, msg.Expire, string(message), err)
+    _, err := db.Exec(saveSQL, key, gid, mid, expire, msg, now, now)
+    if err != nil {
+		glog.Errorf("db.Exec(%s,%s,%d,%d,%d,%s,now,now) failed (%v)", saveSQL, key, 0, mid, expire, string(msg), err)
 		return err
 	}
-
 	return nil
 }
 
 // Get implements the Storage Get method.
-func (s *MYSQLStorage) Get(key string, mid int64) ([]interface{}, error) {
+func (s *MySQLStorage) Get(key string, mid int64) ([]*Message, error) {
 	db := s.getConn(key)
 	if db == nil {
-		return nil, MYSQLNoDBErr
+		return nil, ErrNoMySQLConn
 	}
-
-	var msg []interface{}
 	now := time.Now().Unix()
 	rows, err := db.Query(getSQL, key, mid, now)
 	if err != nil {
 		glog.Errorf("db.Query(%s,%s,%d,now) failed (%v)", getSQL, key, mid, err)
 		return nil, err
 	}
-
+    msgs := []*Message{}
 	for rows.Next() {
-		var m []byte
-		if err := rows.Scan(&m); err != nil {
+        m := &Message{}
+		if err := rows.Scan(&m.MsgId, &m.GroupId, &m.Msg); err != nil {
 			glog.Errorf("rows.Scan() failed (%v)", err)
 			return nil, err
 		}
-		msg = append(msg, m)
+		msgs = append(msgs, m)
 	}
 
-	return msg, nil
+	return msgs, nil
 }
 
 // DelMulti implements the Storage DelMulti method.
-func (s *MYSQLStorage) DelMulti(info *DelMessageInfo) error {
+func (s *MySQLStorage) DelMulti(info *DelMessageInfo) error {
 	// WARN: nothing to do, cause delete operation run loop periodically
 	return nil
 }
 
 // DelKey implements the Storage DelKey method.
-func (s *MYSQLStorage) DelKey(key string) error {
+func (s *MySQLStorage) DelKey(key string) error {
 	// WARN: nothing to do, cause delete operation run loop periodically
 	return nil
 }
 
 // DelAllExpired enumerate the nodes then delete all expired message.
-func (s *MYSQLStorage) DelAllExpired() (int64, error) {
+func (s *MySQLStorage) DelAllExpired() (int64, error) {
 	var affect int64
 	now := time.Now().Unix()
 	for _, db := range s.Pool {
@@ -141,7 +134,7 @@ func (s *MYSQLStorage) DelAllExpired() (int64, error) {
 }
 
 // getConn get the connection of matching with key using ketama hash
-func (s *MYSQLStorage) getConn(key string) *sql.DB {
+func (s *MySQLStorage) getConn(key string) *sql.DB {
 	node := defaultMYSQLNode
 	if len(s.Pool) > 1 {
 		node = s.Ketama.Node(key)
@@ -156,7 +149,7 @@ func (s *MYSQLStorage) getConn(key string) *sql.DB {
 }
 
 // delLoop delete expired messages peroridly.
-func (s *MYSQLStorage) delLoop() {
+func (s *MySQLStorage) delLoop() {
 	for {
 		affect, err := s.DelAllExpired()
 		if err != nil {
