@@ -92,7 +92,6 @@ func (c *SeqChannel) AuthToken(key, token string) bool {
 // PushMsg implements the Channel PushMsg method.
 func (c *SeqChannel) PushMsg(key string, m *Message, expire uint) error {
 	var (
-		succeed, failed      uint64
 		oldMsg, msg, sendMsg []byte
 		err                  error
 	)
@@ -100,7 +99,6 @@ func (c *SeqChannel) PushMsg(key string, m *Message, expire uint) error {
 	if client == nil {
 		return ErrMessageRPC
 	}
-	succeed, failed = 0, 0
 	c.mutex.Lock()
 	// private message need persistence
 	// if message expired no need persistence, only send online message
@@ -145,21 +143,9 @@ func (c *SeqChannel) PushMsg(key string, m *Message, expire uint) error {
 			}
 			sendMsg = msg
 		}
-		// WARN: Write would block, SNDBUF will full when connection broken or the receiver slow network.
-		if n, err := conn.Write(sendMsg); err != nil {
-			glog.Errorf("user_key:\"%s\" conn.Write() error(%v)", key, err)
-			failed++
-			continue
-		} else {
-			succeed++
-			glog.V(1).Infof("user_key:\"%s\" conn.Write %d bytes", key, n)
-		}
+		conn.Write(key, sendMsg)
 	}
 	c.mutex.Unlock()
-	glog.Infof("user_key:\"%s\" push message \"%s\":%d, (succeed:%d, failed:%d)", key, m.Msg, m.MsgId, succeed, failed)
-	// message stat
-	MsgStat.IncrFailed(failed)
-	MsgStat.IncrSucceed(succeed)
 	return nil
 }
 
@@ -178,6 +164,8 @@ func (c *SeqChannel) AddConn(key string, conn *Connection) (*hlist.Element, erro
 		return nil, err
 	}
 	// add conn
+	conn.Buf = make(chan []byte, Conf.MsgBufNum)
+	conn.HandleWrite(key)
 	e := c.conn.PushFront(conn)
 	c.mutex.Unlock()
 	ConnStat.IncrAdd()
@@ -188,8 +176,10 @@ func (c *SeqChannel) AddConn(key string, conn *Connection) (*hlist.Element, erro
 // RemoveConn implements the Channel RemoveConn method.
 func (c *SeqChannel) RemoveConn(key string, e *hlist.Element) error {
 	c.mutex.Lock()
-	c.conn.Remove(e)
+	tmp := c.conn.Remove(e)
 	c.mutex.Unlock()
+	conn, _ := tmp.(*Connection)
+	conn.Stop(key)
 	ConnStat.IncrRemove()
 	glog.Infof("user_key:\"%s\" remove conn = %d", key, c.conn.Len())
 	return nil

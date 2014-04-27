@@ -64,6 +64,7 @@ type Config struct {
 	ChannelBucket           int           `goconf:"channel:bucket"`
 	Auth                    bool          `goconf:"channel:auth"`
 	TokenExpire             time.Duration `goconf:"-"`
+	MsgBufNum               int           `goconf:"channel:msgbuf.num"`
 }
 
 // InitConfig get a new Config struct.
@@ -99,6 +100,7 @@ func InitConfig(file string) (*Config, error) {
 		MaxSubscriberPerChannel: 64,
 		ChannelBucket:           runtime.NumCPU(),
 		Auth:                    false,
+		MsgBufNum:               30,
 	}
 	c := goconf.New()
 	if err := c.Parse(file); err != nil {

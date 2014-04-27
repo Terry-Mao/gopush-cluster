@@ -56,18 +56,64 @@ type Connection struct {
 	Conn    net.Conn
 	Proto   uint8
 	Version string
+	Buf     chan []byte
+}
+
+// HandleWrite start a goroutine get msg from chan, then send to the conn.
+func (c *Connection) HandleWrite(key string) {
+	go func() {
+		var (
+			n   int
+			msg []byte
+			err error
+		)
+		glog.V(1).Infof("user_key: \"%s\" HandleWrite goroutine start", key)
+		for {
+			select {
+			case msg = <-c.Buf:
+			default:
+				glog.V(1).Infof("user_key: \"%s\" HandleWrite goroutine stop", key)
+				return
+			}
+			succeed, failed := 0, 0
+			if c.Proto == WebsocketProto {
+				// raw
+				n, err = c.Conn.Write(msg)
+			} else if c.Proto == TCPProto {
+				// redis protocol
+				n, err = c.Conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(msg), string(msg))))
+			} else {
+				glog.Errorf("unknown connection protocol: %d", c.Proto)
+				panic(ErrConnProto)
+			}
+			// update stat
+			if err != nil {
+				glog.Errorf("user_key: \"%s\" conn.Write() error(%v)", key, err)
+				MsgStat.IncrFailed(1)
+				failed = 1
+			} else {
+				glog.V(1).Infof("user_key: \"%s\" conn.Write() %d bytes", key, n)
+				MsgStat.IncrSucceed(1)
+				succeed = 1
+			}
+			glog.V(1).Infof("user_key:\"%s\" push message \"%s\":%d, (succeed:%d, failed:%d)", key, string(msg), succeed, failed)
+		}
+	}()
+}
+
+// Stop stop the HandleWrite goroutine.
+func (c *Connection) Stop(key string) {
+	close(c.Buf)
+	glog.Infof("user_key: \"%s\" stop the HandleWrite goroutine", key)
 }
 
 // Write different message to client by different protocol
-func (c *Connection) Write(msg []byte) (int, error) {
-	if c.Proto == WebsocketProto {
-		// raw
-		return c.Conn.Write(msg)
-	} else if c.Proto == TCPProto {
-		// redis protocol
-		return c.Conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(msg), string(msg))))
-	} else {
-		return 0, ErrConnProto
+func (c *Connection) Write(key string, msg []byte) {
+	select {
+	case c.Buf <- msg:
+	default:
+		c.Conn.Close()
+		glog.Warningf("user_key: \"%s\" discard message: \"%s\" and close connection", key, string(msg))
 	}
 }
 
