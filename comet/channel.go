@@ -53,9 +53,9 @@ type Channel interface {
 
 // Connection
 type Connection struct {
-	Conn  net.Conn
-	Proto uint8
-    Version string
+	Conn    net.Conn
+	Proto   uint8
+	Version string
 }
 
 // Write different message to client by different protocol

@@ -105,7 +105,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	}
 	heartbeat := i + delayHeartbeatSec
 	token := params.Get("token")
-    version := params.Get("ver")
+	version := params.Get("ver")
 	glog.Infof("<%s> subscribe to key = %s, heartbeat = %d, token = %s, version = %s", addr, key, heartbeat, token, version)
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key, true)

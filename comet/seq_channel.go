@@ -91,7 +91,11 @@ func (c *SeqChannel) AuthToken(key, token string) bool {
 
 // PushMsg implements the Channel PushMsg method.
 func (c *SeqChannel) PushMsg(key string, m *Message, expire uint) error {
-	var succeed, failed uint64
+	var (
+		succeed, failed      uint64
+		oldMsg, msg, sendMsg []byte
+		err                  error
+	)
 	client := MessageRPC.Get()
 	if client == nil {
 		return ErrMessageRPC
@@ -106,7 +110,7 @@ func (c *SeqChannel) PushMsg(key string, m *Message, expire uint) error {
 		glog.V(1).Infof("user_key:\"%s\" timeID:%d", key, m.MsgId)
 		args := &myrpc.MessageSaveArgs{Key: key, Msg: m.Msg, MsgId: m.MsgId, GroupId: m.GroupId, Expire: expire}
 		reply := myrpc.OK
-		if err := client.Call("MessageRPC.Save", args, &reply); err != nil {
+		if err = client.Call("MessageRPC.Save", args, &reply); err != nil {
 			c.mutex.Unlock()
 			glog.Errorf("MessageRPC.Save(\"%s\", %v) error(%v)", key, m, err)
 			return err
@@ -118,17 +122,31 @@ func (c *SeqChannel) PushMsg(key string, m *Message, expire uint) error {
 			return ErrMessageSave
 		}
 	}
-	// send message to each conn when message id > conn last message id
-	b, err := m.Bytes()
-	if err != nil {
-		c.mutex.Unlock()
-		return err
-	}
 	// push message
 	for e := c.conn.Front(); e != nil; e = e.Next() {
 		conn, _ := e.Value.(*Connection)
+		// if version empty then use old protocol
+		if conn.Version == "" {
+			if oldMsg == nil {
+				oldMsg, err = m.OldBytes()
+				if err != nil {
+					c.mutex.Unlock()
+					return err
+				}
+			}
+			sendMsg = oldMsg
+		} else {
+			if msg == nil {
+				msg, err = m.Bytes()
+				if err != nil {
+					c.mutex.Unlock()
+					return err
+				}
+			}
+			sendMsg = msg
+		}
 		// WARN: Write would block, SNDBUF will full when connection broken or the receiver slow network.
-		if n, err := conn.Write(b); err != nil {
+		if n, err := conn.Write(sendMsg); err != nil {
 			glog.Errorf("user_key:\"%s\" conn.Write() error(%v)", key, err)
 			failed++
 			continue

@@ -206,13 +206,13 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		return
 	}
 	heartbeat := i + delayHeartbeatSec
-    version := ""
-    if argLen > 2 {
-        version = args[2]
-    }
 	token := ""
+	if argLen > 2 {
+		token = args[2]
+	}
+	version := ""
 	if argLen > 3 {
-		token = args[3]
+		version = args[3]
 	}
 	glog.Infof("<%s> subscribe to key = %s, heartbeat = %d, token = %s, version = %s", addr, key, heartbeat, token, version)
 	// fetch subscriber from the channel

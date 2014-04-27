@@ -20,6 +20,7 @@ import (
 	"flag"
 	"github.com/Terry-Mao/gopush-cluster/perf"
 	"github.com/Terry-Mao/gopush-cluster/process"
+	"github.com/Terry-Mao/gopush-cluster/ver"
 	"github.com/golang/glog"
 	"runtime"
 	"time"
@@ -66,7 +67,7 @@ func main() {
 		glog.Errorf("process.Init() error(%v)", err)
 		return
 	}
-	glog.Info("comet start")
+	glog.Infof("comet(%s) start", ver.Version)
 	// init signals, block wait signals
 	HandleSignal(signalCH)
 	// exit

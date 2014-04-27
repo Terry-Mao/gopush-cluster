@@ -31,6 +31,16 @@ type Message struct {
 	GroupId uint `json:"gid"`
 }
 
+// The Old Message struct (Compatible), TODO remove it.
+type OldMessage struct {
+	// Message
+	Msg string `json:"msg"`
+	// Message id
+	MsgId int64 `json:"mid"`
+	// Group id
+	GroupId uint `json:"gid"`
+}
+
 // Bytes get a message reply bytes.
 func (m *Message) Bytes() ([]byte, error) {
 	byteJson, err := json.Marshal(m)
@@ -38,6 +48,16 @@ func (m *Message) Bytes() ([]byte, error) {
 		glog.Errorf("json.Marshal(%v) error(%v)", m, err)
 		return nil, err
 	}
+	return byteJson, nil
+}
 
+// OldBytes get a message reply bytes(Compatible), TODO remove it.
+func (m *Message) OldBytes() ([]byte, error) {
+	om := &OldMessage{Msg: string(m.Msg), MsgId: m.MsgId, GroupId: m.GroupId}
+	byteJson, err := json.Marshal(om)
+	if err != nil {
+		glog.Errorf("json.Marshal(%v) error(%v)", om, err)
+		return nil, err
+	}
 	return byteJson, nil
 }
