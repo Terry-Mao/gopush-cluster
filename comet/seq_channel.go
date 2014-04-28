@@ -107,7 +107,6 @@ func (c *SeqChannel) PushMsg(key string, m *Message, expire uint) error {
 		m.MsgId = c.timeID.ID()
 		args := &myrpc.MessageSaveArgs{Key: key, Msg: m.Msg, MsgId: m.MsgId, GroupId: m.GroupId, Expire: expire}
 		ret := 0
-		glog.Infof("user_key: \"%s\" client.Call(\"%s\", \"%v\", &ret)", key, myrpc.MessageServiceSave, args)
 		if err = client.Call(myrpc.MessageServiceSave, args, &ret); err != nil {
 			c.mutex.Unlock()
 			glog.Errorf("%s(\"%s\", \"%v\", &ret) error(%v)", myrpc.MessageServiceSave, key, args, err)

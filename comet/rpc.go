@@ -17,11 +17,16 @@
 package main
 
 import (
+	"errors"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/golang/glog"
 	"net"
 	"net/rpc"
+)
+
+var (
+	ErrMigrate = errors.New("migrate nodes don't include self")
 )
 
 // StartRPC start rpc listen.
@@ -54,62 +59,60 @@ func rpcListen(bind string) {
 type CometRPC struct {
 }
 
-// New expored a method for creating new channel
+// New expored a method for creating new channel.
 func (c *CometRPC) New(args *myrpc.CometNewArgs, ret *int) error {
 	if args == nil || args.Key == "" {
-		*ret = myrpc.ParamErr
-		return nil
+		return myrpc.ErrParam
 	}
 	// create a new channel for the user
 	ch, err := UserChannel.New(args.Key)
 	if err != nil {
-		*ret = myrpc.InternalErr
-		return nil
+		glog.Errorf("UserChannel.New(\"%s\") error(%v)", args.Key, err)
+		return err
 	}
 	if err = ch.AddToken(args.Key, args.Token); err != nil {
-		*ret = myrpc.InternalErr
-		return nil
+		glog.Errorf("ch.AddToken(\"%s\", \"%s\") error(%v)", args.Key, args.Token)
+		return err
 	}
-	*ret = myrpc.OK
 	return nil
 }
 
-// Close expored a method for closing new channel
-func (c *CometRPC) Close(key *string, ret *int) error {
-	if *key == "" {
-		*ret = myrpc.ParamErr
-		return nil
+// Close expored a method for closing new channel.
+func (c *CometRPC) Close(key string, ret *int) error {
+	if key == "" {
+		return myrpc.ErrParam
 	}
 	// close the channle for the user
-	ch, err := UserChannel.Delete(*key)
+	ch, err := UserChannel.Delete(key)
 	if err != nil {
-		*ret = myrpc.InternalErr
-		return nil
+		glog.Errorf("UserChannel.Delete(\"%s\") error(%v)", key, err)
+		return err
 	}
 	// ignore channel close error, only log a warnning
-	ch.Close()
-	*ret = myrpc.OK
+	if err := ch.Close(); err != nil {
+		glog.Errorf("ch.Close() error(%v)", err)
+		return err
+	}
 	return nil
 }
 
 // PushPrivate expored a method for publishing a user private message for the channel
 func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error {
 	if args == nil || args.Key == "" || args.Msg == nil {
-		*ret = myrpc.ParamErr
-		return nil
+		return myrpc.ErrParam
 	}
 	// get a user channel
 	ch, err := UserChannel.New(args.Key)
 	if err != nil {
-		*ret = myrpc.InternalErr
-		return nil
+		glog.Errorf("UserChannel.New(\"%s\") error(%v)", args.Key, err)
+		return err
 	}
 	// use the channel push message
-	if err = ch.PushMsg(args.Key, &Message{Msg: args.Msg, GroupId: args.GroupId}, args.Expire); err != nil {
-		*ret = myrpc.InternalErr
-		return nil
+	msg := &Message{Msg: args.Msg, GroupId: args.GroupId}
+	if err = ch.PushMsg(args.Key, msg, args.Expire); err != nil {
+		glog.Error("ch.PushMsg(\"%s\", \"%v\") error(%v)", args.Key, msg, err)
+		return err
 	}
-	*ret = myrpc.OK
 	return nil
 }
 
@@ -142,8 +145,7 @@ func (c *CometRPC) PushPublic(args *myrpc.CometPushPublicArgs, ret *int) error {
 // Publish expored a method for publishing a message for the channel
 func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
 	if len(args.Nodes) == 0 {
-		*ret = myrpc.ParamErr
-		return nil
+		return myrpc.ErrParam
 	}
 	// find current node exists in new nodes
 	has := false
@@ -154,8 +156,7 @@ func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
 	}
 	if !has {
 		glog.Error("make sure your migrate nodes right, there is no %s in nodes, this will cause all the node hit miss", Conf.ZookeeperCometNode)
-		*ret = myrpc.InternalErr
-		return nil
+		return ErrMigrate
 	}
 	// init ketama
 	ketama := hash.NewKetama2(args.Nodes, args.Vnode)
@@ -187,12 +188,11 @@ func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
 			continue
 		}
 	}
-	*ret = myrpc.OK
 	glog.Info("close all the migrate channels finished")
 	return nil
 }
 
 func (c *CometRPC) Ping(args int, ret *int) error {
-	glog.V(1).Info("CometRPC.Ping() ok")
+	glog.V(2).Info("CometRPC.Ping() ok")
 	return nil
 }

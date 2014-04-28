@@ -99,6 +99,6 @@ func (r *MessageRPC) Clean(key string, ret *int) error {
 
 // Server Ping interface
 func (r *MessageRPC) Ping(p int, ret *int) error {
-	glog.V(1).Info("MessageRPC.Ping() ok")
+	glog.V(2).Info("MessageRPC.Ping() ok")
 	return nil
 }

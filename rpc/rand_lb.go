@@ -122,7 +122,7 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 					continue
 				}
 				// if ok, sleep
-				glog.V(1).Infof("\"%s\": rpc ping ok", addr)
+				glog.V(2).Infof("\"%s\": rpc ping ok", addr)
 				time.Sleep(ping)
 			}
 		}(addr)
