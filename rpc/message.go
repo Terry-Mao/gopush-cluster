@@ -71,9 +71,9 @@ type MessageGetResp struct {
 }
 
 const (
-	MessageService     = "MessageRPC"
-	MessageServiceGet  = "MessageRPC.Get"
-	MessageServiceSave = "MessageRPC.Save"
+	MessageService      = "MessageRPC"
+	MessageServiceGet   = "MessageRPC.Get"
+	MessageServiceSave  = "MessageRPC.Save"
 	MessageServiceClean = "MessageRPC.Clean"
 )
 
