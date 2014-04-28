@@ -65,18 +65,11 @@ func (c *Connection) HandleWrite(key string) {
 	go func() {
 		var (
 			n   int
-			msg []byte
 			err error
 		)
 		glog.V(1).Infof("user_key: \"%s\" HandleWrite goroutine start", key)
 		for {
-			select {
-			case msg = <-c.Buf:
-			default:
-				glog.V(1).Infof("user_key: \"%s\" HandleWrite goroutine stop", key)
-				return
-			}
-			succeed, failed := 0, 0
+			msg := <-c.Buf
 			if c.Proto == WebsocketProto {
 				// raw
 				n, err = c.Conn.Write(msg)
@@ -91,20 +84,14 @@ func (c *Connection) HandleWrite(key string) {
 			if err != nil {
 				glog.Errorf("user_key: \"%s\" conn.Write() error(%v)", key, err)
 				MsgStat.IncrFailed(1)
-				failed = 1
+				glog.V(1).Infof("user_key: \"%s\" HandleWrite goroutine stop", key)
+				return
 			} else {
 				glog.V(1).Infof("user_key: \"%s\" conn.Write() %d bytes", key, n)
 				MsgStat.IncrSucceed(1)
-				succeed = 1
 			}
-			glog.V(1).Infof("user_key:\"%s\" push message \"%s\":%d, (succeed:%d, failed:%d)", key, string(msg), succeed, failed)
 		}
 	}()
-}
-
-// Stop stop the HandleWrite goroutine.
-func (c *Connection) Stop(key string) {
-	close(c.Buf)
 }
 
 // Write different message to client by different protocol

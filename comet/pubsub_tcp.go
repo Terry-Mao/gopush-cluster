@@ -28,7 +28,7 @@ import (
 
 const (
 	minCmdNum = 1
-	maxCmdNum = 4
+	maxCmdNum = 5
 )
 
 var (
