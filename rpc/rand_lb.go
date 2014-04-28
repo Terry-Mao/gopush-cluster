@@ -79,6 +79,19 @@ func (r *RandLB) Stop() {
 	if r.exitCH != nil {
 		close(r.exitCH)
 	}
+	glog.Info("stop the randlb retry connect goroutine and ping goroutines")
+}
+
+// Destroy release the rpc.Client resource.
+func (r *RandLB) Destroy() {
+	r.Stop()
+	for _, client := range r.Clients {
+		if client != nil {
+			if err := client.Close(); err != nil {
+				glog.Errorf("client.Close() error(%v)", err)
+			}
+		}
+	}
 }
 
 // ping do a ping, if failed then retry.

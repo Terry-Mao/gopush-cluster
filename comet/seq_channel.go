@@ -95,7 +95,7 @@ func (c *SeqChannel) PushMsg(key string, m *Message, expire uint) error {
 		oldMsg, msg, sendMsg []byte
 		err                  error
 	)
-	client := MessageRPC.Get()
+	client := myrpc.MessageRPC.Get()
 	if client == nil {
 		return ErrMessageRPC
 	}
@@ -105,19 +105,13 @@ func (c *SeqChannel) PushMsg(key string, m *Message, expire uint) error {
 	if m.GroupId != myrpc.PublicGroupId && expire > 0 {
 		// rewrite message id
 		m.MsgId = c.timeID.ID()
-		glog.V(1).Infof("user_key:\"%s\" timeID:%d", key, m.MsgId)
 		args := &myrpc.MessageSaveArgs{Key: key, Msg: m.Msg, MsgId: m.MsgId, GroupId: m.GroupId, Expire: expire}
-		reply := myrpc.OK
-		if err = client.Call("MessageRPC.Save", args, &reply); err != nil {
+		ret := 0
+		glog.Infof("user_key: \"%s\" client.Call(\"%s\", \"%v\", &ret)", key, myrpc.MessageServiceSave, args)
+		if err = client.Call(myrpc.MessageServiceSave, args, &ret); err != nil {
 			c.mutex.Unlock()
-			glog.Errorf("MessageRPC.Save(\"%s\", %v) error(%v)", key, m, err)
+			glog.Errorf("%s(\"%s\", \"%v\", &ret) error(%v)", myrpc.MessageServiceSave, key, args, err)
 			return err
-		}
-		// message save failed
-		if reply != myrpc.OK {
-			c.mutex.Unlock()
-			glog.Errorf("MessageRPC.Save(\"%s\", %v) error(ret=%d)", key, m, reply)
-			return ErrMessageSave
 		}
 	}
 	// push message

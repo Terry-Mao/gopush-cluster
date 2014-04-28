@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/golang/glog"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -28,324 +27,108 @@ import (
 	"time"
 )
 
-// AdminPush handle for push private message
-func AdminPushPrivate(rw http.ResponseWriter, r *http.Request) {
-	var (
-		ret    = InternalErr
-		result = make(map[string]interface{})
-	)
-
+// PushPrivate handle for push private message.
+func PushPrivate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(rw, "Method Not Allowed", 405)
+		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
-
-	// Final response operation
-	var bodyStr string
-	defer func(body *string) {
-		result["msg"] = GetErrMsg(ret)
-		result["ret"] = ret
-		data, _ := json.Marshal(result)
-
-		io.WriteString(rw, string(data))
-
-		glog.Infof("request:push_private, request_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
-	}(&bodyStr)
-
-	// Get params
-	param := r.URL.Query()
-	key := param.Get("key")
+	body := ""
+	res := map[string]interface{}{"ret": OK}
+	defer retPWrite(w, r, res, &body, time.Now())
+	// param
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		res["ret"] = ParamErr
+		glog.Errorf("ioutil.ReadAll() failed (%s)", err.Error())
+		return
+	}
+	body = string(bodyBytes)
+	params := r.URL.Query()
+	key := params.Get("key")
+	gidStr := params.Get("gid")
+	expireStr := params.Get("expire")
 	if key == "" {
-		ret = ParamErr
+		res["ret"] = ParamErr
 		return
 	}
-
-	groupId, err := strconv.Atoi(param.Get("gid"))
+	gid, err := strconv.ParseUint(gidStr, 10, 32)
 	if err != nil {
-		ret = ParamErr
-		return
+		res["ret"] = ParamErr
+		glog.Errorf("strconv.ParseInt(\"%s\", 10, 32) error(%v)", gidStr, err)
 	}
-
-	expire, err := strconv.Atoi(param.Get("expire"))
+	expire, err := strconv.ParseUint(expireStr, 10, 32)
 	if err != nil {
-		ret = ParamErr
+		res["ret"] = ParamErr
+		glog.Errorf("strconv.ParseUint(\"%s\", 10, 32) error(%v)", expireStr, err)
 		return
 	}
-
-	// Get message
-	body, err := ioutil.ReadAll(r.Body)
+	node := myrpc.GetComet(key)
+	if node == nil || node.CometRPC == nil {
+		res["ret"] = NotFoundServer
+		return
+	}
+	client := node.CometRPC.Get()
+	if client == nil {
+		res["ret"] = NotFoundServer
+		return
+	}
+	rm := json.RawMessage(bodyBytes)
+	msg, err := rm.MarshalJSON()
 	if err != nil {
-		glog.Errorf("ioutil.ReadAll() quest_url:\"%s\" error(%v)", r.URL.String(), err)
-		ret = InternalErr
+		res["ret"] = ParamErr
+		glog.Errorf("json.RawMessage(\"%s\").MarshalJSON() error(%v)", body, err)
 		return
 	}
-	bodyStr = string(body)
-
-	// Match a push-server with the value computed through ketama algorithm
-	svrInfo := FindNode(key)
-	if svrInfo == nil || svrInfo.PubRPC == nil {
-		glog.Errorf("no node for key: \"%s\"", key)
-		ret = NoNodeErr
-		return
-	}
-
 	// RPC call publish interface
-	args := &myrpc.ChannelPushPrivateArgs{GroupId: uint(groupId), Msg: json.RawMessage(bodyStr), Expire: uint(expire), Key: key}
-	if err := svrInfo.PubRPC.Call("ChannelRPC.PushPrivate", args, &ret); err != nil {
-		glog.Errorf("RPC.Call(\"ChannelRPC.PushPrivate\") server:\"%v\" error(%v)", svrInfo.Addr, err)
-		ret = InternalErr
+	args := &myrpc.CometPushPrivateArgs{GroupId: uint(gid), Msg: json.RawMessage(msg), Expire: uint(expire), Key: key}
+	ret := 0
+	if err := client.Call(myrpc.CometServicePushPrivate, args, &ret); err != nil {
+		glog.Errorf("client.Call(\"%s\", \"%v\", &ret) error(%v)", myrpc.CometServicePushPrivate, args, err)
+		res["ret"] = InternalErr
 		return
 	}
-
 	return
 }
 
-// AdminPushPub handle for push public message
-func AdminPushPublic(rw http.ResponseWriter, r *http.Request) {
-	var (
-		ret    = InternalErr
-		result = make(map[string]interface{})
-	)
-
+// DelOfflineMessage handle for push private message.
+func DelOfflineMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(rw, "Method Not Allowed", 405)
+		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
-
-	// Final response operation
-	var bodyStr string
-	defer func(body *string) {
-		result["msg"] = GetErrMsg(ret)
-		result["ret"] = ret
-		data, _ := json.Marshal(result)
-
-		io.WriteString(rw, string(data))
-
-		glog.Infof("request:push_public, request_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
-	}(&bodyStr)
-
-	// Get params
-	param := r.URL.Query()
-	expire, err := strconv.ParseInt(param.Get("expire"), 10, 64)
+	body := ""
+	res := map[string]interface{}{"ret": OK}
+	defer retPWrite(w, r, res, &body, time.Now())
+	// param
+	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		ret = ParamErr
+		res["ret"] = ParamErr
+		glog.Errorf("ioutil.ReadAll() failed (%s)", err.Error())
 		return
 	}
-
-	body, err := ioutil.ReadAll(r.Body)
+	body = string(bodyBytes)
+	params, err := url.ParseQuery(body)
 	if err != nil {
-		glog.Errorf("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
-		ret = InternalErr
+		glog.Errorf("url.ParseQuery(\"%s\") error(%v)", body, err)
+		res["ret"] = ParamErr
 		return
 	}
-	bodyStr = string(body)
-
-	/*
-		// Lock here, make sure that get the unique mid
-		lockYes, pathCreated, err := PubMIDLock()
-		if pathCreated != "" {
-			defer PubMIDLockRelease(pathCreated)
-		}
-		if err != nil || lockYes == false {
-			glog.Errorf("PubMIDLock error(%v)", err)
-			ret = InternalErr
-			return
-		}
-		mid := PubMID.ID()
-	*/
-	mid := int64(0)
-
-	// Save public message
-	expire = time.Now().Add(time.Duration(expire) * time.Second).Unix()
-	reply, err := MessageRPCSavePub(string(body), mid, expire)
-	// Message save failed
-	if reply != OK {
-		glog.Errorf("RPC.Call(\"MessageRPC.SavePub\") error (ret:\"%d\")", reply)
-		ret = InternalErr
-		return
-	}
-
-	for node, info := range NodeInfoMap {
-		if info == nil || info.PubRPC == nil {
-			glog.Errorf("abnormal node:\"%s\", interrupt pushing public message to node:\"%s\"", node)
-			continue
-		}
-
-		// RPC call publish interface
-		args := &myrpc.ChannelPushPublicArgs{MsgID: mid, Msg: string(body)}
-		if err := info.PubRPC.Call("ChannelRPC.PushPublic", args, &ret); err != nil {
-			glog.Errorf("RPC.Call(\"ChannelRPC.PushPublic\") server:\"%v\" error(%v)", info.Addr, err)
-			ret = InternalErr
-			return
-		}
-	}
-
-	return
-}
-
-// AdminNodeAdd handle for add a node
-func AdminNodeAdd(rw http.ResponseWriter, r *http.Request) {
-	var (
-		ret    = InternalErr
-		result = make(map[string]interface{})
-	)
-
-	if r.Method != "POST" {
-		http.Error(rw, "Method Not Allowed", 405)
-		return
-	}
-
-	// Final response operation
-	defer func() {
-		result["msg"] = GetErrMsg(ret)
-		result["ret"] = ret
-		data, _ := json.Marshal(result)
-
-		io.WriteString(rw, string(data))
-
-		glog.Infof("request:node_add, request_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
-	}()
-
-	// Get params
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		glog.Errorf("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
-		ret = InternalErr
-		return
-	}
-
-	values, err := url.ParseQuery(string(body))
-	if err != nil {
-		ret = ParamErr
-		return
-	}
-
-	node := values.Get("node")
-	if node == "node" {
-		ret = ParamErr
-		return
-	}
-
-	ret = OK
-	return
-}
-
-// AdminNodeDel handle for del a node
-func AdminNodeDel(rw http.ResponseWriter, r *http.Request) {
-	var (
-		ret    = InternalErr
-		result = make(map[string]interface{})
-	)
-
-	if r.Method != "POST" {
-		http.Error(rw, "Method Not Allowed", 405)
-		return
-	}
-
-	// Final response operation
-	defer func() {
-		result["msg"] = GetErrMsg(ret)
-		result["ret"] = ret
-		data, _ := json.Marshal(result)
-
-		io.WriteString(rw, string(data))
-
-		glog.Infof("request:node_del, request_url:\"%s\", ret:\"%d\"", r.URL.String(), ret)
-	}()
-
-	// Get params
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		glog.Errorf("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
-		ret = InternalErr
-		return
-	}
-
-	values, err := url.ParseQuery(string(body))
-	if err != nil {
-		ret = ParamErr
-		return
-	}
-
-	node := values.Get("node")
-	if node == "" {
-		ret = ParamErr
-		return
-	}
-
-	ret = OK
-	return
-}
-
-// AdminCleanCache handle for clean the offline message of specified key
-func AdminMsgClean(rw http.ResponseWriter, r *http.Request) {
-	var (
-		ret    = InternalErr
-		result = make(map[string]interface{})
-	)
-
-	if r.Method != "POST" {
-		http.Error(rw, "Method Not Allowed", 405)
-		return
-	}
-
-	// Final response operation
-	var bodyStr string
-	defer func(body *string) {
-		result["msg"] = GetErrMsg(ret)
-		result["ret"] = ret
-		data, _ := json.Marshal(result)
-
-		io.WriteString(rw, string(data))
-
-		glog.Infof("request:clean_cache, request_url:\"%s\", request_body:\"%s\", ret:\"%d\"", r.URL.String(), *body, ret)
-	}(&bodyStr)
-
-	// Get params
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		glog.Errorf("ioutil.ReadAll() request_url:\"%s\" error(%v)", r.URL.String(), err)
-		ret = InternalErr
-		return
-	}
-	bodyStr = string(body)
-
-	values, err := url.ParseQuery(string(body))
-	if err != nil {
-		ret = ParamErr
-		return
-	}
-
-	key := values.Get("key")
+	key := params.Get("key")
 	if key == "" {
-		ret = ParamErr
+		res["ret"] = ParamErr
 		return
 	}
-
-	// RPC call clean key interface
-	reply, err := MessageRPCCleanKey(key)
-	if err != nil {
-		glog.Errorf("RPC.Call(\"ChannelRPC.CleanKey\") key:\"%s\" error(%v)", key, err)
+	client := myrpc.MessageRPC.Get()
+	if client == nil {
+		res["ret"] = InternalErr
 		return
 	}
-
-	if reply != OK {
-		ret = reply
+	ret := 0
+	if err := client.Call(myrpc.MessageServiceClean, key, &ret); err != nil {
+		glog.Errorf("client.Call(\"%s\", \"%s\", &ret) error(%v)", myrpc.MessageServiceClean, key, err)
+		res["ret"] = InternalErr
 		return
 	}
-
-	// Match a push-server with the value computed through ketama algorithm
-	svrInfo := FindNode(key)
-	if svrInfo == nil || svrInfo.PubRPC == nil {
-		glog.Errorf("no node for key: \"%s\"", key)
-		ret = NoNodeErr
-		return
-	}
-
-	// RPC call ChannelRPC.Close interface
-	if err := svrInfo.PubRPC.Call("ChannelRPC.Close", key, &ret); err != nil {
-		glog.Errorf("RPC.Call(\"ChannelRPC.Close\") server:\"%v\" key:\"%s\" error(%v)", svrInfo.Addr, key, err)
-		ret = InternalErr
-		return
-	}
+	return
 }

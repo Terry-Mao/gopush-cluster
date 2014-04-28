@@ -48,9 +48,9 @@ type Config struct {
 	RedisMaxIdle     int               `goconf:"redis:maxidle"`
 	RedisMaxActive   int               `goconf:"redis:maxactive"`
 	RedisMaxStore    int               `goconf:"redis:maxstore"`
-	MYSQLDelLoopTime time.Duration     `goconf:"mysql:dellooptime:time"`
-	RedisAddrs       map[string]string `goconf:"-"`
-	DBSource         map[string]string `goconf:"-"`
+	MySQLClean       time.Duration     `goconf:"mysql:clean:time"`
+	RedisSource      map[string]string `goconf:"-"`
+	MySQLSource      map[string]string `goconf:"-"`
 	// zookeeper
 	ZookeeperAddr    []string      `goconf:"zookeeper:addr:,"`
 	ZookeeperTimeout time.Duration `goconf:"zookeeper:timeout:time"`
@@ -77,9 +77,9 @@ func NewConfig(fileName string) (*Config, error) {
 		RedisMaxIdle:     50,
 		RedisMaxActive:   1000,
 		RedisMaxStore:    20,
-		RedisAddrs:       make(map[string]string),
-		MYSQLDelLoopTime: 1 * time.Hour,
-		DBSource:         make(map[string]string),
+		RedisSource:      make(map[string]string),
+		MySQLSource:      make(map[string]string),
+		MySQLClean:       1 * time.Hour,
 		// zookeeper
 		ZookeeperAddr:    []string{"localhost:2181"},
 		ZookeeperTimeout: 30 * time.Second,
@@ -90,14 +90,14 @@ func NewConfig(fileName string) (*Config, error) {
 		return nil, err
 	}
 	//Load redis addresses
-	redisAddrsSec := gconf.Get("redis.addr")
+	redisAddrsSec := gconf.Get("redis.source")
 	if redisAddrsSec != nil {
 		for _, key := range redisAddrsSec.Keys() {
 			addr, err := redisAddrsSec.String(key)
 			if err != nil {
 				return nil, fmt.Errorf("config section:\"redis.addrs\" key:\"%s\" error(%v)", key, err)
 			}
-			conf.RedisAddrs[key] = addr
+			conf.RedisSource[key] = addr
 		}
 	}
 	//Load mysql sources
@@ -108,7 +108,7 @@ func NewConfig(fileName string) (*Config, error) {
 			if err != nil {
 				return nil, fmt.Errorf("config section:\"mysql.source\" key:\"%s\" error(%v)", key, err)
 			}
-			conf.DBSource[key] = source
+			conf.MySQLSource[key] = source
 		}
 	}
 

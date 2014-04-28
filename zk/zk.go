@@ -111,7 +111,7 @@ func GetNodesW(conn *zk.Conn, path string) ([]string, <-chan zk.Event, error) {
 		if err == zk.ErrNoNode {
 			return nil, nil, ErrNodeNotExist
 		}
-		glog.Errorf("zk.Children(\"%s\") error(%v)", path, err)
+		glog.Errorf("zk.ChildrenW(\"%s\") error(%v)", path, err)
 		return nil, nil, err
 	}
 	if stat == nil {
@@ -121,6 +121,25 @@ func GetNodesW(conn *zk.Conn, path string) ([]string, <-chan zk.Event, error) {
 		return nil, nil, ErrNoChild
 	}
 	return nodes, watch, nil
+}
+
+// GetNodes get all child from zk path.
+func GetNodes(conn *zk.Conn, path string) ([]string, error) {
+	nodes, stat, err := conn.Children(path)
+	if err != nil {
+		if err == zk.ErrNoNode {
+			return nil, ErrNodeNotExist
+		}
+		glog.Errorf("zk.Children(\"%s\") error(%v)", path, err)
+		return nil, err
+	}
+	if stat == nil {
+		return nil, ErrNodeNotExist
+	}
+	if len(nodes) == 0 {
+		return nil, ErrNoChild
+	}
+	return nodes, nil
 }
 
 // killSelf send a SIGQUIT to self.

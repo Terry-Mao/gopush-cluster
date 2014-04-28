@@ -20,15 +20,10 @@ import (
 	"flag"
 	"github.com/Terry-Mao/gopush-cluster/perf"
 	"github.com/Terry-Mao/gopush-cluster/process"
+	"github.com/Terry-Mao/gopush-cluster/ver"
 	"github.com/golang/glog"
-	"net"
-	"net/http"
 	"runtime"
 	"time"
-)
-
-const (
-	httpReadTimeout = 30 //seconds
 )
 
 func main() {
@@ -45,21 +40,14 @@ func main() {
 	}
 	// Set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
-	// Initialize zookeeper
-	zk, err := InitZK()
+	// init zookeeper
+	zkConn, err := InitZK()
 	if err != nil {
-		glog.Errorf("InitZK() failed(%v)", err)
+		glog.Errorf("InitZookeeper() error(%v)", err)
 		return
 	}
 	// if process exit, close zk
-	defer zk.Close()
-	// Initialize message server client
-	if err := InitMsgSvrClient(); err != nil {
-		glog.Errorf("InitMsgSvrClient() failed(%v)", err)
-		return
-	}
-	// Clost message service client
-	defer MsgSvrClose()
+	defer zkConn.Close()
 	// start pprof http
 	perf.Init(Conf.PprofBind)
 	// Init network router
@@ -69,39 +57,8 @@ func main() {
 			return
 		}
 	}
-
-	// Internal admin handle
-	go func() {
-		adminServeMux := http.NewServeMux()
-		adminServeMux.HandleFunc("/admin/push", AdminPushPrivate)
-		adminServeMux.HandleFunc("/admin/push/public", AdminPushPublic)
-		adminServeMux.HandleFunc("/admin/node/add", AdminNodeAdd)
-		adminServeMux.HandleFunc("/admin/node/del", AdminNodeDel)
-		adminServeMux.HandleFunc("/admin/msg/clean", AdminMsgClean)
-		err := http.ListenAndServe(Conf.AdminAddr, adminServeMux)
-		if err != nil {
-			glog.Errorf("http.ListenAndServe(\"%s\") failed(%v)", Conf.AdminAddr, err)
-			panic(err)
-		}
-	}()
-	// Start service
-	go func() {
-		// External service handle
-		httpServeMux := http.NewServeMux()
-		httpServeMux.HandleFunc("/server/get", ServerGet)
-		httpServeMux.HandleFunc("/msg/get", MsgGet)
-		httpServeMux.HandleFunc("/time/get", TimeGet)
-		server := &http.Server{Handler: httpServeMux, ReadTimeout: httpReadTimeout * time.Second}
-		l, err := net.Listen("tcp", Conf.Addr)
-		if err != nil {
-			glog.Errorf("net.Listen(\"tcp\", \"%s\") error(%v)", Conf.Addr, err)
-			panic(err)
-		}
-		if err := server.Serve(l); err != nil {
-			glog.Errorf("server.Serve(\"%s\") error(%v)", Conf.Addr, err)
-			panic(err)
-		}
-	}()
+	// start http listen.
+	StartHTTP()
 	// init process
 	// sleep one second, let the listen start
 	time.Sleep(time.Second)
@@ -110,7 +67,7 @@ func main() {
 		return
 	}
 	// init signals, block wait signals
-	glog.Infof("Web service start")
+	glog.Infof("web(%s) start", ver.Version)
 	HandleSignal(signalCH)
-	glog.Infof("Web service end")
+	glog.Info("web stop")
 }

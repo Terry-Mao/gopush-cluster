@@ -26,7 +26,7 @@ import (
 
 // StartRPC start rpc listen.
 func StartRPC() {
-	c := &ChannelRPC{}
+	c := &CometRPC{}
 	rpc.Register(c)
 	for _, bind := range Conf.RPCBind {
 		glog.Infof("start listen rpc addr:\"%s\"", bind)
@@ -51,11 +51,11 @@ func rpcListen(bind string) {
 }
 
 // Channel RPC
-type ChannelRPC struct {
+type CometRPC struct {
 }
 
 // New expored a method for creating new channel
-func (c *ChannelRPC) New(args *myrpc.ChannelNewArgs, ret *int) error {
+func (c *CometRPC) New(args *myrpc.CometNewArgs, ret *int) error {
 	if args == nil || args.Key == "" {
 		*ret = myrpc.ParamErr
 		return nil
@@ -75,7 +75,7 @@ func (c *ChannelRPC) New(args *myrpc.ChannelNewArgs, ret *int) error {
 }
 
 // Close expored a method for closing new channel
-func (c *ChannelRPC) Close(key *string, ret *int) error {
+func (c *CometRPC) Close(key *string, ret *int) error {
 	if *key == "" {
 		*ret = myrpc.ParamErr
 		return nil
@@ -93,7 +93,7 @@ func (c *ChannelRPC) Close(key *string, ret *int) error {
 }
 
 // PushPrivate expored a method for publishing a user private message for the channel
-func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) error {
+func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error {
 	if args == nil || args.Key == "" || args.Msg == nil {
 		*ret = myrpc.ParamErr
 		return nil
@@ -114,7 +114,7 @@ func (c *ChannelRPC) PushPrivate(args *myrpc.ChannelPushPrivateArgs, ret *int) e
 }
 
 // PushPublic expored a method for publishing a public message for the channel
-func (c *ChannelRPC) PushPublic(args *myrpc.ChannelPushPublicArgs, ret *int) error {
+func (c *CometRPC) PushPublic(args *myrpc.CometPushPublicArgs, ret *int) error {
 	/*
 		// get all the channel lock
 		m := &Message{Msg: args.Msg, MsgID: args.MsgID, GroupID: myrpc.PublicGroupID}
@@ -140,7 +140,7 @@ func (c *ChannelRPC) PushPublic(args *myrpc.ChannelPushPublicArgs, ret *int) err
 }
 
 // Publish expored a method for publishing a message for the channel
-func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
+func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
 	if len(args.Nodes) == 0 {
 		*ret = myrpc.ParamErr
 		return nil
@@ -189,5 +189,10 @@ func (c *ChannelRPC) Migrate(args *myrpc.ChannelMigrateArgs, ret *int) error {
 	}
 	*ret = myrpc.OK
 	glog.Info("close all the migrate channels finished")
+	return nil
+}
+
+func (c *CometRPC) Ping(args int, ret *int) error {
+	glog.V(1).Info("CometRPC.Ping() ok")
 	return nil
 }

@@ -20,6 +20,7 @@ import (
 	"flag"
 	"github.com/Terry-Mao/gopush-cluster/perf"
 	"github.com/Terry-Mao/gopush-cluster/process"
+	"github.com/Terry-Mao/gopush-cluster/ver"
 	"github.com/golang/glog"
 	"runtime"
 	"time"
@@ -42,7 +43,10 @@ func main() {
 	// start pprof http
 	perf.Init(Conf.PprofBind)
 	// Initialize redis
-	InitStorage()
+	if err = InitStorage(); err != nil {
+		glog.Errorf("InitStorage() error(%v)", err)
+		return
+	}
 	// Start rpc
 	StartRPC()
 	// init zookeeper
@@ -63,7 +67,7 @@ func main() {
 		glog.Errorf("process.Init() error(%v)", err)
 		return
 	}
-	glog.Info("message start")
+	glog.Infof("message(%s) start", ver.Version)
 	// init signals, block wait signals
 	HandleSignal(signalCH)
 	// exit

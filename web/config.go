@@ -35,22 +35,21 @@ func init() {
 }
 
 type Config struct {
-	Addr        string        `goconf:"base:addr"`
-	AdminAddr   string        `goconf:"base:adminaddr"`
-	MaxProc     int           `goconf:"base:maxproc"`
-	PprofBind   []string      `goconf:"base:pprof.bind:,"`
-	User        string        `goconf:"base:user"`
-	PidFile     string        `goconf:"base:pidfile"`
-	Dir         string        `goconf:"base:dir"`
-	Router      string        `goconf:"base:router"`
-	QQWryPath   string        `goconf:"res:qqwry.path"`
-	ZKAddr      []string      `goconf:"zookeeper:addr:,"`
-	ZKTimeout   time.Duration `goconf:"zookeeper:timeout:time"`
-	ZKCometPath string        `goconf:"zookeeper:cometpath"`
-	ZKPIDPath   string        `goconf:"zookeeper:pidpath"`
-	MsgAddr     string        `goconf:"msg:addr"`
-	MsgPing     time.Duration `goconf:"msg:ping:time"`
-	MsgRetry    time.Duration `goconf:"msg:retry:time"`
+	Addr                 []string      `goconf:"base:addr:,"`
+	AdminAddr            []string      `goconf:"base:admin.addr:,"`
+	MaxProc              int           `goconf:"base:maxproc"`
+	PprofBind            []string      `goconf:"base:pprof.bind:,"`
+	User                 string        `goconf:"base:user"`
+	PidFile              string        `goconf:"base:pidfile"`
+	Dir                  string        `goconf:"base:dir"`
+	Router               string        `goconf:"base:router"`
+	QQWryPath            string        `goconf:"res:qqwry.path"`
+	ZookeeperAddr        []string      `goconf:"zookeeper:addr:,"`
+	ZookeeperTimeout     time.Duration `goconf:"zookeeper:timeout:time"`
+	ZookeeperCometPath   string        `goconf:"zookeeper:comet.path"`
+	ZookeeperMessagePath string        `goconf:"zookeeper:message.path"`
+	RPCRetry             time.Duration `goconf:"rpc:retry:time"`
+	RPCPing              time.Duration `goconf:"rpc:ping:time"`
 }
 
 // Initialize config
@@ -62,22 +61,21 @@ func NewConfig(file string) (*Config, error) {
 	}
 	// Default config
 	conf := &Config{
-		Addr:        ":80",
-		AdminAddr:   ":81",
-		MaxProc:     runtime.NumCPU(),
-		PprofBind:   []string{"localhost:8190"},
-		User:        "nobody nobody",
-		PidFile:     "/tmp/gopush-cluster-web.pid",
-		Dir:         "./",
-		Router:      "",
-		QQWryPath:   "/tmp/QQWry.dat",
-		ZKAddr:      []string{":2181"},
-		ZKTimeout:   30 * time.Second,
-		ZKCometPath: "/gopush-cluster",
-		ZKPIDPath:   "/gopush-pid",
-		MsgAddr:     ":8070",
-		MsgPing:     1 * time.Second,
-		MsgRetry:    3 * time.Second,
+		Addr:                 []string{"localhost:80"},
+		AdminAddr:            []string{"localhost:81"},
+		MaxProc:              runtime.NumCPU(),
+		PprofBind:            []string{"localhost:8190"},
+		User:                 "nobody nobody",
+		PidFile:              "/tmp/gopush-cluster-web.pid",
+		Dir:                  "./",
+		Router:               "",
+		QQWryPath:            "/tmp/QQWry.dat",
+		ZookeeperAddr:        []string{":2181"},
+		ZookeeperTimeout:     30 * time.Second,
+		ZookeeperCometPath:   "/gopush-cluster-comet",
+		ZookeeperMessagePath: "/gopush-cluster-message",
+		RPCRetry:             3 * time.Second,
+		RPCPing:              1 * time.Second,
 	}
 	if err := gconf.Unmarshal(conf); err != nil {
 		glog.Errorf("goconf.Unmarshall() error(%v)", err)

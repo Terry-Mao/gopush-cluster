@@ -16,6 +16,10 @@
 
 package rpc
 
+import (
+	"errors"
+)
+
 const (
 	// common
 	// ok
@@ -24,4 +28,8 @@ const (
 	ParamErr = 65534
 	// internal error
 	InternalErr = 65535
+)
+
+var (
+	ErrParam = errors.New("parameter error")
 )

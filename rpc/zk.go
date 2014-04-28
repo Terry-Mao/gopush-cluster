@@ -14,22 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with gopush-cluster.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package rpc
 
 import (
-	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
-	myzk "github.com/Terry-Mao/gopush-cluster/zk"
-	"github.com/golang/glog"
-	"github.com/samuel/go-zookeeper/zk"
+	"time"
 )
 
-func InitZK() (*zk.Conn, error) {
-	conn, err := myzk.Connect(Conf.ZookeeperAddr, Conf.ZookeeperTimeout)
-	if err != nil {
-		glog.Errorf("zk.Connect() error(%v)", err)
-		return nil, err
-	}
-	myrpc.InitComet(conn, Conf.ZookeeperCometPath, Conf.RPCRetry, Conf.RPCPing)
-	myrpc.InitMessage(conn, Conf.ZookeeperMessagePath, Conf.RPCRetry, Conf.RPCPing)
-	return conn, nil
-}
+const (
+	// node event
+	eventNodeAdd    = 1
+	eventNodeDel    = 2
+	eventNodeUpdate = 3
+
+	// wait node
+	waitNodeDelay       = 3
+	waitNodeDelaySecond = waitNodeDelay * time.Second
+)

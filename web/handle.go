@@ -17,233 +17,116 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
+	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/golang/glog"
-	"io"
 	"net/http"
 	"strconv"
+	"time"
 )
 
-// Data struct as response of handle ServerGet
-type ServerGetData struct {
-	Server string `json:"server"`
-}
-
-// ServerGet handle for server get
-func ServerGet(rw http.ResponseWriter, r *http.Request) {
-	var (
-		ret      = InternalErr
-		result   = make(map[string]interface{})
-		callback = ""
-	)
-
+// GetServer handle for server get
+func GetServer(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		http.Error(rw, "Method Not Allowed", 405)
+		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
-
-	// Final ResponseWriter operation
-	defer func() {
-		result["ret"] = ret
-		result["msg"] = GetErrMsg(ret)
-		data, _ := json.Marshal(result)
-		glog.Infof("request:Get_server, request_url:\"%s\", response_json:\"%s\", ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
-		dataStr := ""
-		if callback == "" {
-			// Normal json
-			dataStr = string(data)
-		} else {
-			// Jsonp
-			dataStr = fmt.Sprintf("%s(%s)", callback, string(data))
-		}
-		io.WriteString(rw, dataStr)
-	}()
-
-	// Get params
-	param := r.URL.Query()
-	callback = param.Get("callback")
-	key := param.Get("key")
-
+	params := r.URL.Query()
+	key := params.Get("k")
+	callback := params.Get("cb")
+	protoStr := params.Get("p")
+	res := map[string]interface{}{"ret": OK}
+	defer retWrite(w, r, res, callback, time.Now())
 	if key == "" {
-		ret = ParamErr
+		res["ret"] = ParamErr
 		return
 	}
-
-	protoI, err := strconv.Atoi(param.Get("proto"))
+	proto, err := strconv.Atoi(protoStr)
 	if err != nil {
-		ret = ParamErr
+		glog.Errorf("strconv.Atoi(\"%s\") error(%v)", protoStr, err)
+		res["ret"] = ParamErr
 		return
 	}
-
 	// Match a push-server with the value computed through ketama algorithm
-	svrInfo := FindNode(key)
-	if svrInfo == nil {
-		ret = NoNodeErr
+	node := myrpc.GetComet(key)
+	if node == nil {
+		res["ret"] = NotFoundServer
 		return
 	}
-
-	// Fill the server infomation into response json
-	data := &ServerGetData{}
-	addr := svrInfo.Addr[protoI]
+	addr := node.Addr[proto]
 	if addr == nil || len(addr) == 0 {
-		ret = UnknownProtocol
+		res["ret"] = NotFoundServer
 		return
 	}
-
+	server := ""
 	// Select the best ip
 	if Conf.Router != "" {
-		bestIP := routerCN.SelectBest(r.RemoteAddr, addr)
-		data.Server = bestIP
-		glog.V(1).Infof("select the best ip:\"%s\" match with remoteAddr:\"%s\" , from ip list:\"%v\"", bestIP, r.RemoteAddr, addr)
+		server = routerCN.SelectBest(r.RemoteAddr, addr)
+		glog.V(1).Infof("select the best ip:\"%s\" match with remoteAddr:\"%s\" , from ip list:\"%v\"", server, r.RemoteAddr, addr)
 	}
-	if data.Server == "" {
-		data.Server = addr[0]
+	if server == "" {
+		glog.V(1).Infof("remote addr: \"%s\" chose the ip: \"%s\"", r.RemoteAddr, addr[0])
+		server = addr[0]
 	}
-
-	result["data"] = data
-	ret = OK
+	res["data"] = map[string]interface{}{"server": server}
 	return
 }
 
-// Data struct as response of handle ServerGet
-type MsgGetData struct {
-	Msgs  []json.RawMessage `json:"msgs"`
-	PMsgs []json.RawMessage `json:"pmsgs"`
-}
-
-// MsgGet handle for msg get
-func MsgGet(rw http.ResponseWriter, r *http.Request) {
-	var (
-		ret      = InternalErr
-		result   = make(map[string]interface{})
-		callback = ""
-	)
-
+// GetOfflineMsg get offline mesage http handler.
+func GetOfflineMsg(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		http.Error(rw, "Method Not Allowed", 405)
+		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
-
-	// Final ResponseWriter operation
-	defer func() {
-		result["ret"] = ret
-		result["msg"] = GetErrMsg(ret)
-		data, _ := json.Marshal(result)
-		glog.Infof("request:Get_messages, request_url:\"%s\", response_json:\"%s\"), ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
-		dataStr := ""
-		if callback == "" {
-			// Normal json
-			dataStr = string(data)
-		} else {
-			// Jsonp
-			dataStr = fmt.Sprintf("%s(%s)", callback, string(data))
-		}
-		io.WriteString(rw, dataStr)
-	}()
-
-	// Get params
-	val := r.URL.Query()
-	callback = val.Get("callback")
-	key := val.Get("key")
-	mid := val.Get("mid")
-	pMid := val.Get("pmid")
-	if key == "" || mid == "" || pMid == "" {
-		ret = ParamErr
+	params := r.URL.Query()
+	key := params.Get("k")
+	midStr := params.Get("m")
+	pmidStr := params.Get("p")
+	callback := params.Get("cb")
+	res := map[string]interface{}{"ret": OK}
+	defer retWrite(w, r, res, callback, time.Now())
+	if key == "" || midStr == "" || pmidStr == "" {
+		res["ret"] = ParamErr
 		return
 	}
-
-	midI, err := strconv.ParseInt(mid, 10, 64)
+	mid, err := strconv.ParseInt(midStr, 10, 64)
 	if err != nil {
-		ret = ParamErr
+		res["ret"] = ParamErr
+		glog.Errorf("strconv.ParseInt(\"%s\", 10, 64) error(%v)", midStr, err)
 		return
 	}
-
-	pMidI, err := strconv.ParseInt(pMid, 10, 64)
+	pmid, err := strconv.ParseInt(pmidStr, 10, 64)
 	if err != nil {
-		ret = ParamErr
+		res["ret"] = ParamErr
+		glog.Errorf("strconv.ParseInt(\"%s\", 10, 64) error(%v)", pmidStr, err)
 		return
 	}
-
-	// TODO: If one of midI or pMidI is 0, then respond nil message,
-	// for avoid client`s bug that always use the default 0 of integer variable,so that receive the repetitive messages.
-	// After the client installed, the first it needs to request url /time/get and get the initial message id
-	//if midI == 0 || pMidI == 0 {
-	//	ret = OK
-	//	return
-	//}
-
 	// RPC get offline messages
-	reply, err := MessageRPCGet(key, midI, pMidI)
-	if err != nil {
-		glog.Errorf("RPC.Call(\"MessageRPC.Get\")  Key:\"%s\", MsgID:\"%d\" error(%v)", key, midI, err)
-		ret = InternalErr
+	reply := &myrpc.MessageGetResp{}
+	args := &myrpc.MessageGetArgs{MsgId: mid, PubMsgId: pmid, Key: key}
+	client := myrpc.MessageRPC.Get()
+	if client == nil {
+		res["ret"] = InternalErr
 		return
 	}
-
-	if reply.Ret != OK {
-		glog.Errorf("RPC.Call(\"MessageRPC.Get\")  Key:\"%s\", MsgID:\"%d\" errorCode(\"%d\")", key, midI, reply.Ret)
-		ret = reply.Ret
+	if err := client.Call(myrpc.MessageServiceGet, args, reply); err != nil {
+		glog.Errorf("myrpc.MessageRPC.Call(\"%s\", \"%v\", reply) error(%v)", myrpc.MessageServiceGet, args, err)
+		res["ret"] = InternalErr
 		return
 	}
-
-	if len(reply.Msgs) == 0 && len(reply.PubMsgs) == 0 {
-		ret = OK
-		return
-	}
-
-	data := &MsgGetData{}
-	if len(reply.Msgs) > 0 {
-		data.Msgs = reply.Msgs
-	}
-
-	if len(reply.PubMsgs) > 0 {
-		data.PMsgs = reply.PubMsgs
-	}
-
-	result["data"] = data
-	ret = reply.Ret
+	res["data"] = map[string]interface{}{"msgs": reply.Msgs, "pmsgs": reply.PubMsgs}
 	return
 }
 
-// Data struct as response of handle TimeGetData
-type TimeGetData struct {
-	TimeID int64 `json:"timeid"` // as message id
-}
-
-// Get server time
-func TimeGet(rw http.ResponseWriter, r *http.Request) {
-	var (
-		ret      = InternalErr
-		result   = make(map[string]interface{})
-		callback = ""
-	)
-
+// GetTime get server time http handler.
+func GetTime(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		http.Error(rw, "Method Not Allowed", 405)
+		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
-
-	// Final ResponseWriter operation
-	defer func() {
-		result["ret"] = ret
-		result["msg"] = GetErrMsg(ret)
-		data, _ := json.Marshal(result)
-		glog.Infof("request:Get_server_time, request_url:\"%s\", response_json:\"%s\", ip:\"%s\", ret:\"%d\"", r.URL.String(), string(data), r.RemoteAddr, ret)
-		dataStr := ""
-		if callback == "" {
-			// Normal json
-			dataStr = string(data)
-		} else {
-			// Jsonp
-			dataStr = fmt.Sprintf("%s(%s)", callback, string(data))
-		}
-		io.WriteString(rw, dataStr)
-	}()
-
-	val := r.URL.Query()
-	callback = val.Get("callback")
-
-	//result["data"] = &TimeGetData{TimeID: PubMID.ID()}
-	ret = OK
+	params := r.URL.Query()
+	callback := params.Get("cb")
+	res := map[string]interface{}{"ret": OK}
+	defer retWrite(w, r, res, callback, time.Now())
+	res["data"] = map[string]interface{}{"timeid": time.Now().UnixNano()}
+	return
 }
