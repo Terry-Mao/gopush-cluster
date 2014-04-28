@@ -25,15 +25,15 @@ import (
 )
 
 // GetServer handle for server get
-func GetServer0(w http.ResponseWriter, r *http.Request) {
+func GetServer(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
 	params := r.URL.Query()
-	key := params.Get("key")
-	callback := params.Get("callback")
-	protoStr := params.Get("proto")
+	key := params.Get("k")
+	callback := params.Get("cb")
+	protoStr := params.Get("p")
 	res := map[string]interface{}{"ret": OK}
 	defer retWrite(w, r, res, callback, time.Now())
 	if key == "" {
@@ -72,16 +72,16 @@ func GetServer0(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetOfflineMsg get offline mesage http handler.
-func GetOfflineMsg0(w http.ResponseWriter, r *http.Request) {
+func GetOfflineMsg(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
 	params := r.URL.Query()
-	key := params.Get("key")
-	midStr := params.Get("mid")
-	pmidStr := params.Get("pmid")
-	callback := params.Get("callback")
+	key := params.Get("k")
+	midStr := params.Get("m")
+	pmidStr := params.Get("p")
+	callback := params.Get("cb")
 	res := map[string]interface{}{"ret": OK}
 	defer retWrite(w, r, res, callback, time.Now())
 	if key == "" || midStr == "" || pmidStr == "" {
@@ -113,26 +113,18 @@ func GetOfflineMsg0(w http.ResponseWriter, r *http.Request) {
 		res["ret"] = InternalErr
 		return
 	}
-	omsgs := []*myrpc.OldMessage{}
-	for _, msg := range reply.Msgs {
-		omsgs = append(omsgs, &myrpc.OldMessage{GroupId: msg.GroupId, MsgId: msg.MsgId, Msg: string(msg.Msg)})
-	}
-	opmsgs := []*myrpc.OldMessage{}
-	for _, msg := range reply.PubMsgs {
-		opmsgs = append(opmsgs, &myrpc.OldMessage{GroupId: msg.GroupId, MsgId: msg.MsgId, Msg: string(msg.Msg)})
-	}
-	res["data"] = map[string]interface{}{"msgs": omsgs, "pmsgs": opmsgs}
+	res["data"] = map[string]interface{}{"msgs": reply.Msgs, "pmsgs": reply.PubMsgs}
 	return
 }
 
 // GetTime get server time http handler.
-func GetTime0(w http.ResponseWriter, r *http.Request) {
+func GetTime(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
 	params := r.URL.Query()
-	callback := params.Get("callback")
+	callback := params.Get("cb")
 	res := map[string]interface{}{"ret": OK}
 	defer retWrite(w, r, res, callback, time.Now())
 	res["data"] = map[string]interface{}{"timeid": time.Now().UnixNano()}

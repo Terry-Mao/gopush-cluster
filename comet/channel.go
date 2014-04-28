@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	"github.com/Terry-Mao/gopush-cluster/hlist"
+	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/golang/glog"
 	"net"
 	"sync"
@@ -35,7 +36,7 @@ var (
 // The subscriber interface.
 type Channel interface {
 	// PushMsg push a message to the subscriber.
-	PushMsg(key string, m *Message, expire uint) error
+	PushMsg(key string, m *myrpc.Message, expire uint) error
 	// Add a token for one subscriber
 	// The request token not equal the subscriber token will return errors.
 	AddToken(key, token string) error

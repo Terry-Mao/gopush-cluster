@@ -41,6 +41,34 @@ type Message struct {
 	GroupId uint            `json:"gid"` // group id
 }
 
+// The Old Message struct (Compatible), TODO remove it.
+type OldMessage struct {
+	Msg string `json:"msg"` // Message
+	MsgId int64 `json:"mid"` // Message id
+	GroupId uint `json:"gid"` // Group id
+}
+
+// Bytes get a message reply bytes.
+func (m *Message) Bytes() ([]byte, error) {
+	byteJson, err := json.Marshal(m)
+	if err != nil {
+		glog.Errorf("json.Marshal(%v) error(%v)", m, err)
+		return nil, err
+	}
+	return byteJson, nil
+}
+
+// OldBytes get a message reply bytes(Compatible), TODO remove it.
+func (m *Message) OldBytes() ([]byte, error) {
+	om := &OldMessage{Msg: string(m.Msg), MsgId: m.MsgId, GroupId: m.GroupId}
+	byteJson, err := json.Marshal(om)
+	if err != nil {
+		glog.Errorf("json.Marshal(%v) error(%v)", om, err)
+		return nil, err
+	}
+	return byteJson, nil
+}
+
 // Message Save Args
 type MessageSaveArgs struct {
 	Key     string          // subscriber key

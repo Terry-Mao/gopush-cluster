@@ -90,7 +90,7 @@ func (c *SeqChannel) AuthToken(key, token string) bool {
 }
 
 // PushMsg implements the Channel PushMsg method.
-func (c *SeqChannel) PushMsg(key string, m *Message, expire uint) error {
+func (c *SeqChannel) PushMsg(key string, m *myrpc.Message, expire uint) error {
 	var (
 		oldMsg, msg, sendMsg []byte
 		err                  error

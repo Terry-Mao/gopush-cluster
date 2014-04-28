@@ -33,9 +33,14 @@ const (
 func StartHTTP() {
 	// external
 	httpServeMux := http.NewServeMux()
+	// 1.0
 	httpServeMux.HandleFunc("/1/server/get", GetServer)
 	httpServeMux.HandleFunc("/1/msg/get", GetOfflineMsg)
 	httpServeMux.HandleFunc("/1/time/get", GetTime)
+	// old
+	httpServeMux.HandleFunc("/server/get", GetServer0)
+	httpServeMux.HandleFunc("/msg/get", GetOfflineMsg0)
+	httpServeMux.HandleFunc("/time/get", GetTime0)
 	// internal
 	httpAdminServeMux := http.NewServeMux()
 	httpAdminServeMux.HandleFunc("/admin/push", PushPrivate)
