@@ -102,9 +102,9 @@ func (c *SeqChannel) PushMsg(key string, m *myrpc.Message, expire uint) error {
 	c.mutex.Lock()
 	// private message need persistence
 	// if message expired no need persistence, only send online message
+    // rewrite message id
+    m.MsgId = c.timeID.ID()
 	if m.GroupId != myrpc.PublicGroupId && expire > 0 {
-		// rewrite message id
-		m.MsgId = c.timeID.ID()
 		args := &myrpc.MessageSaveArgs{Key: key, Msg: m.Msg, MsgId: m.MsgId, GroupId: m.GroupId, Expire: expire}
 		ret := 0
 		if err = client.Call(myrpc.MessageServiceSave, args, &ret); err != nil {
