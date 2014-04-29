@@ -27,12 +27,12 @@ import (
 type MessageRPC struct {
 }
 
-// StartRPC start accept rpc call
-func StartRPC() {
+// InitRPC start accept rpc call.
+func InitRPC() {
 	msg := &MessageRPC{}
 	rpc.Register(msg)
-	for _, bind := range Conf.Addr {
-		glog.Infof("start rpc listen addr:\"%s\"", bind)
+	for _, bind := range Conf.RPCBind {
+		glog.Infof("start rpc listen addr: \"%s\"", bind)
 		go rpcListen(bind)
 	}
 }
@@ -80,7 +80,9 @@ func (r *MessageRPC) Get(m *myrpc.MessageGetArgs, rw *myrpc.MessageGetResp) erro
 		return err
 	}
 	rw.Msgs = msgs
+	// TODO
 	rw.PubMsgs = nil
+	glog.V(1).Infof("UserStorage.Get(\"%s\", %d) ok", m.Key, m.MsgId)
 	return nil
 }
 
@@ -99,6 +101,6 @@ func (r *MessageRPC) Clean(key string, ret *int) error {
 
 // Server Ping interface
 func (r *MessageRPC) Ping(p int, ret *int) error {
-	glog.V(2).Info("MessageRPC.Ping() ok")
+	glog.V(2).Info("ping ok")
 	return nil
 }

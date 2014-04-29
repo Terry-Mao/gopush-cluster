@@ -27,10 +27,6 @@ import (
 	"time"
 )
 
-const (
-	defaultRedisNode = "node1"
-)
-
 var (
 	RedisNoConnErr = errors.New("can't get a redis conn")
 )
@@ -92,12 +88,10 @@ func (s *RedisStorage) Save(key string, msg json.RawMessage, mid int64, gid uint
 		glog.Errorf("json.Marshal(\"%v\") error(%v)", rm, err)
 		return err
 	}
-	//ZADD
 	if err := conn.Send("ZADD", key, mid, m); err != nil {
 		glog.Errorf("conn.Send(\"ZADD\", \"%s\", %d, \"%s\") error(%v)", key, mid, string(m), err)
 		return err
 	}
-	//ZREMRANGEBYRANK
 	if err := conn.Send("ZREMRANGEBYRANK", key, 0, -1*(Conf.RedisMaxStore+1)); err != nil {
 		glog.Errorf("conn.Send(\"ZREMRANGEBYRANK\", \"%s\", 0, %d) error(%v)", key, mid, -1*(Conf.RedisMaxStore+1), err)
 		return err
@@ -106,13 +100,11 @@ func (s *RedisStorage) Save(key string, msg json.RawMessage, mid int64, gid uint
 		glog.Errorf("conn.Flush() error(%v)", err)
 		return err
 	}
-	//ZADD Receive
 	_, err = conn.Receive()
 	if err != nil {
 		glog.Errorf("conn.Receive() error(%v)", err)
 		return err
 	}
-	//ZREMRANGEBYRANK Receive
 	_, err = conn.Receive()
 	if err != nil {
 		glog.Errorf("conn.Receive() error(%v)", err)
@@ -123,11 +115,6 @@ func (s *RedisStorage) Save(key string, msg json.RawMessage, mid int64, gid uint
 
 // Save implements the Storage Get method.
 func (s *RedisStorage) Get(key string, mid int64) ([]*rpc.Message, error) {
-	var (
-		cmid int64
-		b    []byte
-		now  = time.Now().Unix()
-	)
 	conn := s.getConn(key)
 	if conn == nil {
 		return nil, RedisNoConnErr
@@ -138,11 +125,12 @@ func (s *RedisStorage) Get(key string, mid int64) ([]*rpc.Message, error) {
 		glog.Errorf("conn.Do(\"ZRANGEBYSCORE\", \"%s\", \"%s\", \"+inf\", \"WITHSCORES\") error(%v)", err)
 		return nil, err
 	}
-	glog.V(1).Infof("values: %v", values)
-	msgs := []*rpc.Message{}
+	msgs := make([]*rpc.Message, 0, len(values))
 	delMsgs := []int64{}
+	cmid := int64(0)
+	b := []byte{}
+	now := time.Now().Unix()
 	for len(values) > 0 {
-		glog.V(2).Infof("redis.Scan: %d", len(values))
 		values, err = redis.Scan(values, &b, &cmid)
 		if err != nil {
 			glog.Errorf("redis.Scan() error(%v)", err)
@@ -214,6 +202,7 @@ func (s *RedisStorage) clean() {
 			_, err := conn.Receive()
 			if err != nil {
 				glog.Errorf("conn.Receive() error(%v)", err)
+				conn.Close()
 				continue
 			}
 		}
@@ -223,15 +212,15 @@ func (s *RedisStorage) clean() {
 
 // getConn get the connection of matching with key using ketama hashing.
 func (s *RedisStorage) getConn(key string) redis.Conn {
-	node := defaultRedisNode
-	if len(s.pool) > 1 {
-		node = s.ketama.Node(key)
-	}
-	p, ok := s.pool[node]
-	if !ok {
-		glog.Warningf("no exists key:\"%s\" in redis pool", key)
+	if len(s.pool) == 0 {
 		return nil
 	}
-	glog.V(1).Infof("key:\"%s\", hit node:\"%s\"", key, node)
+	node := s.ketama.Node(key)
+	p, ok := s.pool[node]
+	if !ok {
+		glog.Warningf("user_key: \"%s\" hit redis node: \"%s\" not in pool", key, node)
+		return nil
+	}
+	glog.V(1).Infof("user_key: \"%s\" hit redis node: \"%s\"", key, node)
 	return p.Get()
 }

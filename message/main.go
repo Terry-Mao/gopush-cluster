@@ -27,15 +27,11 @@ import (
 )
 
 func main() {
-	var err error
-	// Parse cmd-line arguments
 	flag.Parse()
+	glog.Infof("message ver: \"%s\" start", ver.Version)
 	defer glog.Flush()
-	signalCH := InitSignal()
-	// Load config
-	Conf, err = NewConfig(ConfFile)
-	if err != nil {
-		glog.Errorf("NewConfig(\"%s\") error(%v)", ConfFile, err)
+	if err := InitConfig(); err != nil {
+		glog.Errorf("InitConfig() error(%v)", err)
 		return
 	}
 	// Set max routine
@@ -43,12 +39,12 @@ func main() {
 	// start pprof http
 	perf.Init(Conf.PprofBind)
 	// Initialize redis
-	if err = InitStorage(); err != nil {
+	if err := InitStorage(); err != nil {
 		glog.Errorf("InitStorage() error(%v)", err)
 		return
 	}
-	// Start rpc
-	StartRPC()
+	// init rpc service
+	InitRPC()
 	// init zookeeper
 	zk, err := InitZK()
 	if err != nil {
@@ -64,12 +60,12 @@ func main() {
 	// sleep one second, let the listen start
 	time.Sleep(time.Second)
 	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
-		glog.Errorf("process.Init() error(%v)", err)
+		glog.Errorf("process.Init(\"%s\", \"%s\", \"%s\") error(%v)", Conf.User, Conf.Dir, Conf.PidFile, err)
 		return
 	}
-	glog.Infof("message(%s) start", ver.Version)
 	// init signals, block wait signals
-	HandleSignal(signalCH)
+	sig := InitSignal()
+	HandleSignal(sig)
 	// exit
 	glog.Info("message stop")
 }

@@ -28,11 +28,10 @@ import (
 )
 
 const (
-	defaultMYSQLNode = "node1"
-	saveSQL          = "INSERT INTO message(sub,gid,mid,expire,msg,ctime,mtime) VALUES(?,?,?,?,?,?,?)"
-	getSQL           = "SELECT mid, gid, expire, msg FROM message WHERE sub=? AND mid>?"
-	delExpireSQL     = "DELETE FROM message WHERE expire<=?"
-	delKeySQL        = "DELETE FROM message WHERE sub=?"
+	saveSQL      = "INSERT INTO message(sub,gid,mid,expire,msg,ctime,mtime) VALUES(?,?,?,?,?,?,?)"
+	getSQL       = "SELECT mid, gid, expire, msg FROM message WHERE sub=? AND mid>?"
+	delExpireSQL = "DELETE FROM message WHERE expire<=?"
+	delKeySQL    = "DELETE FROM message WHERE sub=?"
 )
 
 var (
@@ -41,7 +40,6 @@ var (
 
 // MySQL Storage struct
 type MySQLStorage struct {
-	// n
 	pool   map[string]*sql.DB
 	ketama *hash.Ketama
 }
@@ -154,15 +152,15 @@ func (s *MySQLStorage) clean() {
 
 // getConn get the connection of matching with key using ketama hash
 func (s *MySQLStorage) getConn(key string) *sql.DB {
-	node := defaultMYSQLNode
-	if len(s.pool) > 1 {
-		node = s.ketama.Node(key)
-	}
-	p, ok := s.pool[node]
-	if !ok {
-		glog.Warningf("no exists key:\"%s\" in mysql pool", key)
+	if len(s.pool) == 0 {
 		return nil
 	}
-	glog.V(1).Infof("key:\"%s\", hit node:\"%s\"", key, node)
+	node := s.ketama.Node(key)
+	p, ok := s.pool[node]
+	if !ok {
+		glog.Warningf("user_key: \"%s\" hit mysql node: \"%s\" not in pool", key, node)
+		return nil
+	}
+	glog.V(1).Infof("user_key: \"%s\" hit mysql node: \"%s\"", key, node)
 	return p
 }

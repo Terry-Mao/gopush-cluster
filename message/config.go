@@ -27,27 +27,26 @@ import (
 
 var (
 	Conf     *Config
-	ConfFile string
+	confFile string
 )
 
 func init() {
-	flag.StringVar(&ConfFile, "c", "./message.conf", " set message config file path")
+	flag.StringVar(&confFile, "c", "./message.conf", " set message config file path")
 }
 
 // Config struct
 type Config struct {
-	Addr             []string          `goconf:"base:addr:,"`
-	PKey             string            `goconf:"base:pkey"`
+	RPCBind          []string          `goconf:"base:rpc.bind:,"`
 	User             string            `goconf:"base:user"`
 	PidFile          string            `goconf:"base:pidfile"`
 	Dir              string            `goconf:"base:dir"`
 	MaxProc          int               `goconf:"base:maxproc"`
 	PprofBind        []string          `goconf:"base:pprof.bind:,"`
 	StorageType      string            `goconf:"storage:type"`
-	RedisIdleTimeout time.Duration     `goconf:"redis:idletimeout:time"`
-	RedisMaxIdle     int               `goconf:"redis:maxidle"`
-	RedisMaxActive   int               `goconf:"redis:maxactive"`
-	RedisMaxStore    int               `goconf:"redis:maxstore"`
+	RedisIdleTimeout time.Duration     `goconf:"redis:timeout:time"`
+	RedisMaxIdle     int               `goconf:"redis:idle"`
+	RedisMaxActive   int               `goconf:"redis:active"`
+	RedisMaxStore    int               `goconf:"redis:store"`
 	MySQLClean       time.Duration     `goconf:"mysql:clean:time"`
 	RedisSource      map[string]string `goconf:"-"`
 	MySQLSource      map[string]string `goconf:"-"`
@@ -57,60 +56,62 @@ type Config struct {
 	ZookeeperPath    string        `goconf:"zookeeper:path"`
 }
 
-// Initialize config
-func NewConfig(fileName string) (*Config, error) {
+// NewConfig parse config file into Config.
+func InitConfig() error {
 	gconf := goconf.New()
-	if err := gconf.Parse(fileName); err != nil {
-		glog.Errorf("goconf.Parse(\"%s\") error(%v)", fileName, err)
-		return nil, err
+	if err := gconf.Parse(confFile); err != nil {
+		glog.Errorf("goconf.Parse(\"%s\") error(%v)", confFile, err)
+		return err
 	}
-	conf := &Config{
-		Addr:             []string{"localhost:8070"},
-		PKey:             "gopushpkey",
-		User:             "nobody nobody",
-		PidFile:          "/tmp/gopush-cluster-message.pid",
-		Dir:              "./",
-		MaxProc:          runtime.NumCPU(),
-		PprofBind:        []string{"localhost:8170"},
-		StorageType:      "redis",
+	Conf = &Config{
+		// base
+		RPCBind:   []string{"localhost:8070"},
+		User:      "nobody nobody",
+		PidFile:   "/tmp/gopush-cluster-message.pid",
+		Dir:       "./",
+		MaxProc:   runtime.NumCPU(),
+		PprofBind: []string{"localhost:8170"},
+		// storage
+		StorageType: "redis",
+		// redis
 		RedisIdleTimeout: 28800 * time.Second,
 		RedisMaxIdle:     50,
 		RedisMaxActive:   1000,
 		RedisMaxStore:    20,
 		RedisSource:      make(map[string]string),
-		MySQLSource:      make(map[string]string),
-		MySQLClean:       1 * time.Hour,
+		// mysql
+		MySQLSource: make(map[string]string),
+		MySQLClean:  1 * time.Hour,
 		// zookeeper
 		ZookeeperAddr:    []string{"localhost:2181"},
 		ZookeeperTimeout: 30 * time.Second,
 		ZookeeperPath:    "/gopush-cluster-message",
 	}
-	if err := gconf.Unmarshal(conf); err != nil {
+	if err := gconf.Unmarshal(Conf); err != nil {
 		glog.Errorf("goconf.Unmarshal() error(%v)", err)
-		return nil, err
+		return err
 	}
-	//Load redis addresses
+	// redis section
 	redisAddrsSec := gconf.Get("redis.source")
 	if redisAddrsSec != nil {
 		for _, key := range redisAddrsSec.Keys() {
 			addr, err := redisAddrsSec.String(key)
 			if err != nil {
-				return nil, fmt.Errorf("config section:\"redis.addrs\" key:\"%s\" error(%v)", key, err)
+				return fmt.Errorf("config section: \"redis.addrs\" key: \"%s\" error(%v)", key, err)
 			}
-			conf.RedisSource[key] = addr
+			Conf.RedisSource[key] = addr
 		}
 	}
-	//Load mysql sources
+	// mysql section
 	dbSource := gconf.Get("mysql.source")
 	if dbSource != nil {
 		for _, key := range dbSource.Keys() {
 			source, err := dbSource.String(key)
 			if err != nil {
-				return nil, fmt.Errorf("config section:\"mysql.source\" key:\"%s\" error(%v)", key, err)
+				return fmt.Errorf("config section: \"mysql.source\" key: \"%s\" error(%v)", key, err)
 			}
-			conf.MySQLSource[key] = source
+			Conf.MySQLSource[key] = source
 		}
 	}
-
-	return conf, nil
+	return nil
 }
