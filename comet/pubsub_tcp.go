@@ -181,7 +181,7 @@ func handleTCPConn(conn net.Conn, rc chan *bufio.Reader) {
 func SubscribeTCPHandle(conn net.Conn, args []string) {
 	argLen := len(args)
 	addr := conn.RemoteAddr().String()
-	if argLen < 3 {
+	if argLen < 2 {
 		conn.Write(ParamReply)
 		glog.Errorf("<%s> subscriber missing argument", addr)
 		return

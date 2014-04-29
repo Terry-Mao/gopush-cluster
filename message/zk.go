@@ -38,8 +38,10 @@ func InitZK() (*zk.Conn, error) {
 		glog.Errorf("zk.Create() error(%v)", err)
 		return conn, err
 	}
+	data := strings.Join(Conf.Addr, ",")
+	glog.V(1).Infof("zk data: \"%s\"", data)
 	// tcp, websocket and rpc bind address store in the zk
-	if err = myzk.RegisterTemp(conn, Conf.ZookeeperPath, strings.Join(Conf.Addr, ",")); err != nil {
+	if err = myzk.RegisterTemp(conn, Conf.ZookeeperPath, data); err != nil {
 		glog.Errorf("zk.RegisterTemp() error(%v)", err)
 		return conn, err
 	}
