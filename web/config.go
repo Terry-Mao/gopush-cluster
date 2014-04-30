@@ -26,17 +26,17 @@ import (
 
 var (
 	Conf     *Config
-	ConfFile string
+	confFile string
 )
 
 // InitConfig initialize config file path
 func init() {
-	flag.StringVar(&ConfFile, "c", "./web.conf", " set web config file path")
+	flag.StringVar(&confFile, "c", "./web.conf", " set web config file path")
 }
 
 type Config struct {
-	Addr                 []string      `goconf:"base:addr:,"`
-	AdminAddr            []string      `goconf:"base:admin.addr:,"`
+	HttpBind             []string      `goconf:"base:http.bind:,"`
+	AdminBind            []string      `goconf:"base:admin.bind:,"`
 	MaxProc              int           `goconf:"base:maxproc"`
 	PprofBind            []string      `goconf:"base:pprof.bind:,"`
 	User                 string        `goconf:"base:user"`
@@ -52,17 +52,17 @@ type Config struct {
 	RPCPing              time.Duration `goconf:"rpc:ping:time"`
 }
 
-// Initialize config
-func NewConfig(file string) (*Config, error) {
+// InitConfig init configuration file.
+func InitConfig() error {
 	gconf := goconf.New()
-	if err := gconf.Parse(file); err != nil {
-		glog.Errorf("goconf.Parse(\"%s\") error(%v)", file, err)
-		return nil, err
+	if err := gconf.Parse(confFile); err != nil {
+		glog.Errorf("goconf.Parse(\"%s\") error(%v)", confFile, err)
+		return err
 	}
 	// Default config
-	conf := &Config{
-		Addr:                 []string{"localhost:80"},
-		AdminAddr:            []string{"localhost:81"},
+	Conf = &Config{
+		HttpBind:             []string{"localhost:80"},
+		AdminBind:            []string{"localhost:81"},
 		MaxProc:              runtime.NumCPU(),
 		PprofBind:            []string{"localhost:8190"},
 		User:                 "nobody nobody",
@@ -77,9 +77,9 @@ func NewConfig(file string) (*Config, error) {
 		RPCRetry:             3 * time.Second,
 		RPCPing:              1 * time.Second,
 	}
-	if err := gconf.Unmarshal(conf); err != nil {
+	if err := gconf.Unmarshal(Conf); err != nil {
 		glog.Errorf("goconf.Unmarshall() error(%v)", err)
-		return nil, err
+		return err
 	}
-	return conf, nil
+	return nil
 }

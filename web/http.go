@@ -43,13 +43,17 @@ func StartHTTP() {
 	httpServeMux.HandleFunc("/time/get", GetTime0)
 	// internal
 	httpAdminServeMux := http.NewServeMux()
+	// 1.0
+	httpAdminServeMux.HandleFunc("/1/admin/push/private", PushPrivate)
+	httpAdminServeMux.HandleFunc("/1/admin/msg/del", DelPrivate)
+	// old
 	httpAdminServeMux.HandleFunc("/admin/push", PushPrivate)
-	httpAdminServeMux.HandleFunc("/admin/msg/clean", DelOfflineMessage)
-	for _, bind := range Conf.Addr {
+	httpAdminServeMux.HandleFunc("/admin/msg/clean", DelPrivate)
+	for _, bind := range Conf.HttpBind {
 		glog.Infof("start http listen addr:\"%s\"", bind)
 		go httpListen(httpServeMux, bind)
 	}
-	for _, bind := range Conf.AdminAddr {
+	for _, bind := range Conf.AdminBind {
 		glog.Infof("start admin http listen addr:\"%s\"", bind)
 		go httpListen(httpAdminServeMux, bind)
 	}

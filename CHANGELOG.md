@@ -13,11 +13,16 @@ Bugfixes:
 ## Version 1.0.3 (2014-04-30)
 
 Changes:
- - Refactor message module, add more log
+
+ - Refactor message module, add more log.
+ - Refactor web module, add more log, http api add version in url.
+ - Refactor comet module, add more log.
 
 New Features:
 
+
 Bugfixes:
+
  - Fixed redis clean expired message function connection leak bug.
 
 

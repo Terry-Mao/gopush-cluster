@@ -35,12 +35,10 @@ var (
 
 // Stored messages interface
 type Storage interface {
-	// Get messages
-	Get(key string, mid int64) ([]*rpc.Message, error)
-	// Save message
-	Save(key string, msg json.RawMessage, mid int64, gid uint, expire uint) error
-	// Delete key
-	Del(key string) error
+	// private message method
+	GetPrivate(key string, mid int64) ([]*rpc.Message, error)
+	SavePrivate(key string, msg json.RawMessage, mid int64, expire uint) error
+	DelPrivate(key string) error
 }
 
 // InitStorage init the storage type(mysql or redis).

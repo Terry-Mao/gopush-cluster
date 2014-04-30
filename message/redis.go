@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
-	"github.com/Terry-Mao/gopush-cluster/rpc"
+	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/garyburd/redigo/redis"
 	"github.com/golang/glog"
 	"time"
@@ -32,10 +32,9 @@ var (
 )
 
 // RedisMessage struct encoding the composite info.
-type RedisMessage struct {
-	Msg     json.RawMessage `json:"msg"`    // message content
-	GroupId uint            `json:"gid"`    // group id
-	Expire  int64           `json:"expire"` // expire second
+type RedisPrivateMessage struct {
+	Msg    json.RawMessage `json:"msg"`    // message content
+	Expire int64           `json:"expire"` // expire second
 }
 
 // Struct for delele message
@@ -75,14 +74,14 @@ func NewRedisStorage() *RedisStorage {
 	return s
 }
 
-// Save implements the Storage Save method.
-func (s *RedisStorage) Save(key string, msg json.RawMessage, mid int64, gid uint, expire uint) error {
+// SavePrivate implements the Storage SavePrivate method.
+func (s *RedisStorage) SavePrivate(key string, msg json.RawMessage, mid int64, expire uint) error {
 	conn := s.getConn(key)
 	if conn == nil {
 		return RedisNoConnErr
 	}
 	defer conn.Close()
-	rm := &RedisMessage{Msg: msg, GroupId: gid, Expire: int64(expire) + time.Now().Unix()}
+	rm := &RedisPrivateMessage{Msg: msg, Expire: int64(expire) + time.Now().Unix()}
 	m, err := json.Marshal(rm)
 	if err != nil {
 		glog.Errorf("json.Marshal(\"%v\") error(%v)", rm, err)
@@ -113,8 +112,8 @@ func (s *RedisStorage) Save(key string, msg json.RawMessage, mid int64, gid uint
 	return nil
 }
 
-// Save implements the Storage Get method.
-func (s *RedisStorage) Get(key string, mid int64) ([]*rpc.Message, error) {
+// GetPrivate implements the Storage GetPrivate method.
+func (s *RedisStorage) GetPrivate(key string, mid int64) ([]*myrpc.Message, error) {
 	conn := s.getConn(key)
 	if conn == nil {
 		return nil, RedisNoConnErr
@@ -125,7 +124,7 @@ func (s *RedisStorage) Get(key string, mid int64) ([]*rpc.Message, error) {
 		glog.Errorf("conn.Do(\"ZRANGEBYSCORE\", \"%s\", \"%s\", \"+inf\", \"WITHSCORES\") error(%v)", err)
 		return nil, err
 	}
-	msgs := make([]*rpc.Message, 0, len(values))
+	msgs := make([]*myrpc.Message, 0, len(values))
 	delMsgs := []int64{}
 	cmid := int64(0)
 	b := []byte{}
@@ -136,7 +135,7 @@ func (s *RedisStorage) Get(key string, mid int64) ([]*rpc.Message, error) {
 			glog.Errorf("redis.Scan() error(%v)", err)
 			return nil, err
 		}
-		rm := &RedisMessage{}
+		rm := &RedisPrivateMessage{}
 		if err := json.Unmarshal(b, rm); err != nil {
 			glog.Errorf("json.Unmarshal(\"%s\", rm) error(%v)", string(b), err)
 			delMsgs = append(delMsgs, cmid)
@@ -148,7 +147,7 @@ func (s *RedisStorage) Get(key string, mid int64) ([]*rpc.Message, error) {
 			delMsgs = append(delMsgs, cmid)
 			continue
 		}
-		m := &rpc.Message{MsgId: cmid, Msg: rm.Msg, GroupId: rm.GroupId}
+		m := &myrpc.Message{MsgId: cmid, Msg: rm.Msg, GroupId: myrpc.PrivateGroupId}
 		msgs = append(msgs, m)
 	}
 	// delete unmarshal failed and expired message
@@ -162,8 +161,8 @@ func (s *RedisStorage) Get(key string, mid int64) ([]*rpc.Message, error) {
 	return msgs, nil
 }
 
-// Del implements the Storage DelKey method.
-func (s *RedisStorage) Del(key string) error {
+// DelPrivate implements the Storage DelPrivate method.
+func (s *RedisStorage) DelPrivate(key string) error {
 	conn := s.getConn(key)
 	if conn == nil {
 		return RedisNoConnErr

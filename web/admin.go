@@ -46,16 +46,10 @@ func PushPrivate(w http.ResponseWriter, r *http.Request) {
 	body = string(bodyBytes)
 	params := r.URL.Query()
 	key := params.Get("key")
-	gidStr := params.Get("gid")
 	expireStr := params.Get("expire")
 	if key == "" {
 		res["ret"] = ParamErr
 		return
-	}
-	gid, err := strconv.ParseUint(gidStr, 10, 32)
-	if err != nil {
-		res["ret"] = ParamErr
-		glog.Errorf("strconv.ParseInt(\"%s\", 10, 32) error(%v)", gidStr, err)
 	}
 	expire, err := strconv.ParseUint(expireStr, 10, 32)
 	if err != nil {
@@ -80,8 +74,7 @@ func PushPrivate(w http.ResponseWriter, r *http.Request) {
 		glog.Errorf("json.RawMessage(\"%s\").MarshalJSON() error(%v)", body, err)
 		return
 	}
-	// RPC call publish interface
-	args := &myrpc.CometPushPrivateArgs{GroupId: uint(gid), Msg: json.RawMessage(msg), Expire: uint(expire), Key: key}
+	args := &myrpc.CometPushPrivateArgs{Msg: json.RawMessage(msg), Expire: uint(expire), Key: key}
 	ret := 0
 	if err := client.Call(myrpc.CometServicePushPrivate, args, &ret); err != nil {
 		glog.Errorf("client.Call(\"%s\", \"%v\", &ret) error(%v)", myrpc.CometServicePushPrivate, args, err)
@@ -91,8 +84,8 @@ func PushPrivate(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// DelOfflineMessage handle for push private message.
-func DelOfflineMessage(w http.ResponseWriter, r *http.Request) {
+// DelPrivate handle for push private message.
+func DelPrivate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method Not Allowed", 405)
 		return
@@ -125,8 +118,8 @@ func DelOfflineMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ret := 0
-	if err := client.Call(myrpc.MessageServiceClean, key, &ret); err != nil {
-		glog.Errorf("client.Call(\"%s\", \"%s\", &ret) error(%v)", myrpc.MessageServiceClean, key, err)
+	if err := client.Call(myrpc.MessageServiceDelPrivate, key, &ret); err != nil {
+		glog.Errorf("client.Call(\"%s\", \"%s\", &ret) error(%v)", myrpc.MessageServiceDelPrivate, key, err)
 		res["ret"] = InternalErr
 		return
 	}

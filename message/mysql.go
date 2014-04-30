@@ -21,17 +21,18 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/Terry-Mao/gopush-cluster/hash"
-	"github.com/Terry-Mao/gopush-cluster/rpc"
+	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"time"
 )
 
 const (
-	saveSQL      = "INSERT INTO message(sub,gid,mid,expire,msg,ctime,mtime) VALUES(?,?,?,?,?,?,?)"
-	getSQL       = "SELECT mid, gid, expire, msg FROM message WHERE sub=? AND mid>?"
-	delExpireSQL = "DELETE FROM message WHERE expire<=?"
-	delKeySQL    = "DELETE FROM message WHERE sub=?"
+	savePrivateMsgSQL = "INSERT INTO private_msg(skey,mid,ttl,msg,ctime,mtime) VALUES(?,?,?,?,?,?)"
+	// TODO limit
+	getPrivateMsgSQL        = "SELECT mid, ttl, msg FROM private_msg WHERE skey=? AND mid>? ORDER BY mid"
+	delExpiredPrivateMsgSQL = "DELETE FROM private_msg WHERE ttl<=?"
+	delPrivateMsgSQL        = "DELETE FROM private_msg WHERE skey=?"
 )
 
 var (
@@ -60,40 +61,39 @@ func NewMySQLStorage() *MySQLStorage {
 	return s
 }
 
-// Save implements the Storage Save method.
-func (s *MySQLStorage) Save(key string, msg json.RawMessage, mid int64, gid uint, expire uint) error {
+// SavePrivate implements the Storage SavePrivate method.
+func (s *MySQLStorage) SavePrivate(key string, msg json.RawMessage, mid int64, expire uint) error {
 	db := s.getConn(key)
 	if db == nil {
 		return ErrNoMySQLConn
 	}
 	now := time.Now()
-	_, err := db.Exec(saveSQL, key, gid, mid, now.Unix()+int64(expire), []byte(msg), now, now)
+	_, err := db.Exec(savePrivateMsgSQL, key, mid, now.Unix()+int64(expire), []byte(msg), now, now)
 	if err != nil {
-		glog.Errorf("db.Exec(%s,%s,%d,%d,%d,%s,now,now) failed (%v)", saveSQL, key, 0, mid, expire, string(msg), err)
+		glog.Errorf("db.Exec(\"%s\",\"%s\",%d,%d,%d,\"%s\",now,now) failed (%v)", savePrivateMsgSQL, key, mid, expire, string(msg), err)
 		return err
 	}
 	return nil
 }
 
-// Get implements the Storage Get method.
-func (s *MySQLStorage) Get(key string, mid int64) ([]*rpc.Message, error) {
+// GetPrivate implements the Storage GetPrivate method.
+func (s *MySQLStorage) GetPrivate(key string, mid int64) ([]*myrpc.Message, error) {
 	db := s.getConn(key)
 	if db == nil {
 		return nil, ErrNoMySQLConn
 	}
 	now := time.Now().Unix()
-	rows, err := db.Query(getSQL, key, mid)
+	rows, err := db.Query(getPrivateMsgSQL, key, mid)
 	if err != nil {
-		glog.Errorf("db.Query(%s,%s,%d,now) failed (%v)", getSQL, key, mid, err)
+		glog.Errorf("db.Query(\"%s\",\"%s\",%d,now) failed (%v)", getPrivateMsgSQL, key, mid, err)
 		return nil, err
 	}
 	expire := int64(0)
 	cmid := int64(0)
-	cgid := uint(0)
 	msg := json.RawMessage([]byte{})
-	msgs := []*rpc.Message{}
+	msgs := []*myrpc.Message{}
 	for rows.Next() {
-		if err := rows.Scan(&cmid, &cgid, &expire, &msg); err != nil {
+		if err := rows.Scan(&cmid, &expire, &msg); err != nil {
 			glog.Errorf("rows.Scan() failed (%v)", err)
 			return nil, err
 		}
@@ -101,20 +101,20 @@ func (s *MySQLStorage) Get(key string, mid int64) ([]*rpc.Message, error) {
 			glog.Warningf("user_key: \"%s\" mid: %d expired", key, cmid)
 			continue
 		}
-		msgs = append(msgs, &rpc.Message{MsgId: cmid, GroupId: cgid, Msg: msg})
+		msgs = append(msgs, &myrpc.Message{MsgId: cmid, GroupId: myrpc.PrivateGroupId, Msg: msg})
 	}
 	return msgs, nil
 }
 
-// Del implements the Storage DelKey method.
-func (s *MySQLStorage) Del(key string) error {
+// DelPrivate implements the Storage DelPrivate method.
+func (s *MySQLStorage) DelPrivate(key string) error {
 	db := s.getConn(key)
 	if db == nil {
 		return ErrNoMySQLConn
 	}
-	res, err := db.Exec(delKeySQL, key)
+	res, err := db.Exec(delPrivateMsgSQL, key)
 	if err != nil {
-		glog.Errorf("db.Exec(\"%s\", \"%s\") error(%v)", delKeySQL, key, err)
+		glog.Errorf("db.Exec(\"%s\", \"%s\") error(%v)", delPrivateMsgSQL, key, err)
 		return err
 	}
 	rows, err := res.RowsAffected()
@@ -133,9 +133,9 @@ func (s *MySQLStorage) clean() {
 		now := time.Now().Unix()
 		affect := int64(0)
 		for _, db := range s.pool {
-			res, err := db.Exec(delExpireSQL, now)
+			res, err := db.Exec(delExpiredPrivateMsgSQL, now)
 			if err != nil {
-				glog.Errorf("db.Exec(\"%s\", now) failed (%v)", delExpireSQL, err)
+				glog.Errorf("db.Exec(\"%s\", %d) failed (%v)", delExpiredPrivateMsgSQL, now, err)
 				continue
 			}
 			aff, err := res.RowsAffected()

@@ -34,7 +34,7 @@ func StartRPC() {
 	c := &CometRPC{}
 	rpc.Register(c)
 	for _, bind := range Conf.RPCBind {
-		glog.Infof("start listen rpc addr:\"%s\"", bind)
+		glog.Infof("start listen rpc addr: \"%s\"", bind)
 		go rpcListen(bind)
 	}
 }
@@ -108,37 +108,11 @@ func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error
 		return err
 	}
 	// use the channel push message
-	msg := &myrpc.Message{Msg: args.Msg, GroupId: args.GroupId}
-	if err = ch.PushMsg(args.Key, msg, args.Expire); err != nil {
-		glog.Error("ch.PushMsg(\"%s\", \"%v\") error(%v)", args.Key, msg, err)
+	m := &myrpc.Message{Msg: args.Msg}
+	if err = ch.PushMsg(args.Key, m, args.Expire); err != nil {
+		glog.Errorf("ch.PushMsg(\"%s\", \"%v\") error(%v)", args.Key, m, err)
 		return err
 	}
-	return nil
-}
-
-// PushPublic expored a method for publishing a public message for the channel
-func (c *CometRPC) PushPublic(args *myrpc.CometPushPublicArgs, ret *int) error {
-	/*
-		// get all the channel lock
-		m := &Message{Msg: args.Msg, MsgID: args.MsgID, GroupID: myrpc.PublicGroupID}
-		for _, c := range UserChannel.Channels {
-			c.Lock()
-			cm := make(map[string]Channel, len(c.Data))
-			for k, v := range c.Data {
-				cm[k] = v
-			}
-			c.Unlock()
-			// multiple routine push message
-			go func() {
-				for k, v := range cm {
-					if err := v.PushMsg(k, m); err != nil {
-						continue
-					}
-				}
-			}()
-		}
-		*ret = myrpc.OK
-	*/
 	return nil
 }
 
@@ -193,6 +167,6 @@ func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
 }
 
 func (c *CometRPC) Ping(args int, ret *int) error {
-	glog.V(2).Info("CometRPC.Ping() ok")
+	glog.V(2).Info("ping ok")
 	return nil
 }

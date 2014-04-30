@@ -32,9 +32,6 @@ import (
 )
 
 const (
-	// group id
-	PrivateGroupId = 0
-	PublicGroupId  = 1
 	// protocol of Comet subcription
 	cometProtocolUnknown    = 0
 	cometProtocolWS         = 1
@@ -76,7 +73,6 @@ type CometNodeEvent struct {
 type CometPushPrivateArgs struct {
 	Key     string          // subscriber key
 	Msg     json.RawMessage // message content
-	GroupId uint            // message group id
 	Expire  uint            // message expire second
 }
 

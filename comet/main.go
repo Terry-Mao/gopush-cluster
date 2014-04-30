@@ -27,27 +27,25 @@ import (
 )
 
 func main() {
-	var err error
 	// parse cmd-line arguments
 	flag.Parse()
+	glog.Infof("comet ver: \"%s\" start", ver.Version)
 	defer glog.Flush()
-	signalCH := InitSignal()
 	// init config
-	Conf, err = InitConfig(ConfFile)
-	if err != nil {
-		glog.Errorf("NewConfig(\"%s\") error(%v)", ConfFile, err)
+	if err := InitConfig(); err != nil {
+		glog.Errorf("InitConfig() error(%v)", err)
 		return
 	}
 	// set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
+	// start pprof
+	perf.Init(Conf.PprofBind)
 	// create channel
-	UserChannel = NewChannelList()
 	// if process exit, close channel
+	UserChannel = NewChannelList()
 	defer UserChannel.Close()
 	// start stats
 	StartStats()
-	// start pprof
-	perf.Init(Conf.PprofBind)
 	// start rpc
 	StartRPC()
 	// start comet
@@ -64,11 +62,11 @@ func main() {
 	// sleep one second, let the listen start
 	time.Sleep(time.Second)
 	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
-		glog.Errorf("process.Init() error(%v)", err)
+		glog.Errorf("process.Init(\"%s\", \"%s\", \"%s\") error(%v)", Conf.User, Conf.Dir, Conf.PidFile, err)
 		return
 	}
-	glog.Infof("comet(%s) start", ver.Version)
 	// init signals, block wait signals
+	signalCH := InitSignal()
 	HandleSignal(signalCH)
 	// exit
 	glog.Info("comet stop")

@@ -30,12 +30,10 @@ func main() {
 	var err error
 	// Parse cmd-line arguments
 	flag.Parse()
+	glog.Infof("web ver: \"%s\" start", ver.Version)
 	defer glog.Flush()
-	signalCH := InitSignal()
-	// Load config
-	Conf, err = NewConfig(ConfFile)
-	if err != nil {
-		glog.Errorf("NewConfig(\"%s\") error(%v)", ConfFile, err)
+	if err = InitConfig(); err != nil {
+		glog.Errorf("InitConfig() error(%v)", err)
 		return
 	}
 	// Set max routine
@@ -67,7 +65,7 @@ func main() {
 		return
 	}
 	// init signals, block wait signals
-	glog.Infof("web(%s) start", ver.Version)
+	signalCH := InitSignal()
 	HandleSignal(signalCH)
 	glog.Info("web stop")
 }

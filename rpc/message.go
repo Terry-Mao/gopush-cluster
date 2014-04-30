@@ -27,6 +27,17 @@ import (
 	"time"
 )
 
+const (
+	// group id
+	PrivateGroupId = 0
+	PublicGroupId  = 1
+	// message rpc service
+	MessageService            = "MessageRPC"
+	MessageServiceGetPrivate  = "MessageRPC.GetPrivate"
+	MessageServiceSavePrivate = "MessageRPC.SavePrivate"
+	MessageServiceDelPrivate  = "MessageRPC.DelPrivate"
+)
+
 type MessageNodeEvent struct {
 	// addr:port
 	Key string
@@ -43,9 +54,9 @@ type Message struct {
 
 // The Old Message struct (Compatible), TODO remove it.
 type OldMessage struct {
-	Msg string `json:"msg"` // Message
-	MsgId int64 `json:"mid"` // Message id
-	GroupId uint `json:"gid"` // Group id
+	Msg     string `json:"msg"` // Message
+	MsgId   int64  `json:"mid"` // Message id
+	GroupId uint   `json:"gid"` // Group id
 }
 
 // Bytes get a message reply bytes.
@@ -69,41 +80,31 @@ func (m *Message) OldBytes() ([]byte, error) {
 	return byteJson, nil
 }
 
-// Message Save Args
-type MessageSaveArgs struct {
-	Key     string          // subscriber key
-	Msg     json.RawMessage // message content
-	MsgId   int64           // message id
-	GroupId uint            // message group id
-	Expire  uint            // message expire second
+// Message SavePrivate Args
+type MessageSavePrivateArgs struct {
+	Key    string          // subscriber key
+	Msg    json.RawMessage // message content
+	MsgId  int64           // message id
+	Expire uint            // message expire second
 }
 
-// Public Message Save Args
-type MessageSavePubArgs struct {
+// Message SavePublish Args
+type MessageSavePublishArgs struct {
 	MsgID  int64  // message id
 	Msg    string // message content
 	Expire int64  // message expire second
 }
 
 // Message Get Args
-type MessageGetArgs struct {
-	MsgId    int64  // message id
-	PubMsgId int64  // public message id
-	Key      string // subscriber key
+type MessageGetPrivateArgs struct {
+	MsgId int64  // message id
+	Key   string // subscriber key
 }
 
 // Message Get Response
 type MessageGetResp struct {
-	Msgs    []*Message // messages
-	PubMsgs []*Message // public messages
+	Msgs []*Message // messages
 }
-
-const (
-	MessageService      = "MessageRPC"
-	MessageServiceGet   = "MessageRPC.Get"
-	MessageServiceSave  = "MessageRPC.Save"
-	MessageServiceClean = "MessageRPC.Clean"
-)
 
 var (
 	MessageRPC *RandLB

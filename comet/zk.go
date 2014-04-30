@@ -52,7 +52,9 @@ func InitZK() (*zk.Conn, error) {
 	for _, addr := range Conf.RPCBind {
 		data += fmt.Sprintf("rpc://%s,", addr)
 	}
-	if err = myzk.RegisterTemp(conn, fpath, strings.TrimRight(data, ",")); err != nil {
+	data = strings.TrimRight(data, ",")
+	glog.V(1).Infof("zk data: \"%s\"", data)
+	if err = myzk.RegisterTemp(conn, fpath, data); err != nil {
 		glog.Errorf("zk.RegisterTemp() error(%v)", err)
 		return conn, err
 	}

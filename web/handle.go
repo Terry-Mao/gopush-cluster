@@ -80,11 +80,10 @@ func GetOfflineMsg0(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 	key := params.Get("key")
 	midStr := params.Get("mid")
-	pmidStr := params.Get("pmid")
 	callback := params.Get("callback")
 	res := map[string]interface{}{"ret": OK}
 	defer retWrite(w, r, res, callback, time.Now())
-	if key == "" || midStr == "" || pmidStr == "" {
+	if key == "" || midStr == "" {
 		res["ret"] = ParamErr
 		return
 	}
@@ -94,22 +93,16 @@ func GetOfflineMsg0(w http.ResponseWriter, r *http.Request) {
 		glog.Errorf("strconv.ParseInt(\"%s\", 10, 64) error(%v)", midStr, err)
 		return
 	}
-	pmid, err := strconv.ParseInt(pmidStr, 10, 64)
-	if err != nil {
-		res["ret"] = ParamErr
-		glog.Errorf("strconv.ParseInt(\"%s\", 10, 64) error(%v)", pmidStr, err)
-		return
-	}
 	// RPC get offline messages
 	reply := &myrpc.MessageGetResp{}
-	args := &myrpc.MessageGetArgs{MsgId: mid, PubMsgId: pmid, Key: key}
+	args := &myrpc.MessageGetPrivateArgs{MsgId: mid, Key: key}
 	client := myrpc.MessageRPC.Get()
 	if client == nil {
 		res["ret"] = InternalErr
 		return
 	}
-	if err := client.Call(myrpc.MessageServiceGet, args, reply); err != nil {
-		glog.Errorf("myrpc.MessageRPC.Call(\"%s\", \"%v\", reply) error(%v)", myrpc.MessageServiceGet, args, err)
+	if err := client.Call(myrpc.MessageServiceGetPrivate, args, reply); err != nil {
+		glog.Errorf("myrpc.MessageRPC.Call(\"%s\", \"%v\", reply) error(%v)", myrpc.MessageServiceGetPrivate, args, err)
 		res["ret"] = InternalErr
 		return
 	}
@@ -118,9 +111,6 @@ func GetOfflineMsg0(w http.ResponseWriter, r *http.Request) {
 		omsgs = append(omsgs, &myrpc.OldMessage{GroupId: msg.GroupId, MsgId: msg.MsgId, Msg: string(msg.Msg)})
 	}
 	opmsgs := []*myrpc.OldMessage{}
-	for _, msg := range reply.PubMsgs {
-		opmsgs = append(opmsgs, &myrpc.OldMessage{GroupId: msg.GroupId, MsgId: msg.MsgId, Msg: string(msg.Msg)})
-	}
 	res["data"] = map[string]interface{}{"msgs": omsgs, "pmsgs": opmsgs}
 	return
 }

@@ -47,7 +47,7 @@ func Connect(addr []string, timeout time.Duration) (*zk.Conn, error) {
 	go func() {
 		for {
 			event := <-session
-			glog.Infof("zookeeper get a event: %s", event.State.String())
+			glog.V(1).Infof("zookeeper get a event: %s", event.State.String())
 		}
 	}()
 	return conn, nil

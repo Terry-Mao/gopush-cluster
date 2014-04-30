@@ -26,11 +26,11 @@ import (
 
 var (
 	Conf     *Config
-	ConfFile string
+	confFile string
 )
 
 func init() {
-	flag.StringVar(&ConfFile, "c", "./comet.conf", " set gopush-cluster comet config file path")
+	flag.StringVar(&confFile, "c", "./comet.conf", " set gopush-cluster comet config file path")
 }
 
 type Config struct {
@@ -68,8 +68,8 @@ type Config struct {
 }
 
 // InitConfig get a new Config struct.
-func InitConfig(file string) (*Config, error) {
-	cf := &Config{
+func InitConfig() error {
+	Conf = &Config{
 		// base
 		User:          "nobody nobody",
 		PidFile:       "/tmp/gopush-cluster-comet.pid",
@@ -103,13 +103,13 @@ func InitConfig(file string) (*Config, error) {
 		MsgBufNum:               30,
 	}
 	c := goconf.New()
-	if err := c.Parse(file); err != nil {
-		glog.Errorf("goconf.Parse(\"%s\") error(%v)", file, err)
-		return nil, err
+	if err := c.Parse(confFile); err != nil {
+		glog.Errorf("goconf.Parse(\"%s\") error(%v)", confFile, err)
+		return err
 	}
-	if err := c.Unmarshal(cf); err != nil {
+	if err := c.Unmarshal(Conf); err != nil {
 		glog.Errorf("goconf.Unmarshall() error(%v)", err)
-		return nil, err
+		return err
 	}
-	return cf, nil
+	return nil
 }
