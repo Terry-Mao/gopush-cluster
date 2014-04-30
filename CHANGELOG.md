@@ -2,13 +2,15 @@
 
 New Features:
 
+ - publish message support.
+ - group message support.
  - Migrate support.
 
 Bugfixes:
 
  - 
 
-## Version 1.0.2 (2014-04-29)
+## Version 1.0.3 (2014-04-30)
 
 Changes:
  - Refactor message module, add more log
@@ -19,7 +21,7 @@ Bugfixes:
  - Fixed redis clean expired message function connection leak bug.
 
 
-## Version 1.0.1 (2014-04-29)
+## Version 1.0.2 (2014-04-29)
 
 Changes:
 
