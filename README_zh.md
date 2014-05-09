@@ -143,9 +143,10 @@ $ curl -d "{\"test\":1}" http://localhost:8091/1/admin/push/private?key=Terry-Ma
 $ curl -d "{\"test\":1}" http://10.20.223.113:8091/admin/push?key=Terry-Mao\&expire=60\&gid=0 (旧版本兼容所留，建议使用上面的接口)
 ```
 成功返回：{"ret":0}
-注：新版推送的消息内容必须是json格式，否则获取消息时会报错。
+* 注：新版推送的消息内容必须是json格式，否则获取消息时会报错。
 
 2.获取离线消息接口
+
 在浏览器中打开：
 ```scala
 http://localhost:8090/1/msg/get?k=Terry-Mao&m=0
@@ -178,8 +179,10 @@ http://localhost:8090/msg/get?key=Terry-Mao&mid=1&pmid=0 (旧版本兼容所留�
     "ret": 0
 }
 ```
-注：新旧两版的不同之处是，新版返回的msgs每一条都是一个结构体，而旧版每条消息是一个字符串,并且去掉expire字段，添加了gid字段
-4.获取节点接口
+* 注：新旧两版的不同之处是，新版返回的msgs每一条都是一个结构体，而旧版每条消息是一个字符串,并且去掉expire字段，添加了gid字段
+
+3.获取节点接口
+
 在浏览器中打开：
 ```scala
 http://localhost:8090/1/server/get?k=Terry-Mao&p=2
