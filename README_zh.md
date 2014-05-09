@@ -53,7 +53,7 @@ $ cp /data/programfiles/zookeeper-3.4.5/conf/zoo_sample.cfg /data/programfiles/z
 4.启动zookeeper(zookeeper配置在这里不做详细介绍)
 ```sh
 $ cd /data/programfiles/zookeeper-3.4.5/bin
-$ nohup ./zkServer.sh start &
+$ ./zkServer.sh start
 ```
 ### 三、搭建redis
 ```sh
@@ -129,50 +129,70 @@ $ cp web-example.conf /data/apps/go/bin/web.conf
 ### 七、启动gopush-cluster
 ```sh
 $ cd /$GOPATH/bin
-$ nohup ./message -c message.conf &
-$ nohup ./comet -c comet.conf &
-$ nohup ./web -c web.conf &
+$ nohup ./message -c message.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthreshold=FATAL &
+$ nohup ./comet -c comet.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthreshold=FATAL &
+$ nohup ./web -c web.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthreshold=FATAL &
 ```
 
 ### 八、测试
-1.推送公信（消息过期时间为expire=600秒）
+1.推送私信（消息过期时间为expire=600秒）
 ```sh
-$ curl -d "test2" 'http://localhost:8091/admin/push/public?expire=600'
+$ curl -d "{\"test\":1}" http://localhost:8091/1/admin/push/private?key=Terry-Mao\&expire=600
 ```
-成功返回：{"msg":"ok","ret":0}
-
-2.推送私信（消息过期时间为expire=600秒）
 ```sh
-$ curl -d "test" 'http://localhost:8091/admin/push?key=Terry-Mao&expire=600&gid=0'
+$ curl -d "{\"test\":1}" http://10.20.223.113:8091/admin/push?key=Terry-Mao\&expire=60\&gid=0 (旧版本兼容所留，建议使用上面的接口)
 ```
-成功返回：{“msg":"ok","ret":0}
+成功返回：{"ret":0}
+注：新版推送的消息内容必须是json格式，否则获取消息时会报错。
 
-3.获取离线消息接口
-在浏览器中打开：http://localhost:8090/msg/get?key=Terry-Mao&mid=1&pmid=0
+2.获取离线消息接口
+在浏览器中打开：
+```http
+http://localhost:8090/1/msg/get?k=Terry-Mao&m=0
+```
+```http
+http://localhost:8090/msg/get?key=Terry-Mao&mid=1&pmid=0 (旧版本兼容所留，建议使用上面的接口)
+```
 成功返回：
 ```json
 {
     "data":{
         "msgs":[
-            "{"msg":"test","expire":1391943609703654726,"mid":13919435497036558}"
-        ],
-        "pmsgs":[
-            "{"msg":"test2","expire":1391943637016665915,"mid":13919435770166656}"
+            {"msg":{"test":1},"mid":13996474938346192,"gid":0}
         ]
     },
-    "msg":"ok",
     "ret":0
 }
 ```
+成功返回：（旧版兼容所留）
+```json
+{
+    "data":{
+        "msgs":[
+            "{"msg":{"test":1},"expire":1391943609703654726,"mid":13919435497036558}"
+        ]
+	"pmsgs":[
+            "{"msg":{"test":1},"expire":1391943637016665915,"mid":13919435770166656}"
+        ]
+    },
+    "ret":0
+}
+```
+注：新旧两版的不同之处是，新版返回的msgs每一条都是一个结构体，而旧版每条消息是一个字符串,并且去掉expire字段，添加了gid字段
 4.获取节点接口
-在浏览器中打开：http://localhost:8090/server/get?key=Terry-Mao&proto=2
+在浏览器中打开：
+```http
+http://localhost:8090/1/server/get?k=Terry-Mao&p=2
+```
+```http
+http://localhost:8090/server/get?key=Terry-Mao&proto=2 (旧版本兼容所留，建议使用上面的接口)
+```
 成功返回：
 ```json
 {
     "data":{
         "server":"localhost:6969"
     },
-    "msg":"ok",
     "ret":0
 }
 ```
