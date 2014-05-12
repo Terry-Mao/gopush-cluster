@@ -106,9 +106,6 @@ $ ./dependencies.sh
 go: missing Mercurial command. See http://golang.org/s/gogetcmd
 
 package code.google.com/p/go.net/websocket: exec: "hg": executable file not found in $PATH
-* 如果提示如下,说明需要安装bzr工具（参考附资料2）
-
-go: missing Bazaar command. See http://golang.org/s/gogetcmd
 
 2.安装message、comet、web模块
 ```sh

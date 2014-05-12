@@ -63,7 +63,7 @@ $ cp /data/programfiles/redis-2.6.4/redis.conf /etc/redis/
 $ cp /data/programfiles/redis-2.6.4/src/redis-server /etc/init.d/redis-server
 $ /etc/init.d/redis-server /etc/redis/redis.conf
 ```
-* if following error, see FAQ 5
+* if following error, see FAQ 2
 ```sh
 which: no tclsh8.5 in (/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/geffzhang/bin)
 You need 'tclsh8.5' in order to run the Redis test
@@ -104,12 +104,6 @@ $ ./dependencies.sh
 go: missing Mercurial command. See http://golang.org/s/gogetcmd
 
 package code.google.com/p/go.net/websocket: exec: "hg": executable file not found in $PATH
-
-*if following error, see FAQ 2
-
-go: missing Bazaar command. See http://golang.org/s/gogetcmd
-
-package launchpad.net/gozk/zookeeper: exec: "bzr": executable file not found in $PATH
 
 2.install message,comet,web node
 ```sh
@@ -178,7 +172,7 @@ succeed response: (Compatibility with older versions)
     "ret": 0
 }
 ```
-*node: each of message in new response json is a struct, and the old message is string
+* node: each of message in new response json is a struct, and the old message is string
 
 3.get node address
 
@@ -240,24 +234,7 @@ $ yum -y install python-devel
 ```sh
 $ export PYTHONPATH=/usr/local/lib64/python2.6/site-packages
 ```
-2.install bzr
-```sh
-$ yum install bzr.x86_64
-```
-3.modify gozk
-```sh
-$ vim $GOPATH/src/launchpad.net/gozk/zookeeper/zk.go
-# find this line
-# cgo CFLAGS: -I/usr/include/c-client-src -I/usr/include/zookeeper
-# change include path
-# cgo CFLAGS: -I/usr/local/include/zookeeper
-```
-4.error：libzookeeper_mt.so.2 can not found
-```sh
-$ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-$ sudo ldconfig
-```
-5.install tcl8.5
+2.install tcl8.5
 ```sh
 $ cd /data/programfiles$ wget http://downloads.sourceforge.net/tcl/tcl8.5.10-src.tar.gz$ tar -xvf tcl8.5.10-src.tar.gz -C ./$ cd tcl8.5.10$ cd unix$ ./configure$ make$ make install
 ```
