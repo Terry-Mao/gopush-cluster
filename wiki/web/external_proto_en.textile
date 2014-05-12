@@ -17,7 +17,6 @@ Web external interface document, used for getting subscription node, getting off
 <pre>
 {
     "ret": 0,  //ErrorCode
-    "msg": "ok",
     "data": {….}//Data does not appear if data is null or ret != 0
 }
 </pre>
@@ -26,7 +25,6 @@ Respond data like following:
 <pre>
 test({
     "ret": 0,
-    "msg": "ok",
     "data": {….}
 })
 </pre>
@@ -54,7 +52,6 @@ test({
 <pre>
 {
     "ret": 0,
-    "msg": "ok"
     "data": {
 	    "server": "127.0.0.1:8080"  //IP:Port
     }
@@ -85,17 +82,13 @@ Note:
 
 <pre>
 {
-    "ret": 0,
-    "msg": "ok",
     "data": {
         "msgs": [
-            "{\"msg\":\"test4\",\"expire\":1390654180596824618,\"mid\":13906541205968269}",
-            "{\"msg\":\"test4\",\"expire\":1390654193548291636,\"mid\":13906541335482953}"
+            {"msg":"{\"test\":1}","mid":13999084541846408,"gid":0},
+            {"msg":"{\"test\":2}","mid":13999084579056605,"gid":0}
         ],
-        "pmsgs": [
-            "{\"msg\":\"test4\",\"expire\":1390654173008432944,\"mid\":6}",
-            "{\"msg\":\"test4\",\"expire\":1390654199561712956,\"mid\":7}"
-        ]
-    }
+        "pmsgs": []
+    },
+    "ret": 0
 }
 </pre>
