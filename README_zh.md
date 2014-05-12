@@ -46,12 +46,9 @@ $ cd /data/programfiles
 $ wget http://mirror.bit.edu.cn/apache/zookeeper/zookeeper-3.4.5/zookeeper-3.4.5.tar.gz
 $ tar -xvf zookeeper-3.4.5.tar.gz -C ./
 ```
-3.编译及安装
-``` sh
-$ cp /data/programfiles/zookeeper-3.4.5/conf/zoo_sample.cfg /data/programfiles/zookeeper-3.4.5/conf/zoo.cfg
-```
-4.启动zookeeper(zookeeper配置在这里不做详细介绍)
+3.启动zookeeper(zookeeper配置在这里不做详细介绍)
 ```sh
+$ cp /data/programfiles/zookeeper-3.4.5/conf/zoo_sample.cfg /data/programfiles/zookeeper-3.4.5/conf/zoo.cfg
 $ cd /data/programfiles/zookeeper-3.4.5/bin
 $ ./zkServer.sh start
 ```
@@ -140,7 +137,7 @@ $ nohup ./web -c web.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthre
 $ curl -d "{\"test\":1}" http://localhost:8091/1/admin/push/private?key=Terry-Mao\&expire=600
 ```
 ```sh
-$ curl -d "{\"test\":1}" http://10.20.223.113:8091/admin/push?key=Terry-Mao\&expire=60\&gid=0 (旧版本兼容所留，建议使用上面的接口)
+$ curl -d "{\"test\":1}" http://localhost:8091/admin/push?key=Terry-Mao\&expire=60\&gid=0 (旧版本兼容所留，建议使用上面的接口)
 ```
 成功返回：{"ret":0}
 * 注：新版推送的消息内容必须是json格式，否则获取消息时会报错。
