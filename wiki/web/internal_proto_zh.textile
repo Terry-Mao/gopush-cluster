@@ -4,7 +4,6 @@ Web内部接口文档，用于推送消息、节点管理等
 <h3>接口汇总</h3>
 (head). | 接口名 | URL | 访问方式 |
 | "推送私有消息":AdminPush | /admin/push     | POST |
-| "推送公共消息":AdminPushPublic | /admin/push/public     | POST |
 | "添加节点":AdminNodeAdd | /admin/node/add | POST |
 | "删除节点":AdminNodeDel | /admin/node/del | POST |
 | "清理消息":AdminMsgClean | /admin/msg/clean | POST |
@@ -20,7 +19,6 @@ Web内部接口文档，用于推送消息、节点管理等
 <pre>
 {
     "ret": 0,  //错误码
-    "msg": "ok",
     "data": {….}//如果有数据返回，则有data，无数据返回就只有前面的ret和msg
 }
 </pre>
@@ -40,27 +38,7 @@ Web内部接口文档，用于推送消息、节点管理等
 | 1001 | 没有找到key对应的节点 |
 <pre>
 {
-    "ret": 0,
-    "msg": "ok"
-}
-</pre>
-
-<h3>推送公共消息</h3>
- * 请求参数
-
-(head). | 参数 | 类型 | 描述 |
-| expire | int64  | 消息过期时间，单位：秒(s)|
-
-注: 1.消息体存放到body中，以上参数为URL参数。
-
- * 返回码
-
-(head). | 错误码 | 描述 |
-| 1001 | 没有找到key对应的节点 |
-<pre>
-{
-    "ret": 0,
-    "msg": "ok"
+    "ret": 0
 }
 </pre>
 
@@ -74,8 +52,7 @@ Web内部接口文档，用于推送消息、节点管理等
 
 <pre>
 {
-    "ret": 0,
-    "msg": "ok"
+    "ret": 0
 }
 </pre>
 
@@ -90,8 +67,7 @@ Web内部接口文档，用于推送消息、节点管理等
 
 <pre>
 {
-    "ret": 0,
-    "msg": "ok"
+    "ret": 0
 }
 </pre>
 
@@ -106,8 +82,7 @@ Web内部接口文档，用于推送消息、节点管理等
 
 <pre>
 {
-    "ret": 0,
-    "msg": "ok"
+    "ret": 0
 }
 </pre>
 

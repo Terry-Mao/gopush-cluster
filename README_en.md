@@ -43,17 +43,11 @@ $ mkdir -p /data/apps$ mkdir -p /data/logs$ mkdir -p /data/programfiles
 ```sh
 $ cd /data/programfiles$ wget http://mirror.bit.edu.cn/apache/zookeeper/zookeeper-3.4.5/zookeeper-3.4.5.tar.gz$ tar -xvf zookeeper-3.4.5.tar.gz -C ./
 ```
-3.compile && install
-``` sh
-$ cd zookeeper-3.4.5/src/c
-$ ./configure
-$ make && make install
-$ cp /data/programfiles/zookeeper-3.4.5/conf/zoo_sample.cfg /data/programfiles/zookeeper-3.4.5/conf/zoo.cfg
-```
-4.start zookeeper
+3.start zookeeper
 ```sh
+$ cp /data/programfiles/zookeeper-3.4.5/conf/zoo_sample.cfg /data/programfiles/zookeeper-3.4.5/conf/zoo.cfg
 $ cd /data/programfiles/zookeeper-3.4.5/bin
-$ nohup ./zkServer.sh start &
+$ ./zkServer.sh start
 ```
 ### redis
 ```sh
@@ -69,7 +63,7 @@ $ cp /data/programfiles/redis-2.6.4/redis.conf /etc/redis/
 $ cp /data/programfiles/redis-2.6.4/src/redis-server /etc/init.d/redis-server
 $ /etc/init.d/redis-server /etc/redis/redis.conf
 ```
-* if following error, see FAQ 5
+* if following error, see FAQ 2
 ```sh
 which: no tclsh8.5 in (/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/geffzhang/bin)
 You need 'tclsh8.5' in order to run the Redis test
@@ -87,15 +81,13 @@ $ yum -y install git
 1.download
 ```sh
 # centos
-$ wget https://go.googlecode.com/files/go1.2.linux-amd64.tar.gz
-$ tar -xvf go1.2.linux-amd64.tar.gz
-$ cp -R go /usr/local/
+$ cd /data/programfiles
+$ wget -c --no-check-certificate https://go.googlecode.com/files/go1.2.linux-amd64.tar.gz
+$ tar -xvf go1.2.linux-amd64.tar.gz -C /usr/local
 ```
 2.golang env
-
-modify ~/.profile
 ```sh
-$ vim ~/.profile
+$ vim /etc/profile.d/golang.sh
 # append
 export GOROOT=/usr/local/go
 export PATH=$PATH:$GOROOT/bin
@@ -105,11 +97,7 @@ $ source /etc/profile
 ### gopush-cluster
 1.download gopush-cluster
 ```sh
-$ go get -u github.com/Terry-Mao/gopush-cluster
-$ go get -u github.com/Terry-Mao/goconf
-$ go get -u github.com/garyburd/redigo/redis
-$ go get -u code.google.com/p/go.net/websocket
-$ go get -u launchpad.net/gozk/zookeeper
+$ ./dependencies.sh
 ```
 *if following error, see FAQ 1
 
@@ -117,80 +105,90 @@ go: missing Mercurial command. See http://golang.org/s/gogetcmd
 
 package code.google.com/p/go.net/websocket: exec: "hg": executable file not found in $PATH
 
-*if following error, see FAQ 2
-
-go: missing Bazaar command. See http://golang.org/s/gogetcmd
-
-package launchpad.net/gozk/zookeeper: exec: "bzr": executable file not found in $PATH
-
-*if following error, see FAQ 3
-
-launchpad.net/gozk/zookeeper
-
-../zk.go:15:23: error: zookeeper.h: No such file or directory
-
 2.install message,comet,web node
 ```sh
 $ cd $GOPATH/src/github.com/Terry-Mao/gopush-cluster/message
 $ go install
-$ cp message.conf $GOPATH/bin/
+$ cp message-example.conf $GOPATH/bin/message.conf
 $ cd ../comet/
 $ go install
-$ cp comet-example.conf /data/apps/go/bin/
+$ cp comet-example.conf /data/apps/go/bin/comet.conf
 $ cd ../web/
 $ go install
-$ cp web.conf /data/apps/go/bin/
+$ cp web-example.conf /data/apps/go/bin/web.conf
 ```
 All done!!!
 
 ### start gopush-cluster
 ```sh
 $ cd /$GOPATH/bin
-$ nohup ./message -c message.conf &
-$ nohup ./comet -c comet-example.conf &
-$ nohup ./web -c web.conf &
+$ nohup ./message -c message.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthreshold=FATAL &
+$ nohup ./comet -c comet.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthreshold=FATAL &
+$ nohup ./web -c web.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthreshold=FATAL &
 ```
-*if following error, FAQ 4
-
-error while loading shared libraries: libzookeeper_mt.so.2: cannot open shared object file: No such file or directory
 
 ### testing
-1.push public message
+1.push private message
 ```sh
-$ curl -d "test2" http://localhost:8091/admin/push/public?expire=600
+$ curl -d "{\"test\":1}" http://localhost:8091/1/admin/push/private?key=Terry-Mao\&expire=600
 ```
-succeed response：{"msg":"ok","ret":0}
-2.push private message
 ```sh
-$ curl -d "test" http://localhost:8091/admin/push?key=Terry-Mao\&expire=600\&gid=0
+$ curl -d "{\"test\":1}" http://localhost:8091/admin/push?key=Terry-Mao\&expire=60\&gid=0 (Compatibility with older versions, recommend use above)
 ```
-succeed response：{"msg":"ok","ret":0}
-3.get offline message
-open http://localhost:8090/msg/get?key=Terry-Mao&mid=1&pmid=0 in browser
+succeed response：{"ret":0}
+* note: the message of new push url must be json format, otherwise it will get a error when invoke ‘get offline message’ url.
+
+2.get offline message
+
+open in browser
+```scala
+http://localhost:8090/1/msg/get?k=Terry-Mao&m=0
+```
+```scala
+http://localhost:8090/msg/get?key=Terry-Mao&mid=1&pmid=0 (Compatibility with older versions, recommend use above)
+```
 succeed response:
 ```json
 {
     "data":{
         "msgs":[
-            "{"msg":"test","expire":1391943609703654726,"mid":13919435497036558}"
-        ],
-        "pmsgs":[
-            "{"msg":"test2","expire":1391943637016665915,"mid":13919435770166656}"
+            {"msg":{"test":1},"mid":13996474938346192,"gid":0}
         ]
     },
-    "msg":"ok",
     "ret":0
 }
 ```
-4.get node address
-open http://localhost:8090/server/get?key=Terry-Mao&proto=2 in browser
+succeed response: (Compatibility with older versions)
+```json
+{
+    "data": {
+        "msgs": [
+            "{\"msg\":{\"test\":1},\"expire\":1391943609703654726,\"mid\":13919435497036558}"
+        ],
+        "pmsgs": [
+            "{\"msg\":{\"test\":1},\"expire\":1391943637016665915,\"mid\":13919435770166656}"
+        ]
+    },
+    "ret": 0
+}
+```
+* node: each of message in new response json is a struct, and the old message is string
+
+3.get node address
+
+open in browser
+```scala
+http://localhost:8090/1/server/get?k=Terry-Mao&p=2
+```
+```scala
+http://localhost:8090/server/get?key=Terry-Mao&proto=2 (Compatibility with older versions, recommend use above)
+```
 succeed response:
 ```json
 {
     "data":{
         "server":"localhost:6969"
     },
-    "msg":"ok",
     "ret":0
 }
 ```
@@ -236,24 +234,7 @@ $ yum -y install python-devel
 ```sh
 $ export PYTHONPATH=/usr/local/lib64/python2.6/site-packages
 ```
-2.install bzr
-```sh
-$ yum install bzr.x86_64
-```
-3.modify gozk
-```sh
-$ vim $GOPATH/src/launchpad.net/gozk/zookeeper/zk.go
-# find this line
-# cgo CFLAGS: -I/usr/include/c-client-src -I/usr/include/zookeeper
-# change include path
-# cgo CFLAGS: -I/usr/local/include/zookeeper
-```
-4.error：libzookeeper_mt.so.2 can not found
-```sh
-$ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-$ sudo ldconfig
-```
-5.install tcl8.5
+2.install tcl8.5
 ```sh
 $ cd /data/programfiles$ wget http://downloads.sourceforge.net/tcl/tcl8.5.10-src.tar.gz$ tar -xvf tcl8.5.10-src.tar.gz -C ./$ cd tcl8.5.10$ cd unix$ ./configure$ make$ make install
 ```

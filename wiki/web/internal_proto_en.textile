@@ -4,7 +4,6 @@ Web internal interface document, used for push message, node management and so o
 <h3>Interface Summary</h3>
 (head). | Name | URL | Method |
 | "<a href="#Push Private Message">Push Private Message</a>":AdminPush | /admin/push     | POST |
-| "<a href="#Push Public Message">Push Public Message</a>":AdminPushPublic | /admin/push/public     | POST |
 | "<a href="#Add Node">Add Node</a>":AdminNodeAdd | /admin/node/add | POST |
 | "<a href="#Delete Node">Delete Node</a>":AdminNodeDel | /admin/node/del | POST |
 | "<a href="#Clean Message">Clean Message</a>":AdminMsgClean | /admin/msg/clean | POST |
@@ -20,7 +19,6 @@ Web internal interface document, used for push message, node management and so o
 <pre>
 {
     "ret": 0,  //ErrorCode
-    "msg": "ok",
     "data": {….}//Data does not appear if data is null or ret != 0
 }
 </pre>
@@ -43,29 +41,7 @@ Note: Messages stored in body, and service will wholly intact return to client. 
 | 1001 | no node corresponding with subscription key |
 <pre>
 {
-    "ret": 0,
-    "msg": "ok"
-}
-</pre>
-
-<a name="Push Public Message"></a>
-
-<h3>Push Public Message</h3>
- * Request Parameter
-
-(head). | Parameter | Type | Description |
-| expire | int64  | Message Expire Time, Unit:second|
-
-Note: Messages stored in body, and service will wholly intact return to client. Above just as URL Parameter.
-
- * ErrorCode
-
-(head). | ErrorCode | Description |
-| 1001 | no node corresponding with subscription key |
-<pre>
-{
-    "ret": 0,
-    "msg": "ok"
+    "ret": 0
 }
 </pre>
 
@@ -81,8 +57,7 @@ Note: Messages stored in body, and service will wholly intact return to client. 
 
 <pre>
 {
-    "ret": 0,
-    "msg": "ok"
+    "ret": 0
 }
 </pre>
 
@@ -99,8 +74,7 @@ Note: It will not disconnect the tcp connection between Client and Comet-Service
 
 <pre>
 {
-    "ret": 0,
-    "msg": "ok"
+    "ret": 0
 }
 </pre>
 
@@ -117,7 +91,6 @@ Node: It will delete all of messages what belong to specify key and it will dele
 
 <pre>
 {
-    "ret": 0,
-    "msg": "ok"
+    "ret": 0
 }
 </pre>
