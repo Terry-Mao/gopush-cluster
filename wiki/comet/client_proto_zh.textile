@@ -35,7 +35,7 @@ $第N个参数的字符串占用字节数字 CR LF
 -a\r\n
 -c\r\n
 </pre>
-其中p表示参数错误、a表示token验证失败、a表示channel未授权或找不到。
+其中p表示参数错误、a表示token验证失败、c表示channel未授权或找不到。
 
 <h3>请求心跳</h3>
 心跳包：<pre>h</pre>
