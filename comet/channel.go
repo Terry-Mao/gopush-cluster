@@ -89,7 +89,7 @@ func (c *Connection) HandleWrite(key string) {
 				glog.Errorf("user_key: \"%s\" conn.Write() error(%v)", key, err)
 				MsgStat.IncrFailed(1)
 			} else {
-				glog.V(1).Infof("user_key: \"%s\" write \"%s\"", key, string(msg))
+				glog.V(1).Infof("user_key: \"%s\" write \"%s\"(%d)", key, string(msg), n)
 				MsgStat.IncrSucceed(1)
 			}
 		}
