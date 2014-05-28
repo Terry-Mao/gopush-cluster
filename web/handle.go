@@ -106,11 +106,16 @@ func GetOfflineMsg0(w http.ResponseWriter, r *http.Request) {
 		res["ret"] = InternalErr
 		return
 	}
-	omsgs := []*myrpc.OldMessage{}
+	omsgs := []string{}
+	opmsgs := []string{}
 	for _, msg := range reply.Msgs {
-		omsgs = append(omsgs, &myrpc.OldMessage{GroupId: msg.GroupId, MsgId: msg.MsgId, Msg: string(msg.Msg)})
+		omsg, err := msg.OldBytes()
+		if err != nil {
+			res["ret"] = InternalErr
+			return
+		}
+		omsgs = append(omsgs, string(omsg))
 	}
-	opmsgs := []*myrpc.OldMessage{}
 	res["data"] = map[string]interface{}{"msgs": omsgs, "pmsgs": opmsgs}
 	return
 }

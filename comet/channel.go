@@ -79,7 +79,8 @@ func (c *Connection) HandleWrite(key string) {
 				n, err = c.Conn.Write(msg)
 			} else if c.Proto == TCPProto {
 				// redis protocol
-				n, err = c.Conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(msg), string(msg))))
+				msg = []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(msg), string(msg)))
+				n, err = c.Conn.Write(msg)
 			} else {
 				glog.Errorf("unknown connection protocol: %d", c.Proto)
 				panic(ErrConnProto)
@@ -89,7 +90,7 @@ func (c *Connection) HandleWrite(key string) {
 				glog.Errorf("user_key: \"%s\" conn.Write() error(%v)", key, err)
 				MsgStat.IncrFailed(1)
 			} else {
-				glog.V(1).Infof("user_key: \"%s\" write \"%s\"(%d)", key, string(msg), n)
+				glog.V(1).Infof("user_key: \"%s\" write \r\n========%s(%d)========", key, string(msg), n)
 				MsgStat.IncrSucceed(1)
 			}
 		}
