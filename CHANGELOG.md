@@ -17,6 +17,7 @@ Changes:
 Bugfixes:
 
  - Fixed /1/time/get http handler timeid value error
+ - Fixed HandleWrite goroutine memory leak.
 
 ## Version 1.0.3 (2014-04-30)
 

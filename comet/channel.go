@@ -69,7 +69,11 @@ func (c *Connection) HandleWrite(key string) {
 		)
 		glog.V(1).Infof("user_key: \"%s\" HandleWrite goroutine start", key)
 		for {
-			msg := <-c.Buf
+			msg, ok := <-c.Buf
+			if !ok {
+				glog.V(1).Infof("user_key: \"%s\" HandleWrite goroutine stop", key)
+				return
+			}
 			if c.Proto == WebsocketProto {
 				// raw
 				n, err = c.Conn.Write(msg)
@@ -84,8 +88,6 @@ func (c *Connection) HandleWrite(key string) {
 			if err != nil {
 				glog.Errorf("user_key: \"%s\" conn.Write() error(%v)", key, err)
 				MsgStat.IncrFailed(1)
-				glog.V(1).Infof("user_key: \"%s\" HandleWrite goroutine stop", key)
-				return
 			} else {
 				glog.V(1).Infof("user_key: \"%s\" conn.Write() %d bytes", key, n)
 				MsgStat.IncrSucceed(1)
