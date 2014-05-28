@@ -169,8 +169,12 @@ func (c *SeqChannel) AddConn(key string, conn *Connection) (*hlist.Element, erro
 // RemoveConn implements the Channel RemoveConn method.
 func (c *SeqChannel) RemoveConn(key string, e *hlist.Element) error {
 	c.mutex.Lock()
-	conn := c.conn.Remove(e)
+	tmp := c.conn.Remove(e)
 	c.mutex.Unlock()
+	conn, ok := tmp.(*Connection)
+	if !ok {
+		return ErrAssectionConn
+	}
 	close(conn.Buf)
 	ConnStat.IncrRemove()
 	glog.Infof("user_key:\"%s\" remove conn = %d", key, c.conn.Len())
