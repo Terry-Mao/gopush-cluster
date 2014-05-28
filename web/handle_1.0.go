@@ -119,7 +119,8 @@ func GetTime(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 	callback := params.Get("cb")
 	res := map[string]interface{}{"ret": OK}
-	defer retWrite(w, r, res, callback, time.Now())
-	res["data"] = map[string]interface{}{"timeid": time.Now().UnixNano()}
+	now := time.Now()
+	defer retWrite(w, r, res, callback, now)
+	res["data"] = map[string]interface{}{"timeid": now.UnixNano() / 100}
 	return
 }

@@ -114,7 +114,7 @@ func DelPrivate(w http.ResponseWriter, r *http.Request) {
 	}
 	client := myrpc.MessageRPC.Get()
 	if client == nil {
-        glog.Warningf("user_key: \"%s\" can't not find message rpc node", key)
+		glog.Warningf("user_key: \"%s\" can't not find message rpc node", key)
 		res["ret"] = InternalErr
 		return
 	}
