@@ -106,6 +106,10 @@ func GetOfflineMsg(w http.ResponseWriter, r *http.Request) {
 		res["ret"] = InternalErr
 		return
 	}
+	if len(reply.Msgs) == 0 {
+		res["ret"] = OK
+		return
+	}
 	res["data"] = map[string]interface{}{"msgs": reply.Msgs}
 	return
 }
