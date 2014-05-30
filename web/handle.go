@@ -116,6 +116,12 @@ func GetOfflineMsg0(w http.ResponseWriter, r *http.Request) {
 		}
 		omsgs = append(omsgs, string(omsg))
 	}
+
+	if len(omsgs) == 0 {
+		res["ret"] = OK
+		return
+	}
+
 	res["data"] = map[string]interface{}{"msgs": omsgs, "pmsgs": opmsgs}
 	return
 }
