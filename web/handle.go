@@ -34,7 +34,7 @@ func GetServer0(w http.ResponseWriter, r *http.Request) {
 	key := params.Get("key")
 	callback := params.Get("callback")
 	protoStr := params.Get("proto")
-	res := map[string]interface{}{"ret": OK}
+	res := map[string]interface{}{"ret": OK, "msg": "ok"}
 	defer retWrite(w, r, res, callback, time.Now())
 	if key == "" {
 		res["ret"] = ParamErr
@@ -81,7 +81,7 @@ func GetOfflineMsg0(w http.ResponseWriter, r *http.Request) {
 	key := params.Get("key")
 	midStr := params.Get("mid")
 	callback := params.Get("callback")
-	res := map[string]interface{}{"ret": OK}
+	res := map[string]interface{}{"ret": OK, "msg": "ok"}
 	defer retWrite(w, r, res, callback, time.Now())
 	if key == "" || midStr == "" {
 		res["ret"] = ParamErr
@@ -118,7 +118,6 @@ func GetOfflineMsg0(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(omsgs) == 0 {
-		res["ret"] = OK
 		return
 	}
 
@@ -134,7 +133,7 @@ func GetTime0(w http.ResponseWriter, r *http.Request) {
 	}
 	params := r.URL.Query()
 	callback := params.Get("callback")
-	res := map[string]interface{}{"ret": OK}
+	res := map[string]interface{}{"ret": OK, "msg": "ok"}
 	now := time.Now()
 	defer retWrite(w, r, res, callback, now)
 	res["data"] = map[string]interface{}{"timeid": now.UnixNano() / 100}
