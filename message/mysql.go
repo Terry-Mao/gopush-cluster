@@ -110,7 +110,6 @@ func (s *MySQLStorage) GetPrivate(key string, mid int64) ([]*myrpc.Message, erro
 		glog.Errorf("db.Query(\"%s\",\"%s\",%d,now) failed (%v)", getPrivateMsgSQL, key, mid, err)
 		return nil, err
 	}
-
 	msgs := []*myrpc.Message{}
 	for rows.Next() {
 		expire := int64(0)
