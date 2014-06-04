@@ -20,10 +20,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Terry-Mao/gopush-cluster/hash"
+	"github.com/Terry-Mao/gopush-cluster/ketama"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/garyburd/redigo/redis"
 	"github.com/golang/glog"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -44,18 +46,35 @@ type RedisDelMessage struct {
 }
 
 type RedisStorage struct {
-	pool   map[string]*redis.Pool
-	ketama *hash.Ketama
-	delCH  chan *RedisDelMessage
+	pool  map[string]*redis.Pool
+	ring  *ketama.HashRing
+	delCH chan *RedisDelMessage
 }
 
 // NewRedis initialize the redis pool and consistency hash ring.
 func NewRedisStorage() *RedisStorage {
+	var (
+		err error
+		w   int
+		nw  []string
+	)
 	redisPool := map[string]*redis.Pool{}
+	ring := ketama.NewRing(Conf.RedisKetamaBase)
 	for n, addr := range Conf.RedisSource {
+		nw = strings.Split(n, ":")
+		if len(nw) != 2 {
+			err = errors.New("node config error, it's nodeN:W")
+			glog.Errorf("strings.Split(\"%s\", :) failed (%v)", n, err)
+			panic(err)
+		}
+		w, err = strconv.Atoi(nw[1])
+		if err != nil {
+			glog.Errorf("strconv.Atoi(\"%s\") failed (%v)", nw[1], err)
+			panic(err)
+		}
 		tmp := addr
 		// WARN: closures use
-		redisPool[n] = &redis.Pool{
+		redisPool[nw[0]] = &redis.Pool{
 			MaxIdle:     Conf.RedisMaxIdle,
 			MaxActive:   Conf.RedisMaxActive,
 			IdleTimeout: Conf.RedisIdleTimeout,
@@ -68,8 +87,10 @@ func NewRedisStorage() *RedisStorage {
 				return conn, err
 			},
 		}
+		ring.AddNode(nw[0], w)
 	}
-	s := &RedisStorage{pool: redisPool, ketama: hash.NewKetama(len(redisPool), 255), delCH: make(chan *RedisDelMessage, 10240)}
+	ring.Bake()
+	s := &RedisStorage{pool: redisPool, ring: ring, delCH: make(chan *RedisDelMessage, 10240)}
 	go s.clean()
 	return s
 }
@@ -214,7 +235,7 @@ func (s *RedisStorage) getConn(key string) redis.Conn {
 	if len(s.pool) == 0 {
 		return nil
 	}
-	node := s.ketama.Node(key)
+	node := s.ring.Hash(key)
 	p, ok := s.pool[node]
 	if !ok {
 		glog.Warningf("user_key: \"%s\" hit redis node: \"%s\" not in pool", key, node)

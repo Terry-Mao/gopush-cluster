@@ -20,10 +20,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/Terry-Mao/gopush-cluster/hash"
+	"github.com/Terry-Mao/gopush-cluster/ketama"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -41,22 +43,42 @@ var (
 
 // MySQL Storage struct
 type MySQLStorage struct {
-	pool   map[string]*sql.DB
-	ketama *hash.Ketama
+	pool map[string]*sql.DB
+	ring *ketama.HashRing
 }
 
 // NewMySQLStorage initialize mysql pool and consistency hash ring.
 func NewMySQLStorage() *MySQLStorage {
+	var (
+		err error
+		w   int
+		nw  []string
+		db  *sql.DB
+	)
 	dbPool := make(map[string]*sql.DB)
+	ring := ketama.NewRing(Conf.MySQLKetamaBase)
 	for n, source := range Conf.MySQLSource {
-		db, err := sql.Open("mysql", source)
+		nw = strings.Split(n, ":")
+		if len(nw) != 2 {
+			err = errors.New("node config error, it's nodeN:W")
+			glog.Errorf("strings.Split(\"%s\", :) failed (%v)", n, err)
+			panic(err)
+		}
+		w, err = strconv.Atoi(nw[1])
+		if err != nil {
+			glog.Errorf("strconv.Atoi(\"%s\") failed (%v)", nw[1], err)
+			panic(err)
+		}
+		db, err = sql.Open("mysql", source)
 		if err != nil {
 			glog.Errorf("sql.Open(\"mysql\", %s) failed (%v)", source, err)
 			panic(err)
 		}
-		dbPool[n] = db
+		dbPool[nw[0]] = db
+		ring.AddNode(nw[0], w)
 	}
-	s := &MySQLStorage{pool: dbPool, ketama: hash.NewKetama(len(dbPool), 255)}
+	ring.Bake()
+	s := &MySQLStorage{pool: dbPool, ring: ring}
 	go s.clean()
 	return s
 }
@@ -155,7 +177,7 @@ func (s *MySQLStorage) getConn(key string) *sql.DB {
 	if len(s.pool) == 0 {
 		return nil
 	}
-	node := s.ketama.Node(key)
+	node := s.ring.Hash(key)
 	p, ok := s.pool[node]
 	if !ok {
 		glog.Warningf("user_key: \"%s\" hit mysql node: \"%s\" not in pool", key, node)
