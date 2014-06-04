@@ -5,7 +5,6 @@ Comet内部RPC接口文档，用于Channel的创建，关闭，推送消息以�
 (head). | 接口名 | 描述 | 访问方式 |
 | "ChannelRPC.New":ChannelRPC_New | 创建用户Channel | tcp RPC |
 | "ChannelRPC.Close":ChannelRPC_Close | 关闭用户Channel | tcp RPC |
-| "ChannelRPC.PushPublic":ChannelRPC_PushPublic | 向Channel推送公共消息 | tcp RPC |
 | "ChannelRPC.PushPrivate":ChannelRPC_PushPrivate | 向Channel推送私有信息 | tcp RPC |
 | "ChannelRPC.Migrate":ChannelRPC_Migrate | 新增或删除节点调用迁移接口，关闭非本节点的Channel | tcp RPC |
 
@@ -42,18 +41,6 @@ type ChannelNewArgs struct {
 | key | string | 是 | 用户key |
  * 返回码
 
-<h3>ChannelRPC.PushPublic</h3>
- * 请求参数
-
-(head). | 参数 | 类型 | 是否必选 | 描述 |
-| args | rpc.ChannelPushPublicArgs | 是 | 推送公共消息结构体 |
-<pre>
-type ChannelPushPublicArgs struct {
-	MsgID   int64  // message id
-	Msg     string // message content
-}
-</pre>
-
 <h3>ChannelRPC.PushPrivate</h3>
  * 请求参数
 
@@ -86,6 +73,5 @@ type ChannelMigrateArgs struct {
 
 [ChannelRPC_New]#channelrpcnew
 [ChannelRPC_Close]#channelrpcclose
-[ChannelRPC_PushPublic]#channelrpcpushpublic
 [ChannelRPC_PushPrivate]#channelrpcpushprivate
 [ChannelRPC_Migrate]#channelrpcmigrate

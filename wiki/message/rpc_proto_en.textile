@@ -4,9 +4,9 @@ Message internal communication RPC interface document, used for storing and gett
 <h3>Interface Summary</h3>
 (head). | Name | Description | Method |
 | "<a href="#MessageRPC.Ping">MessageRPC.Ping</a>":MessageRPC_Ping | Service Ping | tcp RPC |
-| "<a href="#MessageRPC.Save">MessageRPC.Save</a>":MessageRPC_Save | Stored Message   | tcp RPC |
-| "<a href="#MessageRPC.Get">MessageRPC.Get</a>":MessageRPC_Get   | Get Message   | tcp RPC |
-| "<a href="#MessageRPC.CleanKey">MessageRPC.CleanKey</a>":MessageRPC_CleanKey   | Clean Key       | tcp RPC |
+| "<a href="#MessageRPC.SavePrivate">MessageRPC.SavePrivate</a>":MessageRPC_SavePrivate | Stored Message   | tcp RPC |
+| "<a href="#MessageRPC.GetPrivate">MessageRPC.GetPrivate</a>":MessageRPC_GetPrivate   | Get Message   | tcp RPC |
+| "<a href="#MessageRPC.DelPrivate">MessageRPC.DelPrivate</a>":MessageRPC_DelPrivate   | Clean Key       | tcp RPC |
 
 <h3>Public ErrorCode</h3>
 
@@ -26,41 +26,40 @@ Message internal communication RPC interface document, used for storing and gett
  * ErrorCode
 Only Public ErrorCode
 
-<a name="MessageRPC.Save"></a>
+<a name="MessageRPC.SavePrivate"></a>
 
-<h3>MessageRPC.Save</h3>
+<h3>MessageRPC.SavePrivate</h3>
  * Request Parameter
 
 (head). | Parameter | Type | Description |
-| m | rpc.MessageSaveArgs | Request parameter struct of Save interface |
+| m | rpc.MessageSavePrivateArgs | Request parameter struct of Save interface |
 <pre>
 package rpc
 
-// Message Save Args
-type MessageSaveArgs struct {
-	MsgID  int64  // message id
-	Msg    string // message content
-	Expire int64  // message expire second
-	Key    string // subscriber key
+// Message SavePrivate Args
+type MessageSavePrivateArgs struct {
+	Key    string          // subscriber key
+	Msg    json.RawMessage // message content
+	MsgId  int64           // message id
+	Expire uint            // message expire second
 }
 </pre>
 
  * ErrorCode
 Only Public ErrorCode
 
-<a name="MessageRPC.Get"></a>
+<a name="MessageRPC.GetPrivate"></a>
 
-<h3>MessageRPC.Get</h3>
+<h3>MessageRPC.GetPrivate</h3>
  * Request Parameter
 
 (head). | Parameter | Type | Description |
-| m | rpc.MessageGetArgs | Request parameter struct of Get interface |
+| m | rpc.MessageGetPrivateArgs | Request parameter struct of Get interface |
 <pre>
 // Message Get Args
-type MessageGetArgs struct {
-	MsgID 	 int64  // message id
-	PubMsgID int64  // public message id
-	Key      string // subscriber key
+type MessageGetPrivateArgs struct {
+	MsgId int64  // message id
+	Key   string // subscriber key
 }
 </pre>
 
@@ -71,15 +70,13 @@ type MessageGetArgs struct {
 <pre>
 // Message Get Response
 type MessageGetResp struct {
-	Ret     int      // response
-	Msgs    []string // messages
-	PubMsgs []string // public messages
+	Msgs []*Message // messages
 }
 </pre>
 
-<a name="MessageRPC.CleanKey"></a>
+<a name="MessageRPC.DelPrivate"></a>
 
-<h3>MessageRPC.CleanKey</h3>
+<h3>MessageRPC.DelPrivate</h3>
  * Request Parameter
 
 (head). | Parameter | Type | Description |
