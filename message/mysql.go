@@ -110,11 +110,12 @@ func (s *MySQLStorage) GetPrivate(key string, mid int64) ([]*myrpc.Message, erro
 		glog.Errorf("db.Query(\"%s\",\"%s\",%d,now) failed (%v)", getPrivateMsgSQL, key, mid, err)
 		return nil, err
 	}
-	expire := int64(0)
-	cmid := int64(0)
-	msg := json.RawMessage([]byte{})
+
 	msgs := []*myrpc.Message{}
 	for rows.Next() {
+		expire := int64(0)
+		cmid := int64(0)
+		msg := []byte{}
 		if err := rows.Scan(&cmid, &expire, &msg); err != nil {
 			glog.Errorf("rows.Scan() failed (%v)", err)
 			return nil, err
@@ -123,7 +124,7 @@ func (s *MySQLStorage) GetPrivate(key string, mid int64) ([]*myrpc.Message, erro
 			glog.Warningf("user_key: \"%s\" mid: %d expired", key, cmid)
 			continue
 		}
-		msgs = append(msgs, &myrpc.Message{MsgId: cmid, GroupId: myrpc.PrivateGroupId, Msg: msg})
+		msgs = append(msgs, &myrpc.Message{MsgId: cmid, GroupId: myrpc.PrivateGroupId, Msg: json.RawMessage(msg)})
 	}
 	return msgs, nil
 }
