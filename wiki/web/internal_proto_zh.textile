@@ -4,8 +4,6 @@ Web内部接口文档，用于推送消息、节点管理等
 <h3>接口汇总</h3>
 (head). | 接口名 | URL | 访问方式 |
 | "推送私有消息":AdminPush | /admin/push     | POST |
-| "添加节点":AdminNodeAdd | /admin/node/add | POST |
-| "删除节点":AdminNodeDel | /admin/node/del | POST |
 | "清理消息":AdminMsgClean | /admin/msg/clean | POST |
 
 <h3>公共返回码</h3>
@@ -42,35 +40,6 @@ Web内部接口文档，用于推送消息、节点管理等
 }
 </pre>
 
-<h3>添加节点</h3>
- * 请求参数
-
-(head). | 参数 | 类型 | 描述 |
-| node | string | 节点名称 |
-
- * 返回码
-
-<pre>
-{
-    "ret": 0
-}
-</pre>
-
-<h3>删除节点</h3>
-注：删除节点不会主动断开该节点与客户端的订阅长链接
- * 请求参数
-
-(head). | 参数 | 类型 | 描述 |
-| node | string | 节点名称 |
-
- * 返回码
-
-<pre>
-{
-    "ret": 0
-}
-</pre>
-
 <h3>清理消息</h3>
 注：清理单个订阅(key)下的所有消息，并从Comet模块中清理掉Key对应的Channel
  * 请求参数
@@ -88,7 +57,4 @@ Web内部接口文档，用于推送消息、节点管理等
 
 
 [AdminPush]#推送私有消息
-[AdminPushPublic]#推送公共消息
-[AdminNodeAdd]#添加节点
-[AdminNodeDel]#删除节点
 [AdminMsgClean]#清理消息

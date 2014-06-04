@@ -4,8 +4,6 @@ Web internal interface document, used for push message, node management and so o
 <h3>Interface Summary</h3>
 (head). | Name | URL | Method |
 | "<a href="#Push Private Message">Push Private Message</a>":AdminPush | /admin/push     | POST |
-| "<a href="#Add Node">Add Node</a>":AdminNodeAdd | /admin/node/add | POST |
-| "<a href="#Delete Node">Delete Node</a>":AdminNodeDel | /admin/node/del | POST |
 | "<a href="#Clean Message">Clean Message</a>":AdminMsgClean | /admin/msg/clean | POST |
 
 <h3>Public ErrorCode</h3>
@@ -39,39 +37,6 @@ Note: Messages stored in body, and service will wholly intact return to client. 
 
 (head). | ErrorCode | Description |
 | 1001 | no node corresponding with subscription key |
-<pre>
-{
-    "ret": 0
-}
-</pre>
-
-<a name="Add Node"></a>
-
-<h3>Add Node</h3>
- * Request Parameter
-
-(head). | Parameter | Type | Description |
-| node | string | Node name |
-
- * ErrorCode
-
-<pre>
-{
-    "ret": 0
-}
-</pre>
-
-<a name="Delete Node"></a>
-
-<h3>Delete Node</h3>
-Note: It will not disconnect the tcp connection between Client and Comet-Service
- * Request Parameter
-
-(head). | Parameter | Type | Description |
-| node | string | Node name |
-
- * ErrorCode
-
 <pre>
 {
     "ret": 0
