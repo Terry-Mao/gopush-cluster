@@ -235,7 +235,7 @@ $ make install
 ## 例子
 java: [gopush-cluster-sdk](https://github.com/Terry-Mao/gopush-cluster-sdk)
 
-ios: [GoPushforIOS](https://github.com/roy5931/GoPushforIOS)
+ios: [CocoaGoPush](https://github.com/gdier/CocoaGoPush)
 
 javascript: [gopush-cluster-javascript-sdk](https://github.com/Lanfei/gopush-cluster-javascript-sdk)
 
