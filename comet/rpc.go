@@ -18,7 +18,7 @@ package main
 
 import (
 	"errors"
-	"github.com/Terry-Mao/gopush-cluster/hash"
+	"github.com/Terry-Mao/gopush-cluster/ketama"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/golang/glog"
 	"net"
@@ -123,7 +123,7 @@ func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
 	}
 	// find current node exists in new nodes
 	has := false
-	for _, str := range args.Nodes {
+	for str, _ := range args.Nodes {
 		if str == Conf.ZookeeperCometNode {
 			has = true
 		}
@@ -133,14 +133,18 @@ func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
 		return ErrMigrate
 	}
 	// init ketama
-	ketama := hash.NewKetama2(args.Nodes, args.Vnode)
+	ring := ketama.NewRing(args.Vnode)
+	for k, v := range args.Nodes {
+		ring.AddNode(k, v)
+	}
+	ring.Bake()
 	channels := []Channel{}
 	keys := []string{}
 	// get all the channel lock
 	for i, c := range UserChannel.Channels {
 		c.Lock()
 		for k, v := range c.Data {
-			hn := ketama.Node(k)
+			hn := ring.Hash(k)
 			if hn != Conf.ZookeeperCometNode {
 				channels = append(channels, v)
 				keys = append(keys, k)

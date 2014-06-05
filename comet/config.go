@@ -49,6 +49,7 @@ type Config struct {
 	ZookeeperTimeout     time.Duration `goconf:"zookeeper:timeout:time"`
 	ZookeeperCometPath   string        `goconf:"zookeeper:comet.path"`
 	ZookeeperCometNode   string        `goconf:"zookeeper:comet.node"`
+	ZookeeperCometWeight string        `goconf:"zookeeper:comet.weight"`
 	ZookeeperMessagePath string        `goconf:"zookeeper:message.path"`
 	// rpc
 	RPCPing  time.Duration `goconf:"rpc:ping:time"`
@@ -85,6 +86,7 @@ func InitConfig() error {
 		ZookeeperTimeout:     30 * time.Second,
 		ZookeeperCometPath:   "/gopush-cluster-comet",
 		ZookeeperCometNode:   "node1",
+		ZookeeperCometWeight: "1",
 		ZookeeperMessagePath: "/gopush-cluster-message",
 		// rpc
 		RPCPing:  1 * time.Second,

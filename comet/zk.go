@@ -41,8 +41,8 @@ func InitZK() (*zk.Conn, error) {
 		glog.Errorf("zk.Create() error(%v)", err)
 		return conn, err
 	}
-	// tcp, websocket and rpc bind address store in the zk
-	data := ""
+	// comet weight with tcp, websocket and rpc bind address store in the zk
+	data := fmt.Sprintf("%s;", Conf.ZookeeperCometWeight)
 	for _, addr := range Conf.TCPBind {
 		data += fmt.Sprintf("tcp://%s,", addr)
 	}

@@ -29,7 +29,7 @@ func InitZK() (*zk.Conn, error) {
 		glog.Errorf("zk.Connect() error(%v)", err)
 		return nil, err
 	}
-	myrpc.InitComet(conn, Conf.ZookeeperCometPath, Conf.RPCRetry, Conf.RPCPing)
+	myrpc.InitComet(conn, Conf.ZookeeperCometPath, Conf.RPCRetry, Conf.RPCPing, Conf.KetamaBase)
 	myrpc.InitMessage(conn, Conf.ZookeeperMessagePath, Conf.RPCRetry, Conf.RPCPing)
 	return conn, nil
 }
