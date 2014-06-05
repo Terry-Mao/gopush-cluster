@@ -20,13 +20,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Terry-Mao/gopush-cluster/hash"
+	"github.com/Terry-Mao/gopush-cluster/ketama"
 	myzk "github.com/Terry-Mao/gopush-cluster/zk"
 	"github.com/golang/glog"
 	"github.com/samuel/go-zookeeper/zk"
 	"net/rpc"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -49,7 +50,7 @@ var (
 	// If there is no alive service under the node, the map`s value will be nil, but key is exist in map
 	cometNodeInfoMap = make(map[string]*CometNodeInfo)
 	// Ketama algorithm for check Comet node
-	cometHash   *hash.Ketama
+	cometRing   *ketama.HashRing
 	ErrCometRPC = errors.New("comet rpc call failed")
 )
 
@@ -58,6 +59,8 @@ type CometNodeInfo struct {
 	Addr map[int][]string
 	// The connection for Comet RPC
 	CometRPC *RandLB
+	// The comet wieght
+	weight int
 }
 
 type CometNodeEvent struct {
@@ -84,8 +87,8 @@ type CometPushPublicArgs struct {
 
 // Channel Migrate Args
 type CometMigrateArgs struct {
-	Nodes []string // current comet nodes
-	Vnode int      // ketama virtual node number
+	Nodes map[string]int // current comet nodes
+	Vnode int            // ketama virtual node number
 }
 
 // Channel New Args
@@ -135,7 +138,7 @@ func watchCometRoot(conn *zk.Conn, fpath string, ch chan *CometNodeEvent) error 
 }
 
 // handleCometNodeEvent add and remove CometNodeInfo, copy the src map to a new map then replace the variable.
-func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration, ch chan *CometNodeEvent) {
+func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration, vnode int, ch chan *CometNodeEvent) {
 	for {
 		ev := <-ch
 		// copy map from src
@@ -164,14 +167,17 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 				info.CometRPC.Destroy()
 			}
 		}
+		// update comet hash, cause node has changed
+		tempRing := ketama.NewRing(vnode)
+		for k, v := range tmpMap {
+			if v != nil {
+				tempRing.AddNode(k, v.weight)
+			}
+		}
+		tempRing.Bake()
 		// use the tmpMap atomic replace the global cometNodeInfoMap
 		cometNodeInfoMap = tmpMap
-		// update comet hash, cause node has changed
-		nodes := make([]string, 0, len(tmpMap))
-		for k, _ := range tmpMap {
-			nodes = append(nodes, k)
-		}
-		cometHash = hash.NewKetama2(nodes, 255)
+		cometRing = tempRing
 		glog.V(1).Infof("cometNodeInfoMap len: %d", len(cometNodeInfoMap))
 	}
 }
@@ -220,12 +226,12 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 		return nil, err
 	}
 	// fetch and parse comet info
-	addrs, err := parseCometNode(string(data))
+	w, addrs, err := parseCometNode(string(data))
 	if err != nil {
 		glog.Errorf("parseCometNode(\"%s\") error(%v)", string(data), err)
 		return nil, err
 	}
-	info := &CometNodeInfo{Addr: addrs}
+	info := &CometNodeInfo{Addr: addrs, weight: w}
 	rpcAddr, ok := addrs[cometProtocolRPC]
 	if !ok || len(rpcAddr) == 0 {
 		glog.Errorf("zk nodes: \"%s\" don't have rpc addr", fpath)
@@ -251,14 +257,26 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 	return info, nil
 }
 
-// parseCometNode parse the protocol data, the data format like: ws://ip:port1,tcp://ip:port2,rpc://ip:port3
-func parseCometNode(data string) (map[int][]string, error) {
-	res := map[int][]string{}
-	dataArr := strings.Split(data, ",")
-	for i := 0; i < len(dataArr); i++ {
-		addrArr := strings.Split(dataArr[i], "://")
+// parseCometNode parse the protocol data, the data format like: 1;ws://ip:port1,tcp://ip:port2,rpc://ip:port3
+func parseCometNode(data string) (w int, res map[int][]string, err error) {
+	dataArr := strings.Split(data, ";")
+	if len(dataArr) != 2 {
+		err = fmt.Errorf("data:\"%s\" format error", data)
+		return
+	}
+	w, err = strconv.Atoi(dataArr[0])
+	if err != nil {
+		err = fmt.Errorf("data:\"%s\" format error(%v)", data, err)
+		return
+	}
+	protoArr := strings.Split(dataArr[1], ",")
+	res = map[int][]string{}
+	for i := 0; i < len(protoArr); i++ {
+		addrArr := strings.Split(protoArr[i], "://")
 		if len(addrArr) != 2 {
-			return nil, fmt.Errorf("data:\"%s\" format error", data)
+			err = fmt.Errorf("data:\"%s\" format error", data)
+			res = nil
+			return
 		}
 		key := cometProtoInt(addrArr[0])
 		val, ok := res[key]
@@ -269,7 +287,7 @@ func parseCometNode(data string) (map[int][]string, error) {
 		}
 		res[key] = val
 	}
-	return res, nil
+	return
 }
 
 // cometProtoInt get the figure corresponding with protocol string
@@ -287,18 +305,18 @@ func cometProtoInt(protocol string) int {
 
 // GetComet get the node infomation under the node.
 func GetComet(key string) *CometNodeInfo {
-	if cometHash == nil || len(cometNodeInfoMap) == 0 {
+	if cometRing == nil || len(cometNodeInfoMap) == 0 {
 		return nil
 	}
-	node := cometHash.Node(key)
+	node := cometRing.Hash(key)
 	glog.V(1).Infof("cometHash hits \"%s\"", node)
 	return cometNodeInfoMap[node]
 }
 
 // InitComet init a rand lb rpc for comet module.
-func InitComet(conn *zk.Conn, fpath string, retry, ping time.Duration) {
+func InitComet(conn *zk.Conn, fpath string, retry, ping time.Duration, vnode int) {
 	// watch comet path
 	ch := make(chan *CometNodeEvent, 1024)
-	go handleCometNodeEvent(conn, fpath, retry, ping, ch)
+	go handleCometNodeEvent(conn, fpath, retry, ping, vnode, ch)
 	go watchCometRoot(conn, fpath, ch)
 }
