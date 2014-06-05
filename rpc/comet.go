@@ -170,7 +170,9 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 		// update comet hash, cause node has changed
 		tempRing := ketama.NewRing(vnode)
 		for k, v := range tmpMap {
-			tempRing.AddNode(k, v.weight)
+			if v != nil {
+				tempRing.AddNode(k, v.weight)
+			}
 		}
 		tempRing.Bake()
 		// use the tmpMap atomic replace the global cometNodeInfoMap
