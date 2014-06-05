@@ -147,10 +147,10 @@ func (s *RedisStorage) GetPrivate(key string, mid int64) ([]*myrpc.Message, erro
 	}
 	msgs := make([]*myrpc.Message, 0, len(values))
 	delMsgs := []int64{}
-	cmid := int64(0)
-	b := []byte{}
 	now := time.Now().Unix()
 	for len(values) > 0 {
+		cmid := int64(0)
+		b := []byte{}
 		values, err = redis.Scan(values, &b, &cmid)
 		if err != nil {
 			glog.Errorf("redis.Scan() error(%v)", err)
