@@ -18,11 +18,13 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/ketama"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/golang/glog"
 	"net"
 	"net/rpc"
+	"strings"
 )
 
 var (
@@ -30,13 +32,19 @@ var (
 )
 
 // StartRPC start rpc listen.
-func StartRPC() {
+func StartRPC() error {
 	c := &CometRPC{}
 	rpc.Register(c)
 	for _, bind := range Conf.RPCBind {
+		addrs := strings.Split(bind, "-")
+		if len(addrs) != 2 {
+			return fmt.Errorf("config rpc.bind:\"%s\" format error", bind)
+		}
 		glog.Infof("start listen rpc addr: \"%s\"", bind)
-		go rpcListen(bind)
+		go rpcListen(addrs[1])
 	}
+
+	return nil
 }
 
 func rpcListen(bind string) {

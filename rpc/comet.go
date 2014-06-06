@@ -56,7 +56,7 @@ var (
 
 type CometNodeInfo struct {
 	// The addr for subscribe, format like:map[Protocol]Addr
-	Addr map[int][]string
+	Addr map[int][]*RPCClient
 	// The connection for Comet RPC
 	CometRPC *RandLB
 	// The comet wieght
@@ -150,7 +150,7 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 		if ev.Event == eventNodeAdd {
 			glog.Infof("add node: \"%s\"", ev.Key)
 			tmpMap[ev.Key] = nil
-			go watchCometNode(conn, ev.Key, fpath, retry, ping, ch)
+			go watchCometNode(conn, ev.Key, fpath, retry, ping, vnode, ch)
 		} else if ev.Event == eventNodeDel {
 			glog.Infof("del node: \"%s\"", ev.Key)
 			delete(tmpMap, ev.Key)
@@ -183,7 +183,7 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 }
 
 // watchNode watch a named node for leader selection when failover
-func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, ch chan *CometNodeEvent) {
+func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int, ch chan *CometNodeEvent) {
 	fpath = path.Join(fpath, node)
 	for {
 		nodes, watch, err := myzk.GetNodesW(conn, fpath)
@@ -202,7 +202,7 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 		// leader selection
 		// register node
 		sort.Strings(nodes)
-		if info, err := registerCometNode(conn, nodes[0], fpath, retry, ping); err != nil {
+		if info, err := registerCometNode(conn, nodes[0], fpath, retry, ping, vnode); err != nil {
 			glog.Errorf("zk path: \"%s\" registerNode error(%v)", fpath, err)
 			time.Sleep(waitNodeDelaySecond)
 			continue
@@ -218,7 +218,7 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 	glog.Warningf("zk path: \"%s\" never watch again till recreate", fpath)
 }
 
-func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration) (*CometNodeInfo, error) {
+func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int) (*CometNodeInfo, error) {
 	fpath = path.Join(fpath, node)
 	data, _, err := conn.Get(fpath)
 	if err != nil {
@@ -238,16 +238,17 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 		return nil, ErrCometRPC
 	}
 	// init comet rpc
-	clients := map[string]*rpc.Client{}
+	clients := make(map[string]*RPCClient, len(rpcAddr))
 	for _, addr := range rpcAddr {
-		r, err := rpc.Dial("tcp", addr)
+		r, err := rpc.Dial("tcp", addr.Addr)
 		if err != nil {
-			glog.Errorf("rpc.Dial(\"%s\") error(%v)", addr, err)
+			glog.Errorf("rpc.Dial(\"%s\") error(%v)", addr.Addr, err)
 			return nil, err
 		}
-		clients[addr] = r
+		addr.Client = r
+		clients[addr.Addr] = addr
 	}
-	lb, err := NewRandLB(clients, rpcAddr, cometService, retry, ping, true)
+	lb, err := NewRandLB(clients, cometService, retry, ping, vnode, true)
 	if err != nil {
 		glog.Errorf("NewRandLR() error(%v)", err)
 		panic(err)
@@ -258,8 +259,8 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 }
 
 // parseCometNode parse the protocol data, the data format like: 1;ws://ip:port1,tcp://ip:port2,rpc://ip:port3
-func parseCometNode(data string) (w int, res map[int][]string, err error) {
-	dataArr := strings.Split(data, ";")
+func parseCometNode(data string) (w int, res map[int][]*RPCClient, err error) {
+	dataArr := strings.Split(data, ";") // eg: 1;tcp://1-ip:port,ws://1-ip:port
 	if len(dataArr) != 2 {
 		err = fmt.Errorf("data:\"%s\" format error", data)
 		return
@@ -269,23 +270,36 @@ func parseCometNode(data string) (w int, res map[int][]string, err error) {
 		err = fmt.Errorf("data:\"%s\" format error(%v)", data, err)
 		return
 	}
-	protoArr := strings.Split(dataArr[1], ",")
-	res = map[int][]string{}
+	protoArr := strings.Split(dataArr[1], ",") // eg tcp://1-ip:port,ws://1-ip:port
+	res = make(map[int][]*RPCClient, len(protoArr))
 	for i := 0; i < len(protoArr); i++ {
-		addrArr := strings.Split(protoArr[i], "://")
+		addrArr := strings.Split(protoArr[i], "://") // eg: tcp://1-ip:port
 		if len(addrArr) != 2 {
 			err = fmt.Errorf("data:\"%s\" format error", data)
 			res = nil
 			return
 		}
-		key := cometProtoInt(addrArr[0])
-		val, ok := res[key]
-		if ok {
-			val = append(val, addrArr[1])
-		} else {
-			val = []string{addrArr[1]}
+		proto := cometProtoInt(addrArr[0])
+		wArr := strings.Split(addrArr[1], "-") // eg: 1-ip:port
+		if len(wArr) != 2 {
+			err = fmt.Errorf("data:\"%s\" format error", data)
+			res = nil
+			return
 		}
-		res[key] = val
+		var wAddr int
+		wAddr, err = strconv.Atoi(wArr[0])
+		if err != nil {
+			err = fmt.Errorf("data:\"%s\" format error(%v)", data, err)
+			return
+		}
+		client := &RPCClient{Addr: wArr[1], Weight: wAddr}
+		val, ok := res[proto]
+		if ok {
+			val = append(val, client)
+		} else {
+			val = []*RPCClient{client}
+		}
+		res[proto] = val
 	}
 	return
 }

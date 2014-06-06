@@ -52,16 +52,22 @@ var (
 )
 
 // StartListen start accept client.
-func StartComet() {
+func StartComet() error {
 	for _, proto := range Conf.Proto {
 		if proto == WebsocketProtoStr {
 			// Start http push service
-			StartHttp()
+			if err := StartWebsocket(); err != nil {
+				return err
+			}
 		} else if proto == TCPProtoStr {
 			// Start tcp push service
-			StartTCP()
+			if err := StartTCP(); err != nil {
+				return err
+			}
 		} else {
 			glog.Warningf("unknown gopush-cluster protocol %s, (\"websocket\" or \"tcp\")", proto)
 		}
 	}
+
+	return nil
 }

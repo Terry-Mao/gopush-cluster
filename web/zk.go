@@ -30,6 +30,6 @@ func InitZK() (*zk.Conn, error) {
 		return nil, err
 	}
 	myrpc.InitComet(conn, Conf.ZookeeperCometPath, Conf.RPCRetry, Conf.RPCPing, Conf.KetamaBase)
-	myrpc.InitMessage(conn, Conf.ZookeeperMessagePath, Conf.RPCRetry, Conf.RPCPing)
+	myrpc.InitMessage(conn, Conf.ZookeeperMessagePath, Conf.RPCRetry, Conf.RPCPing, Conf.KetamaBase)
 	return conn, nil
 }

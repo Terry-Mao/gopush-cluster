@@ -52,20 +52,24 @@ func GetServer0(w http.ResponseWriter, r *http.Request) {
 		res["ret"] = NotFoundServer
 		return
 	}
-	addr := node.Addr[proto]
-	if addr == nil || len(addr) == 0 {
+	addrs := node.Addr[proto]
+	if addrs == nil || len(addrs) == 0 {
 		res["ret"] = NotFoundServer
 		return
 	}
 	server := ""
 	// Select the best ip
 	if Conf.Router != "" {
-		server = routerCN.SelectBest(r.RemoteAddr, addr)
-		glog.V(1).Infof("select the best ip:\"%s\" match with remoteAddr:\"%s\" , from ip list:\"%v\"", server, r.RemoteAddr, addr)
+		var ips []string
+		for _, addr := range addrs {
+			ips = append(ips, addr.Addr)
+		}
+		server = routerCN.SelectBest(r.RemoteAddr, ips)
+		glog.V(1).Infof("select the best ip:\"%s\" match with remoteAddr:\"%s\" , from ip list:\"%v\"", server, r.RemoteAddr, ips)
 	}
 	if server == "" {
-		glog.V(1).Infof("remote addr: \"%s\" chose the ip: \"%s\"", r.RemoteAddr, addr[0])
-		server = addr[0]
+		glog.V(1).Infof("remote addr: \"%s\" chose the ip: \"%s\"", r.RemoteAddr, addrs[0].Addr)
+		server = addrs[0].Addr
 	}
 	res["data"] = map[string]interface{}{"server": server}
 	return

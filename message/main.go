@@ -44,7 +44,10 @@ func main() {
 		return
 	}
 	// init rpc service
-	InitRPC()
+	if err := InitRPC(); err != nil {
+		glog.Errorf("InitRPC() error(%v)", err)
+		return
+	}
 	// init zookeeper
 	zk, err := InitZK()
 	if err != nil {

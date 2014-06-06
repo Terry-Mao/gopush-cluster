@@ -17,10 +17,12 @@
 package main
 
 import (
+	"fmt"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/golang/glog"
 	"net"
 	"net/rpc"
+	"strings"
 )
 
 // RPC For receive offline messages
@@ -28,13 +30,19 @@ type MessageRPC struct {
 }
 
 // InitRPC start accept rpc call.
-func InitRPC() {
+func InitRPC() error {
 	msg := &MessageRPC{}
 	rpc.Register(msg)
 	for _, bind := range Conf.RPCBind {
+		addrs := strings.Split(bind, "-")
+		if len(addrs) != 2 {
+			return fmt.Errorf("config rpc.bind:\"%s\" format error", bind)
+		}
 		glog.Infof("start rpc listen addr: \"%s\"", bind)
-		go rpcListen(bind)
+		go rpcListen(addrs[1])
 	}
+
+	return nil
 }
 
 func rpcListen(bind string) {

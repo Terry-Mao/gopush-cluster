@@ -44,6 +44,7 @@ type Config struct {
 	RPCBind       []string `goconf:"base:rpc.bind:,"`
 	PprofBind     []string `goconf:"base:pprof.bind:,"`
 	StatBind      []string `goconf:"base:stat.bind:,"`
+	KetamaBase    int      `goconf:"base:ketama.base"`
 	// zookeeper
 	ZookeeperAddr        []string      `goconf:"zookeeper:addr:,"`
 	ZookeeperTimeout     time.Duration `goconf:"zookeeper:timeout:time"`
@@ -81,6 +82,7 @@ func InitConfig() error {
 		RPCBind:       []string{"localhost:6970"},
 		PprofBind:     []string{"localhost:6971"},
 		StatBind:      []string{"localhost:6972"},
+		KetamaBase:    255,
 		// zookeeper
 		ZookeeperAddr:        []string{"localhost:2181"},
 		ZookeeperTimeout:     30 * time.Second,

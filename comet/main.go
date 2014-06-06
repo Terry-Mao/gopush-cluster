@@ -47,9 +47,15 @@ func main() {
 	// start stats
 	StartStats()
 	// start rpc
-	StartRPC()
+	if err := StartRPC(); err != nil {
+		glog.Errorf("StartRPC() error(%v)", err)
+		return
+	}
 	// start comet
-	StartComet()
+	if err := StartComet(); err != nil {
+		glog.Errorf("StartComet() error(%v)", err)
+		return
+	}
 	// init zookeeper
 	zkConn, err := InitZK()
 	if err != nil {

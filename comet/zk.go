@@ -58,6 +58,6 @@ func InitZK() (*zk.Conn, error) {
 		glog.Errorf("zk.RegisterTemp() error(%v)", err)
 		return conn, err
 	}
-	rpc.InitMessage(conn, Conf.ZookeeperMessagePath, Conf.RPCRetry, Conf.RPCPing)
+	rpc.InitMessage(conn, Conf.ZookeeperMessagePath, Conf.RPCRetry, Conf.RPCPing, Conf.KetamaBase)
 	return conn, nil
 }

@@ -19,10 +19,12 @@ package main
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"github.com/golang/glog"
 	"io"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -85,11 +87,17 @@ func putBufioReader(c chan *bufio.Reader, r *bufio.Reader) {
 }
 
 // StartTCP Start tcp listen.
-func StartTCP() {
+func StartTCP() error {
 	for _, bind := range Conf.TCPBind {
+		addrs := strings.Split(bind, "-")
+		if len(addrs) != 2 {
+			return fmt.Errorf("config tcp.bind:\"%s\" format error", bind)
+		}
 		glog.Infof("start tcp listen addr:\"%s\"", bind)
-		go tcpListen(bind)
+		go tcpListen(addrs[1])
 	}
+
+	return nil
 }
 
 func tcpListen(bind string) {

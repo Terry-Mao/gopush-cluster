@@ -18,10 +18,12 @@ package main
 
 import (
 	"code.google.com/p/go.net/websocket"
+	"fmt"
 	"github.com/golang/glog"
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -50,11 +52,17 @@ func (l *KeepAliveListener) Accept() (c net.Conn, err error) {
 }
 
 // StartHttp start http listen.
-func StartHttp() {
+func StartWebsocket() error {
 	for _, bind := range Conf.WebsocketBind {
+		addrs := strings.Split(bind, "-")
+		if len(addrs) != 2 {
+			return fmt.Errorf("config websocket.bind:\"%s\" format error", bind)
+		}
 		glog.Infof("start websocket listen addr:\"%s\"", bind)
-		go websocketListen(bind)
+		go websocketListen(addrs[1])
 	}
+
+	return nil
 }
 
 func websocketListen(bind string) {

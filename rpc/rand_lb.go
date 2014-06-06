@@ -19,9 +19,11 @@ package rpc
 import (
 	"errors"
 	"fmt"
+	"github.com/Terry-Mao/gopush-cluster/ketama"
 	"github.com/golang/glog"
 	"math/rand"
 	"net/rpc"
+	"strconv"
 	"time"
 )
 
@@ -34,44 +36,49 @@ var (
 	ErrRandLBAddr   = errors.New("clients map no addr key")
 )
 
+type RPCClient struct {
+	Client *rpc.Client
+	Addr   string
+	Weight int
+}
+
 // random load balancing object
 type RandLB struct {
-	Clients map[string]*rpc.Client
-	addrs   []string
+	//Clients map[string]*rpc.Client
+	//addrs   []string
+	Clients map[string]*RPCClient
+	ring    *ketama.HashRing
 	length  int
 	exitCH  chan int
 }
 
 // NewRandLB new a random load balancing object.
-func NewRandLB(clients map[string]*rpc.Client, addrs []string, service string, retry, ping time.Duration, check bool) (*RandLB, error) {
+func NewRandLB(clients map[string]*RPCClient, service string, retry, ping time.Duration, vnode int, check bool) (*RandLB, error) {
+	ring := ketama.NewRing(vnode)
+	for _, client := range clients {
+		ring.AddNode(client.Addr, client.Weight)
+	}
+	ring.Bake()
 	length := len(clients)
-	if length != len(addrs) {
-		glog.Errorf("clients: %d, addrs: %d not equal", length, len(addrs))
-		return nil, ErrRandLBLength
-	}
-	for _, addr := range addrs {
-		if _, ok := clients[addr]; !ok {
-			glog.Errorf("addr: \"%s\" not exist in clients map", addr)
-			return nil, ErrRandLBAddr
-		}
-	}
-	r := &RandLB{Clients: clients, addrs: addrs, length: length}
+	r := &RandLB{Clients: clients /*addrs: addrs, */, length: length}
 	if check && length > 0 {
 		glog.Info("rpc ping start")
 		r.ping(service, retry, ping)
 	}
+
 	return r, nil
 }
 
 // Get get a rpc client randomly.
 func (r *RandLB) Get() *rpc.Client {
-	if len(r.addrs) == 0 {
+	if len(r.Clients) == 0 {
 		return nil
 	}
-	addr := r.addrs[rand.Intn(r.length)]
+
+	addr := r.ring.Hash(strconv.FormatInt(rand.Int63n(time.Now().UnixNano()), 10))
 	glog.V(1).Infof("rand hit rpc node: \"%s\"", addr)
-	client, _ := r.Clients[addr]
-	return client
+
+	return r.Clients[addr].Client
 }
 
 // Stop stop the retry connect goroutine and ping goroutines.
@@ -87,7 +94,7 @@ func (r *RandLB) Destroy() {
 	r.Stop()
 	for _, client := range r.Clients {
 		if client != nil {
-			if err := client.Close(); err != nil {
+			if err := client.Client.Close(); err != nil {
 				glog.Errorf("client.Close() error(%v)", err)
 			}
 		}
@@ -99,33 +106,32 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 	method := fmt.Sprintf("%s.Ping", service)
 	retryCH := make(chan string, randLBRetryCHLength)
 	r.exitCH = make(chan int, 1)
-	for _, addr := range r.addrs {
+	for _, client := range r.Clients {
 		// warn: closures problem
-		go func(addr string) {
-			glog.Infof("\"%s\" rpc ping goroutine start", addr)
+		go func(client *RPCClient) {
+			glog.Infof("\"%s\" rpc ping goroutine start", client.Addr)
 			ret := 0
 			for {
 				select {
 				case <-r.exitCH:
-					glog.Infof("\"%s\" rpc ping goroutine exit", addr)
+					glog.Infof("\"%s\" rpc ping goroutine exit", client.Addr)
 					return
 				default:
 				}
 				// get client for ping
-				client, _ := r.Clients[addr]
-				if err := client.Call(method, 0, &ret); err != nil {
+				if err := client.Client.Call(method, 0, &ret); err != nil {
 					// if failed send to chan reconnect, sleep
-					client.Close()
-					retryCH <- addr
+					client.Client.Close()
+					retryCH <- client.Addr
 					glog.Errorf("client.Call(\"%s\", 0, &ret) error(%v), retry", method, err)
 					time.Sleep(retry)
 					continue
 				}
 				// if ok, sleep
-				glog.V(2).Infof("\"%s\": rpc ping ok", addr)
+				glog.V(2).Infof("\"%s\": rpc ping ok", client.Addr)
 				time.Sleep(ping)
 			}
-		}(addr)
+		}(client)
 	}
 	// rpc retry connect
 	go func() {
@@ -145,11 +151,13 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 			}
 			glog.Infof("rpc.Dial(\"tcp\", %s) retry succeed", retryAddr)
 			// copy-on-write
-			tmpClients := make(map[string]*rpc.Client, r.length)
+			tmpClients := make(map[string]*RPCClient, r.length)
 			for addr, client := range r.Clients {
 				tmpClients[addr] = client
+				if client.Addr == retryAddr {
+					client.Client = rpcTmp
+				}
 			}
-			tmpClients[retryAddr] = rpcTmp
 			// atomic update clients
 			r.Clients = tmpClients
 		}
