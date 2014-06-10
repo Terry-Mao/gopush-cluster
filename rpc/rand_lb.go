@@ -44,8 +44,6 @@ type RPCClient struct {
 
 // random load balancing object
 type RandLB struct {
-	//Clients map[string]*rpc.Client
-	//addrs   []string
 	Clients map[string]*RPCClient
 	ring    *ketama.HashRing
 	length  int
@@ -60,7 +58,7 @@ func NewRandLB(clients map[string]*RPCClient, service string, retry, ping time.D
 	}
 	ring.Bake()
 	length := len(clients)
-	r := &RandLB{Clients: clients /*addrs: addrs, */, length: length}
+	r := &RandLB{Clients: clients, ring: ring, length: length}
 	if check && length > 0 {
 		glog.Info("rpc ping start")
 		r.ping(service, retry, ping)

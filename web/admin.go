@@ -77,7 +77,7 @@ func PushPrivate(w http.ResponseWriter, r *http.Request) {
 	args := &myrpc.CometPushPrivateArgs{Msg: json.RawMessage(msg), Expire: uint(expire), Key: key}
 	ret := 0
 	if err := client.Call(myrpc.CometServicePushPrivate, args, &ret); err != nil {
-		glog.Errorf("client.Call(\"%s\", \"%v\", &ret) error(%v)", myrpc.CometServicePushPrivate, args, err)
+		glog.Errorf("client.Call(\"%s\", \"%s\", &ret) error(%v)", myrpc.CometServicePushPrivate, args.Key, err)
 		res["ret"] = InternalErr
 		return
 	}
