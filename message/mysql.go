@@ -35,6 +35,7 @@ const (
 	getPrivateMsgSQL        = "SELECT mid, ttl, msg FROM private_msg WHERE skey=? AND mid>? ORDER BY mid"
 	delExpiredPrivateMsgSQL = "DELETE FROM private_msg WHERE ttl<=?"
 	delPrivateMsgSQL        = "DELETE FROM private_msg WHERE skey=?"
+	mysqlSourceSpliter      = "-"
 )
 
 var (
@@ -58,10 +59,10 @@ func NewMySQLStorage() *MySQLStorage {
 	dbPool := make(map[string]*sql.DB)
 	ring := ketama.NewRing(Conf.MySQLKetamaBase)
 	for n, source := range Conf.MySQLSource {
-		nw = strings.Split(n, ":")
+		nw = strings.Split(n, mysqlSourceSpliter)
 		if len(nw) != 2 {
 			err = errors.New("node config error, it's nodeN:W")
-			glog.Errorf("strings.Split(\"%s\", :) failed (%v)", n, err)
+			glog.Errorf("strings.Split(\"%s\", \"%s\") failed (%v)", n, mysqlSourceSpliter, err)
 			panic(err)
 		}
 		w, err = strconv.Atoi(nw[1])

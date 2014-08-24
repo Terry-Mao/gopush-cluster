@@ -29,6 +29,10 @@ import (
 	"time"
 )
 
+const (
+	redisSourceSpliter = "-"
+)
+
 var (
 	RedisNoConnErr = errors.New("can't get a redis conn")
 )
@@ -61,10 +65,10 @@ func NewRedisStorage() *RedisStorage {
 	redisPool := map[string]*redis.Pool{}
 	ring := ketama.NewRing(Conf.RedisKetamaBase)
 	for n, addr := range Conf.RedisSource {
-		nw = strings.Split(n, ":")
+		nw = strings.Split(n, redisSourceSpliter)
 		if len(nw) != 2 {
 			err = errors.New("node config error, it's nodeN:W")
-			glog.Errorf("strings.Split(\"%s\", :) failed (%v)", n, err)
+			glog.Errorf("strings.Split(\"%s\", \"%s\") failed (%v)", n, redisSourceSpliter, err)
 			panic(err)
 		}
 		w, err = strconv.Atoi(nw[1])

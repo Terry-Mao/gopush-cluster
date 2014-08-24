@@ -10,6 +10,17 @@ Bugfixes:
 
  - 
 
+## Version 1.0.5 (2014-06-04)
+
+Changes:
+ - add new ketama consistency hash with weight setting (modify comet, message).
+ - update document
+
+Bugfixes:
+
+ - Fixed mysql fetch data bugs.
+ - Fixed old version protocol compatibility.
+
 ## Version 1.0.4 (2014-05-28)
 
 Changes:
