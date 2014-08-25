@@ -30,7 +30,8 @@ import (
 )
 
 const (
-	redisSourceSpliter = "-"
+	redisNodeWeightSpliter = "-"
+	redisProtocolSpliter   = "@"
 )
 
 var (
@@ -57,40 +58,44 @@ type RedisStorage struct {
 
 // NewRedis initialize the redis pool and consistency hash ring.
 func NewRedisStorage() *RedisStorage {
-	var (
-		err error
-		w   int
-		nw  []string
-	)
 	redisPool := map[string]*redis.Pool{}
 	ring := ketama.NewRing(Conf.RedisKetamaBase)
 	for n, addr := range Conf.RedisSource {
-		nw = strings.Split(n, redisSourceSpliter)
+		// get node weight
+		nw := strings.Split(n, redisNodeWeightSpliter)
 		if len(nw) != 2 {
-			err = errors.New("node config error, it's nodeN:W")
-			glog.Errorf("strings.Split(\"%s\", \"%s\") failed (%v)", n, redisSourceSpliter, err)
-			panic(err)
+			glog.Errorf("strings.Split(\"%s\", \"%s\") length error", n, redisNodeWeightSpliter)
+			panic(fmt.Sprintf("config redis.source weight:\"%s\" format error", n))
 		}
-		w, err = strconv.Atoi(nw[1])
+		w, err := strconv.Atoi(nw[1])
 		if err != nil {
 			glog.Errorf("strconv.Atoi(\"%s\") failed (%v)", nw[1], err)
 			panic(err)
 		}
-		tmp := addr
+		// get protocol and addr
+		pw := strings.Split(addr, redisProtocolSpliter)
+		if len(pw) != 2 {
+			glog.Errorf("strings.Split(\"%s\", \"%s\") failed (%v)", addr, redisNodeWeightSpliter, err)
+			panic(fmt.Sprintf("config redis.source node:\"%s\" format error", addr))
+		}
+		tmpProto := pw[0]
+		tmpAddr := pw[1]
+		// init redis pool
 		// WARN: closures use
 		redisPool[nw[0]] = &redis.Pool{
 			MaxIdle:     Conf.RedisMaxIdle,
 			MaxActive:   Conf.RedisMaxActive,
 			IdleTimeout: Conf.RedisIdleTimeout,
 			Dial: func() (redis.Conn, error) {
-				conn, err := redis.Dial("tcp", tmp)
+				conn, err := redis.Dial(tmpProto, tmpAddr)
 				if err != nil {
-					glog.Errorf("redis.Dial(\"tcp\", \"%s\") error(%v)", tmp, err)
+					glog.Errorf("redis.Dial(\"%s\", \"%s\") error(%v)", tmpProto, tmpAddr, err)
 					return nil, err
 				}
 				return conn, err
 			},
 		}
+		// add node to ketama hash
 		ring.AddNode(nw[0], w)
 	}
 	ring.Bake()

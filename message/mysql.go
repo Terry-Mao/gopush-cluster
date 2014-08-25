@@ -20,6 +20,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/ketama"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	_ "github.com/go-sql-driver/mysql"
@@ -35,7 +36,7 @@ const (
 	getPrivateMsgSQL        = "SELECT mid, ttl, msg FROM private_msg WHERE skey=? AND mid>? ORDER BY mid"
 	delExpiredPrivateMsgSQL = "DELETE FROM private_msg WHERE ttl<=?"
 	delPrivateMsgSQL        = "DELETE FROM private_msg WHERE skey=?"
-	mysqlSourceSpliter      = "-"
+	mysqlNodeWeightSpliter  = "-"
 )
 
 var (
@@ -50,31 +51,28 @@ type MySQLStorage struct {
 
 // NewMySQLStorage initialize mysql pool and consistency hash ring.
 func NewMySQLStorage() *MySQLStorage {
-	var (
-		err error
-		w   int
-		nw  []string
-		db  *sql.DB
-	)
 	dbPool := make(map[string]*sql.DB)
 	ring := ketama.NewRing(Conf.MySQLKetamaBase)
 	for n, source := range Conf.MySQLSource {
-		nw = strings.Split(n, mysqlSourceSpliter)
+		// get node weight
+		nw := strings.Split(n, mysqlNodeWeightSpliter)
 		if len(nw) != 2 {
-			err = errors.New("node config error, it's nodeN:W")
-			glog.Errorf("strings.Split(\"%s\", \"%s\") failed (%v)", n, mysqlSourceSpliter, err)
-			panic(err)
+			glog.Errorf("strings.Split(\"%s\", \"%s\") length error", n, mysqlNodeWeightSpliter)
+			panic(fmt.Sprintf("config mysql.source weight:\"%s\" format error", n))
 		}
-		w, err = strconv.Atoi(nw[1])
+		w, err := strconv.Atoi(nw[1])
 		if err != nil {
 			glog.Errorf("strconv.Atoi(\"%s\") failed (%v)", nw[1], err)
 			panic(err)
 		}
-		db, err = sql.Open("mysql", source)
+		// open mysql db
+		db, err := sql.Open("mysql", source)
 		if err != nil {
 			glog.Errorf("sql.Open(\"mysql\", %s) failed (%v)", source, err)
 			panic(err)
 		}
+		// add to mysql pool
+		// add node to ketama hash
 		dbPool[nw[0]] = db
 		ring.AddNode(nw[0], w)
 	}
