@@ -201,6 +201,11 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		glog.Warningf("<%s> key param error", addr)
 		return
 	}
+	if Conf.ZookeeperCometNode != CometRing.Hash(key) {
+		conn.Write(NodeReply)
+		glog.Warningf("<%s> key node error", addr)
+		return
+	}
 	heartbeatStr := args[1]
 	i, err := strconv.Atoi(heartbeatStr)
 	if err != nil {

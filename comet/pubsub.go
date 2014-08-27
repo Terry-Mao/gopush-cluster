@@ -49,6 +49,8 @@ var (
 	ChannelReply = []byte("-c\r\n")
 	// param error reply
 	ParamReply = []byte("-p\r\n")
+	// node error reply
+	NodeReply = []byte("-n\r\n")
 )
 
 // StartListen start accept client.

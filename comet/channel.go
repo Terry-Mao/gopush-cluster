@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/hash"
 	"github.com/Terry-Mao/gopush-cluster/hlist"
+	"github.com/Terry-Mao/gopush-cluster/ketama"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/golang/glog"
 	"net"
@@ -31,6 +32,7 @@ var (
 	ErrChannelNotExist = errors.New("Channle not exist")
 	ErrConnProto       = errors.New("Unknown connection protocol")
 	UserChannel        *ChannelList
+	CometRing          *ketama.HashRing
 )
 
 // The subscriber interface.
@@ -242,4 +244,40 @@ func (l *ChannelList) Close() {
 			glog.Errorf("c.Close() error(%v)", err)
 		}
 	}
+}
+
+// Migrate migrate portion of connections which don`t belong to this Comet
+func (l *ChannelList) Migrate() {
+	// init ketama
+	ring := ketama.NewRing(Conf.KetamaBase)
+	for node, info := range cometNodeInfoMap {
+		ring.AddNode(node, info.Weight)
+	}
+	ring.Bake()
+	CometRing = ring
+
+	// get all the channel lock
+	channels := []Channel{}
+	for i, c := range l.Channels {
+		c.Lock()
+		for k, v := range c.Data {
+			hn := ring.Hash(k)
+			if hn != Conf.ZookeeperCometNode {
+				channels = append(channels, v)
+				delete(c.Data, k)
+				glog.V(1).Infof("migrate delete channel key \"%s\"", k)
+			}
+		}
+		c.Unlock()
+		glog.V(1).Infof("migrate channel bucket:%d finished", i)
+	}
+	// close all the migrate channels
+	glog.Info("close all the migrate channels")
+	for _, channel := range channels {
+		if err := channel.Close(); err != nil {
+			glog.Errorf("channel.Close() error(%v)", err)
+			continue
+		}
+	}
+	glog.Info("close all the migrate channels finished")
 }

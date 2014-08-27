@@ -19,7 +19,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/Terry-Mao/gopush-cluster/ketama"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/golang/glog"
 	"net"
@@ -124,6 +123,7 @@ func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error
 	return nil
 }
 
+/*
 // Publish expored a method for publishing a message for the channel
 func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
 	if len(args.Nodes) == 0 {
@@ -176,7 +176,7 @@ func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
 	}
 	glog.Info("close all the migrate channels finished")
 	return nil
-}
+}*/
 
 func (c *CometRPC) Ping(args int, ret *int) error {
 	glog.V(2).Info("ping ok")

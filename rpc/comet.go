@@ -60,7 +60,7 @@ type CometNodeInfo struct {
 	// The connection for Comet RPC
 	CometRPC *RandLB
 	// The comet wieght
-	weight int
+	Weight int
 }
 
 type CometNodeEvent struct {
@@ -171,7 +171,7 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 		tempRing := ketama.NewRing(vnode)
 		for k, v := range tmpMap {
 			if v != nil {
-				tempRing.AddNode(k, v.weight)
+				tempRing.AddNode(k, v.Weight)
 			}
 		}
 		tempRing.Bake()
@@ -203,7 +203,7 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 		// register node
 		sort.Strings(nodes)
 		if info, err := registerCometNode(conn, nodes[0], fpath, retry, ping, vnode); err != nil {
-			glog.Errorf("zk path: \"%s\" registerNode error(%v)", fpath, err)
+			glog.Errorf("zk path: \"%s\" registerCometNode error(%v)", fpath, err)
 			time.Sleep(waitNodeDelaySecond)
 			continue
 		} else {
@@ -231,7 +231,7 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 		glog.Errorf("parseCometNode(\"%s\") error(%v)", string(data), err)
 		return nil, err
 	}
-	info := &CometNodeInfo{Addr: addrs, weight: w}
+	info := &CometNodeInfo{Addr: addrs, Weight: w}
 	rpcAddr, ok := addrs[cometProtocolRPC]
 	if !ok || len(rpcAddr) == 0 {
 		glog.Errorf("zk nodes: \"%s\" don't have rpc addr", fpath)
@@ -333,4 +333,38 @@ func InitComet(conn *zk.Conn, fpath string, retry, ping time.Duration, vnode int
 	ch := make(chan *CometNodeEvent, 1024)
 	go handleCometNodeEvent(conn, fpath, retry, ping, vnode, ch)
 	go watchCometRoot(conn, fpath, ch)
+}
+
+// GetNodesInfo get a node infomation
+func GetNodesInfo(conn *zk.Conn, node, fpath string, vnode int) (*CometNodeInfo, error) {
+	fpath = path.Join(fpath, node)
+	data, _, err := conn.Get(fpath)
+	if err != nil {
+		glog.Errorf("zk.Get(\"%s\") error(%v)", fpath, err)
+		return nil, err
+	}
+	// fetch and parse comet info
+	w, addrs, err := parseCometNode(string(data))
+	if err != nil {
+		glog.Errorf("parseCometNode(\"%s\") error(%v)", string(data), err)
+		return nil, err
+	}
+	info := &CometNodeInfo{Addr: addrs, Weight: w}
+	rpcAddr := addrs[cometProtocolRPC]
+	if len(rpcAddr) == 0 {
+		glog.Errorf("zk nodes: \"%s\" don't have rpc addr", fpath)
+		return nil, ErrCometRPC
+	}
+	// init comet rpc
+	clients := make(map[string]*RPCClient, len(rpcAddr))
+	for _, addr := range rpcAddr {
+		clients[addr.Addr] = addr
+	}
+	lb, err := NewRandLB(clients, "", 0, 0, vnode, false)
+	if err != nil {
+		glog.Errorf("NewRandLR() error(%v)", err)
+		return nil, err
+	}
+	info.CometRPC = lb
+	return info, nil
 }
