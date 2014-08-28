@@ -103,7 +103,8 @@ func (c *CometRPC) Close(key string, ret *int) error {
 	return nil
 }
 
-// PushPrivate expored a method for publishing a user private message for the channel
+// PushPrivate expored a method for publishing a user private message for the channel.
+// if it`s going failed then it`ll return an error
 func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error {
 	if args == nil || args.Key == "" || args.Msg == nil {
 		return myrpc.ErrParam
@@ -120,6 +121,32 @@ func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error
 		glog.Errorf("ch.PushMsg(\"%s\", \"%v\") error(%v)", args.Key, m, err)
 		return err
 	}
+	return nil
+}
+
+// PushMultiplePrivate expored a method for publishing a user multiple private message for the channel.
+// because of it`s going asynchronously in this method, so it won`t return an error to caller.
+func (c *CometRPC) PushMultiplePrivate(args *myrpc.CometPushPrivatesArgs, ret *int) error {
+	if args == nil || args.Msg == nil {
+		return myrpc.ErrParam
+	}
+	for i := 0; i < len(args.Keys); i++ {
+		go func(key *string) {
+			// get a user channel
+			ch, err := UserChannel.New(*key)
+			if err != nil {
+				glog.Errorf("UserChannel.New(\"%s\") error(%v)", *key, err)
+				return
+			}
+			// use the channel push message
+			m := &myrpc.Message{Msg: args.Msg}
+			if err = ch.PushMsg(*key, m, args.Expire); err != nil {
+				glog.Errorf("ch.PushMsg(\"%s\", \"%v\") error(%v)", *key, m, err)
+				return
+			}
+		}(&args.Keys[i])
+	}
+
 	return nil
 }
 

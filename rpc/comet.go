@@ -34,15 +34,16 @@ import (
 
 const (
 	// protocol of Comet subcription
-	cometProtocolUnknown    = 0
-	cometProtocolWS         = 1
-	cometProtocolWSStr      = "ws"
-	cometProtocolTCP        = 2
-	cometProtocolTCPStr     = "tcp"
-	cometProtocolRPC        = 3
-	cometProtocolRPCStr     = "rpc"
-	cometService            = "CometRPC"
-	CometServicePushPrivate = "CometRPC.PushPrivate"
+	cometProtocolUnknown         = 0
+	cometProtocolWS              = 1
+	cometProtocolWSStr           = "ws"
+	cometProtocolTCP             = 2
+	cometProtocolTCPStr          = "tcp"
+	cometProtocolRPC             = 3
+	cometProtocolRPCStr          = "rpc"
+	cometService                 = "CometRPC"
+	CometServicePushPrivate      = "CometRPC.PushPrivate"
+	CometServicePushMultiPrivate = "CometRPC.PushMultiPrivate"
 )
 
 var (
@@ -75,6 +76,13 @@ type CometNodeEvent struct {
 // Channel Push Private Message Args
 type CometPushPrivateArgs struct {
 	Key    string          // subscriber key
+	Msg    json.RawMessage // message content
+	Expire uint            // message expire second
+}
+
+// Channel Push multi Private Message Args
+type CometPushPrivatesArgs struct {
+	Keys   []string        // subscriber keys
 	Msg    json.RawMessage // message content
 	Expire uint            // message expire second
 }
