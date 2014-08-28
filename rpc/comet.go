@@ -34,16 +34,16 @@ import (
 
 const (
 	// protocol of Comet subcription
-	cometProtocolUnknown         = 0
-	cometProtocolWS              = 1
-	cometProtocolWSStr           = "ws"
-	cometProtocolTCP             = 2
-	cometProtocolTCPStr          = "tcp"
-	cometProtocolRPC             = 3
-	cometProtocolRPCStr          = "rpc"
-	cometService                 = "CometRPC"
-	CometServicePushPrivate      = "CometRPC.PushPrivate"
-	CometServicePushMultiPrivate = "CometRPC.PushMultiPrivate"
+	cometProtocolUnknown     = 0
+	cometProtocolWS          = 1
+	cometProtocolWSStr       = "ws"
+	cometProtocolTCP         = 2
+	cometProtocolTCPStr      = "tcp"
+	cometProtocolRPC         = 3
+	cometProtocolRPCStr      = "rpc"
+	cometService             = "CometRPC"
+	CometServicePushPrivate  = "CometRPC.PushPrivate"
+	CometServicePushPrivates = "CometRPC.PushPrivates"
 )
 
 var (

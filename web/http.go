@@ -45,6 +45,7 @@ func StartHTTP() {
 	httpAdminServeMux := http.NewServeMux()
 	// 1.0
 	httpAdminServeMux.HandleFunc("/1/admin/push/private", PushPrivate)
+	httpAdminServeMux.HandleFunc("/1/admin/push/mprivate", PushMultiPrivate)
 	httpAdminServeMux.HandleFunc("/1/admin/msg/del", DelPrivate)
 	// old
 	httpAdminServeMux.HandleFunc("/admin/push", PushPrivate)

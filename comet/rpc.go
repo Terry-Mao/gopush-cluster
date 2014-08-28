@@ -126,7 +126,7 @@ func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error
 
 // PushMultiplePrivate expored a method for publishing a user multiple private message for the channel.
 // because of it`s going asynchronously in this method, so it won`t return an error to caller.
-func (c *CometRPC) PushMultiplePrivate(args *myrpc.CometPushPrivatesArgs, ret *int) error {
+func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, ret *int) error {
 	if args == nil || args.Msg == nil {
 		return myrpc.ErrParam
 	}

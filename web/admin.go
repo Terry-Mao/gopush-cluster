@@ -118,7 +118,7 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// match nodes
-	nodes := map[*myrpc.CometNodeInfo][]string{}
+	nodes := map[*myrpc.CometNodeInfo]*[]string{}
 	for i := 0; i < len(keys); i++ {
 		node := myrpc.GetComet(keys[i])
 		if node == nil || node.CometRPC == nil {
@@ -127,9 +127,9 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 		}
 		keysTmp, ok := nodes[node]
 		if ok {
-			keysTmp = append(keysTmp, keys[i])
+			*keysTmp = append(*keysTmp, keys[i])
 		} else {
-			keysTmp = []string{keys[i]}
+			nodes[node] = &[]string{keys[i]}
 		}
 	}
 	for cometInfo, ks := range nodes {
@@ -138,9 +138,9 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 			res["ret"] = NotFoundServer
 			return
 		}
-		args := &myrpc.CometPushPrivatesArgs{Msg: json.RawMessage(msg), Expire: uint(expire), Keys: ks}
-		if err := client.Call(myrpc.CometServicePushMultiPrivate, args, &ret); err != nil {
-			glog.Errorf("client.Call(\"%s\", \"%v\", &ret) error(%v)", myrpc.CometServicePushMultiPrivate, args.Keys, err)
+		args := &myrpc.CometPushPrivatesArgs{Msg: json.RawMessage(msg), Expire: uint(expire), Keys: *ks}
+		if err := client.Call(myrpc.CometServicePushPrivates, args, &ret); err != nil {
+			glog.Errorf("client.Call(\"%s\", \"%v\", &ret) error(%v)", myrpc.CometServicePushPrivates, args.Keys, err)
 			res["ret"] = InternalErr
 			return
 		}
@@ -170,7 +170,7 @@ func parseMultiPrivate(body []byte) (msg []byte, keys []string, ret int) {
 		ret = ParamErr
 		return
 	}
-	keys = strings.Split(string(k), ",")
+	keys = strings.Split(k, ",")
 	msg = []byte(m)
 	return
 }
