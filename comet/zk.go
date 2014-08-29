@@ -21,11 +21,11 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/rpc"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	myzk "github.com/Terry-Mao/gopush-cluster/zk"
-	"github.com/golang/glog"
 	"github.com/samuel/go-zookeeper/zk"
 	"path"
 	"strings"
@@ -43,12 +43,12 @@ const (
 func InitZK() (*zk.Conn, error) {
 	conn, err := myzk.Connect(Conf.ZookeeperAddr, Conf.ZookeeperTimeout)
 	if err != nil {
-		glog.Errorf("myzk.Connect() error(%v)", err)
+		log.Error("myzk.Connect() error(%v)", err)
 		return nil, err
 	}
 	fpath := path.Join(Conf.ZookeeperCometPath, Conf.ZookeeperCometNode)
 	if err = myzk.Create(conn, fpath); err != nil {
-		glog.Errorf("myzk.Create() error(%v)", err)
+		log.Error("myzk.Create() error(%v)", err)
 		return conn, err
 	}
 	// comet weight with tcp, websocket and rpc bind address store in the zk
@@ -63,9 +63,9 @@ func InitZK() (*zk.Conn, error) {
 		data += fmt.Sprintf("rpc://%s,", addr)
 	}
 	data = strings.TrimRight(data, ",")
-	glog.V(1).Infof("myzk data: \"%s\"", data)
+	log.Debug("myzk data: \"%s\"", data)
 	if err = myzk.RegisterTemp(conn, fpath, data); err != nil {
-		glog.Errorf("myzk.RegisterTemp() error(%v)", err)
+		log.Error("myzk.RegisterTemp() error(%v)", err)
 		return conn, err
 	}
 	// watch and update
@@ -79,14 +79,14 @@ func watchCometRoot(conn *zk.Conn, fpath string, vnode int) {
 	for {
 		nodes, watch, err := myzk.GetNodesW(conn, fpath)
 		if err != nil {
-			glog.Errorf("myzk.GetNodesW() error(%v)", err)
+			log.Error("myzk.GetNodesW() error(%v)", err)
 			continue
 		}
 		tmp := make(map[string]*myrpc.CometNodeInfo)
 		for _, node := range nodes {
 			info, err := myrpc.GetNodesInfo(conn, node, fpath, vnode)
 			if err != nil {
-				glog.Errorf("myrpc.GetNodesInfo() error(%v)", err)
+				log.Error("myrpc.GetNodesInfo() error(%v)", err)
 				continue
 			}
 			tmp[node] = info
@@ -110,6 +110,6 @@ func watchCometRoot(conn *zk.Conn, fpath string, vnode int) {
 
 		// blocking wait node changed
 		event := <-watch
-		glog.Infof("zk path: \"%s\" receive a event %v", fpath, event)
+		log.Info("zk path: \"%s\" receive a event %v", fpath, event)
 	}
 }

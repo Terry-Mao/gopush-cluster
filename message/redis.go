@@ -17,13 +17,13 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/ketama"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"github.com/garyburd/redigo/redis"
-	"github.com/golang/glog"
 	"strconv"
 	"strings"
 	"time"
@@ -64,12 +64,12 @@ func NewRedisStorage() *RedisStorage {
 		nw = strings.Split(n, ":")
 		if len(nw) != 2 {
 			err = errors.New("node config error, it's nodeN:W")
-			glog.Errorf("strings.Split(\"%s\", :) failed (%v)", n, err)
+			log.Error("strings.Split(\"%s\", :) failed (%v)", n, err)
 			panic(err)
 		}
 		w, err = strconv.Atoi(nw[1])
 		if err != nil {
-			glog.Errorf("strconv.Atoi(\"%s\") failed (%v)", nw[1], err)
+			log.Error("strconv.Atoi(\"%s\") failed (%v)", nw[1], err)
 			panic(err)
 		}
 		tmp := addr
@@ -81,7 +81,7 @@ func NewRedisStorage() *RedisStorage {
 			Dial: func() (redis.Conn, error) {
 				conn, err := redis.Dial("tcp", tmp)
 				if err != nil {
-					glog.Errorf("redis.Dial(\"tcp\", \"%s\") error(%v)", tmp, err)
+					log.Error("redis.Dial(\"tcp\", \"%s\") error(%v)", tmp, err)
 					return nil, err
 				}
 				return conn, err
@@ -105,29 +105,29 @@ func (s *RedisStorage) SavePrivate(key string, msg json.RawMessage, mid int64, e
 	rm := &RedisPrivateMessage{Msg: msg, Expire: int64(expire) + time.Now().Unix()}
 	m, err := json.Marshal(rm)
 	if err != nil {
-		glog.Errorf("json.Marshal(\"%v\") error(%v)", rm, err)
+		log.Error("json.Marshal(\"%v\") error(%v)", rm, err)
 		return err
 	}
 	if err := conn.Send("ZADD", key, mid, m); err != nil {
-		glog.Errorf("conn.Send(\"ZADD\", \"%s\", %d, \"%s\") error(%v)", key, mid, string(m), err)
+		log.Error("conn.Send(\"ZADD\", \"%s\", %d, \"%s\") error(%v)", key, mid, string(m), err)
 		return err
 	}
 	if err := conn.Send("ZREMRANGEBYRANK", key, 0, -1*(Conf.RedisMaxStore+1)); err != nil {
-		glog.Errorf("conn.Send(\"ZREMRANGEBYRANK\", \"%s\", 0, %d) error(%v)", key, mid, -1*(Conf.RedisMaxStore+1), err)
+		log.Error("conn.Send(\"ZREMRANGEBYRANK\", \"%s\", 0, %d) error(%v)", key, mid, -1*(Conf.RedisMaxStore+1), err)
 		return err
 	}
 	if err := conn.Flush(); err != nil {
-		glog.Errorf("conn.Flush() error(%v)", err)
+		log.Error("conn.Flush() error(%v)", err)
 		return err
 	}
 	_, err = conn.Receive()
 	if err != nil {
-		glog.Errorf("conn.Receive() error(%v)", err)
+		log.Error("conn.Receive() error(%v)", err)
 		return err
 	}
 	_, err = conn.Receive()
 	if err != nil {
-		glog.Errorf("conn.Receive() error(%v)", err)
+		log.Error("conn.Receive() error(%v)", err)
 		return err
 	}
 	return nil
@@ -142,7 +142,7 @@ func (s *RedisStorage) GetPrivate(key string, mid int64) ([]*myrpc.Message, erro
 	defer conn.Close()
 	values, err := redis.Values(conn.Do("ZRANGEBYSCORE", key, fmt.Sprintf("(%d", mid), "+inf", "WITHSCORES"))
 	if err != nil {
-		glog.Errorf("conn.Do(\"ZRANGEBYSCORE\", \"%s\", \"%s\", \"+inf\", \"WITHSCORES\") error(%v)", err)
+		log.Error("conn.Do(\"ZRANGEBYSCORE\", \"%s\", \"%s\", \"+inf\", \"WITHSCORES\") error(%v)", err)
 		return nil, err
 	}
 	msgs := make([]*myrpc.Message, 0, len(values))
@@ -153,18 +153,18 @@ func (s *RedisStorage) GetPrivate(key string, mid int64) ([]*myrpc.Message, erro
 		b := []byte{}
 		values, err = redis.Scan(values, &b, &cmid)
 		if err != nil {
-			glog.Errorf("redis.Scan() error(%v)", err)
+			log.Error("redis.Scan() error(%v)", err)
 			return nil, err
 		}
 		rm := &RedisPrivateMessage{}
 		if err := json.Unmarshal(b, rm); err != nil {
-			glog.Errorf("json.Unmarshal(\"%s\", rm) error(%v)", string(b), err)
+			log.Error("json.Unmarshal(\"%s\", rm) error(%v)", string(b), err)
 			delMsgs = append(delMsgs, cmid)
 			continue
 		}
 		// check expire
 		if rm.Expire < now {
-			glog.Warningf("user_key: \"%s\" msg: %d expired", key, cmid)
+			log.Warn("user_key: \"%s\" msg: %d expired", key, cmid)
 			delMsgs = append(delMsgs, cmid)
 			continue
 		}
@@ -176,7 +176,7 @@ func (s *RedisStorage) GetPrivate(key string, mid int64) ([]*myrpc.Message, erro
 		select {
 		case s.delCH <- &RedisDelMessage{Key: key, MIds: delMsgs}:
 		default:
-			glog.Warningf("user_key: \"%s\" send del messages failed, channel full", key)
+			log.Warn("user_key: \"%s\" send del messages failed, channel full", key)
 		}
 	}
 	return msgs, nil
@@ -191,7 +191,7 @@ func (s *RedisStorage) DelPrivate(key string) error {
 	defer conn.Close()
 	_, err := conn.Do("DEL", key)
 	if err != nil {
-		glog.Errorf("conn.Do(\"DEL\", \"%s\") error(%v)", key, err)
+		log.Error("conn.Do(\"DEL\", \"%s\") error(%v)", key, err)
 		return err
 	}
 	return nil
@@ -203,25 +203,25 @@ func (s *RedisStorage) clean() {
 		info := <-s.delCH
 		conn := s.getConn(info.Key)
 		if conn == nil {
-			glog.Warning("get redis connection nil")
+			log.Warn("get redis connection nil")
 			continue
 		}
 		for _, mid := range info.MIds {
 			if err := conn.Send("ZREMRANGEBYSCORE", info.Key, mid, mid); err != nil {
-				glog.Errorf("conn.Send(\"ZREMRANGEBYSCORE\", \"%s\", %d, %d) error(%v)", info.Key, mid, mid, err)
+				log.Error("conn.Send(\"ZREMRANGEBYSCORE\", \"%s\", %d, %d) error(%v)", info.Key, mid, mid, err)
 				conn.Close()
 				continue
 			}
 		}
 		if err := conn.Flush(); err != nil {
-			glog.Errorf("conn.Flush() error(%v)", err)
+			log.Error("conn.Flush() error(%v)", err)
 			conn.Close()
 			continue
 		}
 		for _, _ = range info.MIds {
 			_, err := conn.Receive()
 			if err != nil {
-				glog.Errorf("conn.Receive() error(%v)", err)
+				log.Error("conn.Receive() error(%v)", err)
 				conn.Close()
 				continue
 			}
@@ -238,9 +238,9 @@ func (s *RedisStorage) getConn(key string) redis.Conn {
 	node := s.ring.Hash(key)
 	p, ok := s.pool[node]
 	if !ok {
-		glog.Warningf("user_key: \"%s\" hit redis node: \"%s\" not in pool", key, node)
+		log.Warn("user_key: \"%s\" hit redis node: \"%s\" not in pool", key, node)
 		return nil
 	}
-	glog.V(1).Infof("user_key: \"%s\" hit redis node: \"%s\"", key, node)
+	log.Debug("user_key: \"%s\" hit redis node: \"%s\"", key, node)
 	return p.Get()
 }

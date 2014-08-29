@@ -17,7 +17,7 @@
 package main
 
 import (
-	"github.com/golang/glog"
+	log "code.google.com/p/log4go"
 	"os"
 	"os/signal"
 	"syscall"
@@ -35,7 +35,7 @@ func HandleSignal(c chan os.Signal) {
 	// Block until a signal is received.
 	for {
 		s := <-c
-		glog.Infof("comet get a signal %s", s.String())
+		log.Info("comet get a signal %s", s.String())
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGSTOP, syscall.SIGINT:
 			return

@@ -17,8 +17,8 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"encoding/json"
-	"github.com/golang/glog"
 	"net/http"
 	"os"
 	"os/user"
@@ -117,7 +117,7 @@ func statListen(bind string) {
 	httpServeMux := http.NewServeMux()
 	httpServeMux.HandleFunc("/stat", StatHandle)
 	if err := http.ListenAndServe(bind, httpServeMux); err != nil {
-		glog.Errorf("http.ListenAdServe(\"%s\") error(%v)", bind, err)
+		log.Error("http.ListenAdServe(\"%s\") error(%v)", bind, err)
 		panic(err)
 	}
 }
@@ -126,7 +126,7 @@ func statListen(bind string) {
 func StartStats() {
 	startTime = time.Now().UnixNano()
 	for _, bind := range Conf.StatBind {
-		glog.Infof("start stat listen addr:\"%s\"", bind)
+		log.Info("start stat listen addr:\"%s\"", bind)
 		go statListen(bind)
 	}
 }
@@ -196,7 +196,7 @@ func ServerStats() []byte {
 	res["pid"] = os.Getpid()
 	res["pagesize"] = os.Getpagesize()
 	if usr, err := user.Current(); err != nil {
-		glog.Errorf("user.Current() error(%v)", err)
+		log.Error("user.Current() error(%v)", err)
 		res["group"] = ""
 		res["user"] = ""
 	} else {
@@ -210,7 +210,7 @@ func ServerStats() []byte {
 func ConfigInfo() []byte {
 	byteJson, err := json.MarshalIndent(Conf, "", "    ")
 	if err != nil {
-		glog.Errorf("json.MarshalIndent(\"%v\", \"\", \"    \") error(%v)", Conf, err)
+		log.Error("json.MarshalIndent(\"%v\", \"\", \"    \") error(%v)", Conf, err)
 		return nil
 	}
 	return byteJson
@@ -220,7 +220,7 @@ func ConfigInfo() []byte {
 func jsonRes(res map[string]interface{}) []byte {
 	byteJson, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
-		glog.Errorf("json.MarshalIndent(\"%v\", \"\", \"    \") error(%v)", res, err)
+		log.Error("json.MarshalIndent(\"%v\", \"\", \"    \") error(%v)", res, err)
 		return nil
 	}
 	return byteJson
@@ -274,7 +274,7 @@ func StatHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	if res != nil {
 		if _, err := w.Write(res); err != nil {
-			glog.Errorf("w.Write(\"%s\") error(%v)", string(res), err)
+			log.Error("w.Write(\"%s\") error(%v)", string(res), err)
 		}
 	}
 }

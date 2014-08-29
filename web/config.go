@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"github.com/Terry-Mao/goconf"
-	"github.com/golang/glog"
 	"runtime"
 	"time"
 )
@@ -42,6 +41,7 @@ type Config struct {
 	User                 string        `goconf:"base:user"`
 	PidFile              string        `goconf:"base:pidfile"`
 	Dir                  string        `goconf:"base:dir"`
+	Log                  string        `goconf:"base:log"`
 	Router               string        `goconf:"base:router"`
 	KetamaBase           int           `goconf:"base:ketama.base"`
 	QQWryPath            string        `goconf:"res:qqwry.path"`
@@ -57,7 +57,6 @@ type Config struct {
 func InitConfig() error {
 	gconf := goconf.New()
 	if err := gconf.Parse(confFile); err != nil {
-		glog.Errorf("goconf.Parse(\"%s\") error(%v)", confFile, err)
 		return err
 	}
 	// Default config
@@ -69,6 +68,7 @@ func InitConfig() error {
 		User:                 "nobody nobody",
 		PidFile:              "/tmp/gopush-cluster-web.pid",
 		Dir:                  "./",
+		Log:                  "./log/xml",
 		Router:               "",
 		KetamaBase:           255,
 		QQWryPath:            "/tmp/QQWry.dat",
@@ -80,7 +80,6 @@ func InitConfig() error {
 		RPCPing:              1 * time.Second,
 	}
 	if err := gconf.Unmarshal(Conf); err != nil {
-		glog.Errorf("goconf.Unmarshall() error(%v)", err)
 		return err
 	}
 	return nil

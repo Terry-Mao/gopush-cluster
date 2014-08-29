@@ -38,6 +38,7 @@ type Config struct {
 	User          string   `goconf:"base:user"`
 	PidFile       string   `goconf:"base:pidfile"`
 	Dir           string   `goconf:"base:dir"`
+	Log           string   `goconf:"base:log"`
 	MaxProc       int      `goconf:"base:maxproc"`
 	TCPBind       []string `goconf:"base:tcp.bind:,"`
 	WebsocketBind []string `goconf:"base:websocket.bind:,"`
@@ -76,6 +77,7 @@ func InitConfig() error {
 		User:          "nobody nobody",
 		PidFile:       "/tmp/gopush-cluster-comet.pid",
 		Dir:           "./",
+		Log:           "./log/xml",
 		MaxProc:       runtime.NumCPU(),
 		WebsocketBind: []string{"localhost:6968"},
 		TCPBind:       []string{"localhost:6969"},

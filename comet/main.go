@@ -17,27 +17,30 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"flag"
+	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/perf"
-	"github.com/Terry-Mao/gopush-cluster/process"
 	"github.com/Terry-Mao/gopush-cluster/ver"
-	"github.com/golang/glog"
+	"io/ioutil"
+	"os"
 	"runtime"
-	"time"
 )
 
 func main() {
 	// parse cmd-line arguments
 	flag.Parse()
-	glog.Infof("comet ver: \"%s\" start", ver.Version)
-	defer glog.Flush()
+	log.Info("comet ver: \"%s\" start", ver.Version)
 	// init config
 	if err := InitConfig(); err != nil {
-		glog.Errorf("InitConfig() error(%v)", err)
+		log.Error("InitConfig() error(%v)", err)
 		return
 	}
 	// set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
+	// init log
+	log.LoadConfiguration(Conf.Log)
+	defer log.Close()
 	// start pprof
 	perf.Init(Conf.PprofBind)
 	// create channel
@@ -48,32 +51,26 @@ func main() {
 	StartStats()
 	// start rpc
 	if err := StartRPC(); err != nil {
-		glog.Errorf("StartRPC() error(%v)", err)
-		return
+		panic(err)
 	}
 	// start comet
 	if err := StartComet(); err != nil {
-		glog.Errorf("StartComet() error(%v)", err)
-		return
+		panic(err)
 	}
 	// init zookeeper
 	zkConn, err := InitZK()
 	if err != nil {
-		glog.Errorf("InitZookeeper() error(%v)", err)
-		return
+		panic(err)
 	}
 	// if process exit, close zk
 	defer zkConn.Close()
-	// init process
-	// sleep one second, let the listen start
-	time.Sleep(time.Second)
-	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
-		glog.Errorf("process.Init(\"%s\", \"%s\", \"%s\") error(%v)", Conf.User, Conf.Dir, Conf.PidFile, err)
-		return
+	// create pid file
+	if err := ioutil.WriteFile(Conf.PidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644); err != nil {
+		panic(err)
 	}
 	// init signals, block wait signals
 	signalCH := InitSignal()
 	HandleSignal(signalCH)
 	// exit
-	glog.Info("comet stop")
+	log.Info("comet stop")
 }

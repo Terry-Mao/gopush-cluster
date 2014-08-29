@@ -17,32 +17,33 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"flag"
+	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/perf"
-	"github.com/Terry-Mao/gopush-cluster/process"
 	"github.com/Terry-Mao/gopush-cluster/ver"
-	"github.com/golang/glog"
+	"io/ioutil"
+	"os"
 	"runtime"
-	"time"
 )
 
 func main() {
 	var err error
 	// Parse cmd-line arguments
 	flag.Parse()
-	glog.Infof("web ver: \"%s\" start", ver.Version)
-	defer glog.Flush()
+	log.Info("web ver: \"%s\" start", ver.Version)
 	if err = InitConfig(); err != nil {
-		glog.Errorf("InitConfig() error(%v)", err)
-		return
+		panic(err)
 	}
 	// Set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
+	// init log
+	log.LoadConfiguration(Conf.Log)
+	defer log.Close()
 	// init zookeeper
 	zkConn, err := InitZK()
 	if err != nil {
-		glog.Errorf("InitZookeeper() error(%v)", err)
-		return
+		panic(err)
 	}
 	// if process exit, close zk
 	defer zkConn.Close()
@@ -51,21 +52,17 @@ func main() {
 	// Init network router
 	if Conf.Router != "" {
 		if err := InitRouter(); err != nil {
-			glog.Errorf("InitRouter() failed(%v)", err)
-			return
+			panic(err)
 		}
 	}
 	// start http listen.
 	StartHTTP()
-	// init process
-	// sleep one second, let the listen start
-	time.Sleep(time.Second)
-	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
-		glog.Errorf("process.Init() error(%v)", err)
-		return
+	// create pid file
+	if err := ioutil.WriteFile(Conf.PidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644); err != nil {
+		panic(err)
 	}
 	// init signals, block wait signals
 	signalCH := InitSignal()
 	HandleSignal(signalCH)
-	glog.Info("web stop")
+	log.Info("web stop")
 }

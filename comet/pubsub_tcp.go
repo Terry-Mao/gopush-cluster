@@ -18,9 +18,9 @@ package main
 
 import (
 	"bufio"
+	log "code.google.com/p/log4go"
 	"errors"
 	"fmt"
-	"github.com/golang/glog"
 	"io"
 	"net"
 	"strconv"
@@ -47,7 +47,7 @@ type tcpBufCache struct {
 // newTCPBufCache return a new tcpBuf cache.
 func newtcpBufCache() *tcpBufCache {
 	inst := make([]chan *bufio.Reader, 0, Conf.BufioInstance)
-	glog.V(1).Infof("create %d read buffer instance", Conf.BufioInstance)
+	log.Debug("create %d read buffer instance", Conf.BufioInstance)
 	for i := 0; i < Conf.BufioInstance; i++ {
 		inst = append(inst, make(chan *bufio.Reader, Conf.BufioNum))
 	}
@@ -71,7 +71,7 @@ func newBufioReader(c chan *bufio.Reader, r io.Reader) *bufio.Reader {
 		p.Reset(r)
 		return p
 	default:
-		glog.Warning("tcp bufioReader cache empty")
+		log.Warn("tcp bufioReader cache empty")
 		return bufio.NewReaderSize(r, Conf.RcvbufSize)
 	}
 }
@@ -82,7 +82,7 @@ func putBufioReader(c chan *bufio.Reader, r *bufio.Reader) {
 	select {
 	case c <- r:
 	default:
-		glog.Warning("tcp bufioReader cache full")
+		log.Warn("tcp bufioReader cache full")
 	}
 }
 
@@ -93,7 +93,7 @@ func StartTCP() error {
 		if len(addrs) != 2 {
 			return fmt.Errorf("config tcp.bind:\"%s\" format error", bind)
 		}
-		glog.Infof("start tcp listen addr:\"%s\"", bind)
+		log.Info("start tcp listen addr:\"%s\"", bind)
 		go tcpListen(addrs[1])
 	}
 
@@ -103,62 +103,62 @@ func StartTCP() error {
 func tcpListen(bind string) {
 	addr, err := net.ResolveTCPAddr("tcp", bind)
 	if err != nil {
-		glog.Errorf("net.ResolveTCPAddr(\"tcp\"), %s) error(%v)", bind, err)
+		log.Error("net.ResolveTCPAddr(\"tcp\"), %s) error(%v)", bind, err)
 		panic(err)
 	}
 	l, err := net.ListenTCP("tcp", addr)
 	if err != nil {
-		glog.Errorf("net.ListenTCP(\"tcp4\", \"%s\") error(%v)", bind, err)
+		log.Error("net.ListenTCP(\"tcp4\", \"%s\") error(%v)", bind, err)
 		panic(err)
 	}
 	// free the listener resource
 	defer func() {
-		glog.Infof("tcp addr: \"%s\" close", bind)
+		log.Info("tcp addr: \"%s\" close", bind)
 		if err := l.Close(); err != nil {
-			glog.Errorf("listener.Close() error(%v)", err)
+			log.Error("listener.Close() error(%v)", err)
 		}
 	}()
 	// init reader buffer instance
 	rb := newtcpBufCache()
 	for {
-		glog.V(1).Info("start accept")
+		log.Debug("start accept")
 		conn, err := l.AcceptTCP()
 		if err != nil {
-			glog.Errorf("listener.AcceptTCP() error(%v)", err)
+			log.Error("listener.AcceptTCP() error(%v)", err)
 			continue
 		}
 		if err = conn.SetKeepAlive(Conf.TCPKeepalive); err != nil {
-			glog.Errorf("conn.SetKeepAlive() error(%v)", err)
+			log.Error("conn.SetKeepAlive() error(%v)", err)
 			conn.Close()
 			continue
 		}
 		if err = conn.SetReadBuffer(Conf.RcvbufSize); err != nil {
-			glog.Errorf("conn.SetReadBuffer(%d) error(%v)", Conf.RcvbufSize, err)
+			log.Error("conn.SetReadBuffer(%d) error(%v)", Conf.RcvbufSize, err)
 			conn.Close()
 			continue
 		}
 		if err = conn.SetWriteBuffer(Conf.SndbufSize); err != nil {
-			glog.Errorf("conn.SetWriteBuffer(%d) error(%v)", Conf.SndbufSize, err)
+			log.Error("conn.SetWriteBuffer(%d) error(%v)", Conf.SndbufSize, err)
 			conn.Close()
 			continue
 		}
 		// first packet must sent by client in specified seconds
 		if err = conn.SetReadDeadline(time.Now().Add(fitstPacketTimedoutSec)); err != nil {
-			glog.Errorf("conn.SetReadDeadLine() error(%v)", err)
+			log.Error("conn.SetReadDeadLine() error(%v)", err)
 			conn.Close()
 			continue
 		}
 		rc := rb.Get()
 		// one connection one routine
 		go handleTCPConn(conn, rc)
-		glog.V(1).Info("accept finished")
+		log.Debug("accept finished")
 	}
 }
 
 // hanleTCPConn handle a long live tcp connection.
 func handleTCPConn(conn net.Conn, rc chan *bufio.Reader) {
 	addr := conn.RemoteAddr().String()
-	glog.V(1).Infof("<%s> handleTcpConn routine start", addr)
+	log.Debug("<%s> handleTcpConn routine start", addr)
 	rd := newBufioReader(rc, conn)
 	if args, err := parseCmd(rd); err == nil {
 		// return buffer bufio.Reader
@@ -169,19 +169,19 @@ func handleTCPConn(conn net.Conn, rc chan *bufio.Reader) {
 			break
 		default:
 			conn.Write(ParamReply)
-			glog.Warningf("<%s> unknown cmd \"%s\"", addr, args[0])
+			log.Warn("<%s> unknown cmd \"%s\"", addr, args[0])
 			break
 		}
 	} else {
 		// return buffer bufio.Reader
 		putBufioReader(rc, rd)
-		glog.Errorf("<%s> parseCmd() error(%v)", addr, err)
+		log.Error("<%s> parseCmd() error(%v)", addr, err)
 	}
 	// close the connection
 	if err := conn.Close(); err != nil {
-		glog.Errorf("<%s> conn.Close() error(%v)", addr, err)
+		log.Error("<%s> conn.Close() error(%v)", addr, err)
 	}
-	glog.V(1).Infof("<%s> handleTcpConn routine stop", addr)
+	log.Debug("<%s> handleTcpConn routine stop", addr)
 	return
 }
 
@@ -191,31 +191,31 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	addr := conn.RemoteAddr().String()
 	if argLen < 2 {
 		conn.Write(ParamReply)
-		glog.Errorf("<%s> subscriber missing argument", addr)
+		log.Error("<%s> subscriber missing argument", addr)
 		return
 	}
 	// key, heartbeat
 	key := args[0]
 	if key == "" {
 		conn.Write(ParamReply)
-		glog.Warningf("<%s> key param error", addr)
+		log.Warn("<%s> key param error", addr)
 		return
 	}
 	if Conf.ZookeeperCometNode != CometRing.Hash(key) {
 		conn.Write(NodeReply)
-		glog.Warningf("<%s> key node error", addr)
+		log.Warn("<%s> key node error", addr)
 		return
 	}
 	heartbeatStr := args[1]
 	i, err := strconv.Atoi(heartbeatStr)
 	if err != nil {
 		conn.Write(ParamReply)
-		glog.Errorf("<%s> user_key:\"%s\" heartbeat:\"%s\" argument error (%s)", addr, key, heartbeatStr, err)
+		log.Error("<%s> user_key:\"%s\" heartbeat:\"%s\" argument error (%s)", addr, key, heartbeatStr, err)
 		return
 	}
 	if i < minHearbeatSec {
 		conn.Write(ParamReply)
-		glog.Warningf("<%s> user_key:\"%s\" heartbeat argument error, less than %d", addr, key, minHearbeatSec)
+		log.Warn("<%s> user_key:\"%s\" heartbeat argument error, less than %d", addr, key, minHearbeatSec)
 		return
 	}
 	heartbeat := i + delayHeartbeatSec
@@ -227,24 +227,24 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	if argLen > 3 {
 		version = args[3]
 	}
-	glog.Infof("<%s> subscribe to key = %s, heartbeat = %d, token = %s, version = %s", addr, key, heartbeat, token, version)
+	log.Info("<%s> subscribe to key = %s, heartbeat = %d, token = %s, version = %s", addr, key, heartbeat, token, version)
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key, true)
 	if err != nil {
-		glog.Warningf("<%s> user_key:\"%s\" can't get a channel (%s)", addr, key, err)
+		log.Warn("<%s> user_key:\"%s\" can't get a channel (%s)", addr, key, err)
 		conn.Write(ChannelReply)
 		return
 	}
 	// auth token
 	if ok := c.AuthToken(key, token); !ok {
 		conn.Write(AuthReply)
-		glog.Errorf("<%s> user_key:\"%s\" auth token \"%s\" failed", addr, key, token)
+		log.Error("<%s> user_key:\"%s\" auth token \"%s\" failed", addr, key, token)
 		return
 	}
 	// add a conn to the channel
 	connElem, err := c.AddConn(key, &Connection{Conn: conn, Proto: TCPProto, Version: version})
 	if err != nil {
-		glog.Errorf("<%s> user_key:\"%s\" add conn error(%v)", addr, key, err)
+		log.Error("<%s> user_key:\"%s\" add conn error(%v)", addr, key, err)
 		return
 	}
 	// blocking wait client heartbeat
@@ -256,35 +256,35 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		// more then 1 sec, reset the timer
 		if end-begin >= Second {
 			if err = conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(heartbeat))); err != nil {
-				glog.Errorf("<%s> user_key:\"%s\" conn.SetReadDeadLine() error(%v)", addr, key, err)
+				log.Error("<%s> user_key:\"%s\" conn.SetReadDeadLine() error(%v)", addr, key, err)
 				break
 			}
 			begin = end
 		}
 		if _, err = conn.Read(reply); err != nil {
 			if err != io.EOF {
-				glog.Warningf("<%s> user_key:\"%s\" conn.Read() failed, read heartbeat timedout error(%v)", addr, key, err)
+				log.Warn("<%s> user_key:\"%s\" conn.Read() failed, read heartbeat timedout error(%v)", addr, key, err)
 			} else {
 				// client connection close
-				glog.Warningf("<%s> user_key:\"%s\" client connection close error(%s)", addr, key, err)
+				log.Warn("<%s> user_key:\"%s\" client connection close error(%s)", addr, key, err)
 			}
 			break
 		}
 		if string(reply) == Heartbeat {
 			if _, err = conn.Write(HeartbeatReply); err != nil {
-				glog.Errorf("<%s> user_key:\"%s\" conn.Write() failed, write heartbeat to client error(%v)", addr, key, err)
+				log.Error("<%s> user_key:\"%s\" conn.Write() failed, write heartbeat to client error(%v)", addr, key, err)
 				break
 			}
-			glog.V(1).Infof("<%s> user_key:\"%s\" receive heartbeat (%s)", addr, key, reply)
+			log.Debug("<%s> user_key:\"%s\" receive heartbeat (%s)", addr, key, reply)
 		} else {
-			glog.Warningf("<%s> user_key:\"%s\" unknown heartbeat protocol (%s)", addr, key, reply)
+			log.Warn("<%s> user_key:\"%s\" unknown heartbeat protocol (%s)", addr, key, reply)
 			break
 		}
 		end = time.Now().UnixNano()
 	}
 	// remove exists conn
 	if err := c.RemoveConn(key, connElem); err != nil {
-		glog.Errorf("<%s> user_key:\"%s\" remove conn error(%s)", addr, key, err)
+		log.Error("<%s> user_key:\"%s\" remove conn error(%s)", addr, key, err)
 	}
 	return
 }
@@ -294,11 +294,11 @@ func parseCmd(rd *bufio.Reader) ([]string, error) {
 	// get argument number
 	argNum, err := parseCmdSize(rd, '*')
 	if err != nil {
-		glog.Errorf("tcp:cmd format error when find '*' (%s)", err)
+		log.Error("tcp:cmd format error when find '*' (%s)", err)
 		return nil, err
 	}
 	if argNum < minCmdNum || argNum > maxCmdNum {
-		glog.Error("tcp:cmd argument number length error")
+		log.Error("tcp:cmd argument number length error")
 		return nil, ErrProtocol
 	}
 	args := make([]string, 0, argNum)
@@ -306,13 +306,13 @@ func parseCmd(rd *bufio.Reader) ([]string, error) {
 		// get argument length
 		cmdLen, err := parseCmdSize(rd, '$')
 		if err != nil {
-			glog.Errorf("tcp:parseCmdSize(rd, '$') error(%v)", err)
+			log.Error("tcp:parseCmdSize(rd, '$') error(%v)", err)
 			return nil, err
 		}
 		// get argument data
 		d, err := parseCmdData(rd, cmdLen)
 		if err != nil {
-			glog.Errorf("tcp:parseCmdData() error(%v)", err)
+			log.Error("tcp:parseCmdData() error(%v)", err)
 			return nil, err
 		}
 		// append args
@@ -326,18 +326,18 @@ func parseCmdSize(rd *bufio.Reader, prefix uint8) (int, error) {
 	// get command size
 	cs, err := rd.ReadBytes('\n')
 	if err != nil {
-		glog.Errorf("tcp:rd.ReadBytes('\\n') error(%v)", err)
+		log.Error("tcp:rd.ReadBytes('\\n') error(%v)", err)
 		return 0, err
 	}
 	csl := len(cs)
 	if csl <= 3 || cs[0] != prefix || cs[csl-2] != '\r' {
-		glog.Errorf("tcp:\"%v\"(%d) number format error, length error or prefix error or no \\r", cs, csl)
+		log.Error("tcp:\"%v\"(%d) number format error, length error or prefix error or no \\r", cs, csl)
 		return 0, ErrProtocol
 	}
 	// skip the \r\n
 	cmdSize, err := strconv.Atoi(string(cs[1 : csl-2]))
 	if err != nil {
-		glog.Errorf("tcp:\"%v\" number parse int error(%v)", cs, err)
+		log.Error("tcp:\"%v\" number parse int error(%v)", cs, err)
 		return 0, ErrProtocol
 	}
 	return cmdSize, nil
@@ -347,13 +347,13 @@ func parseCmdSize(rd *bufio.Reader, prefix uint8) (int, error) {
 func parseCmdData(rd *bufio.Reader, cmdLen int) ([]byte, error) {
 	d, err := rd.ReadBytes('\n')
 	if err != nil {
-		glog.Errorf("tcp:rd.ReadBytes('\\n') error(%v)", err)
+		log.Error("tcp:rd.ReadBytes('\\n') error(%v)", err)
 		return nil, err
 	}
 	dl := len(d)
 	// check last \r\n
 	if dl != cmdLen+2 || d[dl-2] != '\r' {
-		glog.Errorf("tcp:\"%v\"(%d) number format error, length error or no \\r", d, dl)
+		log.Error("tcp:\"%v\"(%d) number format error, length error or no \\r", d, dl)
 		return nil, ErrProtocol
 	}
 	// skip last \r\n

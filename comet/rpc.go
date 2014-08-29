@@ -17,10 +17,10 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"errors"
 	"fmt"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
-	"github.com/golang/glog"
 	"net"
 	"net/rpc"
 	"strings"
@@ -39,7 +39,7 @@ func StartRPC() error {
 		if len(addrs) != 2 {
 			return fmt.Errorf("config rpc.bind:\"%s\" format error", bind)
 		}
-		glog.Infof("start listen rpc addr: \"%s\"", bind)
+		log.Info("start listen rpc addr: \"%s\"", bind)
 		go rpcListen(addrs[1])
 	}
 
@@ -49,14 +49,14 @@ func StartRPC() error {
 func rpcListen(bind string) {
 	l, err := net.Listen("tcp", bind)
 	if err != nil {
-		glog.Errorf("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
+		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
 		panic(err)
 	}
 	// if process exit, then close the rpc bind
 	defer func() {
-		glog.Infof("rpc addr: \"%s\" close", bind)
+		log.Info("rpc addr: \"%s\" close", bind)
 		if err := l.Close(); err != nil {
-			glog.Errorf("listener.Close() error(%v)", err)
+			log.Error("listener.Close() error(%v)", err)
 		}
 	}()
 	rpc.Accept(l)
@@ -74,11 +74,11 @@ func (c *CometRPC) New(args *myrpc.CometNewArgs, ret *int) error {
 	// create a new channel for the user
 	ch, err := UserChannel.New(args.Key)
 	if err != nil {
-		glog.Errorf("UserChannel.New(\"%s\") error(%v)", args.Key, err)
+		log.Error("UserChannel.New(\"%s\") error(%v)", args.Key, err)
 		return err
 	}
 	if err = ch.AddToken(args.Key, args.Token); err != nil {
-		glog.Errorf("ch.AddToken(\"%s\", \"%s\") error(%v)", args.Key, args.Token)
+		log.Error("ch.AddToken(\"%s\", \"%s\") error(%v)", args.Key, args.Token)
 		return err
 	}
 	return nil
@@ -92,12 +92,12 @@ func (c *CometRPC) Close(key string, ret *int) error {
 	// close the channle for the user
 	ch, err := UserChannel.Delete(key)
 	if err != nil {
-		glog.Errorf("UserChannel.Delete(\"%s\") error(%v)", key, err)
+		log.Error("UserChannel.Delete(\"%s\") error(%v)", key, err)
 		return err
 	}
 	// ignore channel close error, only log a warnning
 	if err := ch.Close(); err != nil {
-		glog.Errorf("ch.Close() error(%v)", err)
+		log.Error("ch.Close() error(%v)", err)
 		return err
 	}
 	return nil
@@ -112,13 +112,13 @@ func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error
 	// get a user channel
 	ch, err := UserChannel.New(args.Key)
 	if err != nil {
-		glog.Errorf("UserChannel.New(\"%s\") error(%v)", args.Key, err)
+		log.Error("UserChannel.New(\"%s\") error(%v)", args.Key, err)
 		return err
 	}
 	// use the channel push message
 	m := &myrpc.Message{Msg: args.Msg}
 	if err = ch.PushMsg(args.Key, m, args.Expire); err != nil {
-		glog.Errorf("ch.PushMsg(\"%s\", \"%v\") error(%v)", args.Key, m, err)
+		log.Error("ch.PushMsg(\"%s\", \"%v\") error(%v)", args.Key, m, err)
 		return err
 	}
 	return nil
@@ -135,13 +135,13 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, ret *int) err
 			// get a user channel
 			ch, err := UserChannel.New(*key)
 			if err != nil {
-				glog.Errorf("UserChannel.New(\"%s\") error(%v)", *key, err)
+				log.Error("UserChannel.New(\"%s\") error(%v)", *key, err)
 				return
 			}
 			// use the channel push message
 			m := &myrpc.Message{Msg: args.Msg}
 			if err = ch.PushMsg(*key, m, args.Expire); err != nil {
-				glog.Errorf("ch.PushMsg(\"%s\", \"%v\") error(%v)", *key, m, err)
+				log.Error("ch.PushMsg(\"%s\", \"%v\") error(%v)", *key, m, err)
 				return
 			}
 		}(&args.Keys[i])
@@ -197,7 +197,7 @@ func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
 	glog.Info("close all the migrate channels")
 	for _, channel := range channels {
 		if err := channel.Close(); err != nil {
-			glog.Errorf("channel.Close() error(%v)", err)
+			log.Error("channel.Close() error(%v)", err)
 			continue
 		}
 	}
@@ -206,6 +206,6 @@ func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
 }*/
 
 func (c *CometRPC) Ping(args int, ret *int) error {
-	glog.V(2).Info("ping ok")
+	log.Debug("ping ok")
 	return nil
 }

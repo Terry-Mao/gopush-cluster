@@ -17,9 +17,9 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
 	"net"
 	"net/http"
 	"time"
@@ -51,11 +51,11 @@ func StartHTTP() {
 	httpAdminServeMux.HandleFunc("/admin/push", PushPrivate)
 	httpAdminServeMux.HandleFunc("/admin/msg/clean", DelPrivate)
 	for _, bind := range Conf.HttpBind {
-		glog.Infof("start http listen addr:\"%s\"", bind)
+		log.Info("start http listen addr:\"%s\"", bind)
 		go httpListen(httpServeMux, bind)
 	}
 	for _, bind := range Conf.AdminBind {
-		glog.Infof("start admin http listen addr:\"%s\"", bind)
+		log.Info("start admin http listen addr:\"%s\"", bind)
 		go httpListen(httpAdminServeMux, bind)
 	}
 }
@@ -64,11 +64,11 @@ func httpListen(mux *http.ServeMux, bind string) {
 	server := &http.Server{Handler: mux, ReadTimeout: httpReadTimeout * time.Second}
 	l, err := net.Listen("tcp", bind)
 	if err != nil {
-		glog.Errorf("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
+		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
 		panic(err)
 	}
 	if err := server.Serve(l); err != nil {
-		glog.Errorf("server.Serve() error(%v)", err)
+		log.Error("server.Serve() error(%v)", err)
 		panic(err)
 	}
 }
@@ -77,7 +77,7 @@ func httpListen(mux *http.ServeMux, bind string) {
 func retWrite(w http.ResponseWriter, r *http.Request, res map[string]interface{}, callback string, start time.Time) {
 	data, err := json.Marshal(res)
 	if err != nil {
-		glog.Errorf("json.Marshal(\"%v\") error(%v)", res, err)
+		log.Error("json.Marshal(\"%v\") error(%v)", res, err)
 		return
 	}
 	dataStr := ""
@@ -89,25 +89,25 @@ func retWrite(w http.ResponseWriter, r *http.Request, res map[string]interface{}
 		dataStr = fmt.Sprintf("%s(%s)", callback, string(data))
 	}
 	if n, err := w.Write([]byte(dataStr)); err != nil {
-		glog.Errorf("w.Write(\"%s\") error(%v)", dataStr, err)
+		log.Error("w.Write(\"%s\") error(%v)", dataStr, err)
 	} else {
-		glog.V(1).Infof("w.Write(\"%s\") write %d bytes", dataStr, n)
+		log.Debug("w.Write(\"%s\") write %d bytes", dataStr, n)
 	}
-	glog.Infof("req: \"%s\", res:\"%s\", ip:\"%s\", time:\"%fs\"", r.URL.String(), dataStr, r.RemoteAddr, time.Now().Sub(start).Seconds())
+	log.Info("req: \"%s\", res:\"%s\", ip:\"%s\", time:\"%fs\"", r.URL.String(), dataStr, r.RemoteAddr, time.Now().Sub(start).Seconds())
 }
 
 // retPWrite marshal the result and write to client(post).
 func retPWrite(w http.ResponseWriter, r *http.Request, res map[string]interface{}, body *string, start time.Time) {
 	data, err := json.Marshal(res)
 	if err != nil {
-		glog.Errorf("json.Marshal(\"%v\") error(%v)", res, err)
+		log.Error("json.Marshal(\"%v\") error(%v)", res, err)
 		return
 	}
 	dataStr := string(data)
 	if n, err := w.Write([]byte(dataStr)); err != nil {
-		glog.Errorf("w.Write(\"%s\") error(%v)", dataStr, err)
+		log.Error("w.Write(\"%s\") error(%v)", dataStr, err)
 	} else {
-		glog.V(1).Infof("w.Write(\"%s\") write %d bytes", dataStr, n)
+		log.Debug("w.Write(\"%s\") write %d bytes", dataStr, n)
 	}
-	glog.Infof("req: \"%s\", post: \"%s\", res:\"%s\", ip:\"%s\", time:\"%fs\"", r.URL.String(), *body, dataStr, r.RemoteAddr, time.Now().Sub(start).Seconds())
+	log.Info("req: \"%s\", post: \"%s\", res:\"%s\", ip:\"%s\", time:\"%fs\"", r.URL.String(), *body, dataStr, r.RemoteAddr, time.Now().Sub(start).Seconds())
 }

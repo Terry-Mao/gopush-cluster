@@ -17,8 +17,8 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
-	"github.com/golang/glog"
 	"net/http"
 	"strconv"
 	"time"
@@ -42,7 +42,7 @@ func GetServer0(w http.ResponseWriter, r *http.Request) {
 	}
 	proto, err := strconv.Atoi(protoStr)
 	if err != nil {
-		glog.Errorf("strconv.Atoi(\"%s\") error(%v)", protoStr, err)
+		log.Error("strconv.Atoi(\"%s\") error(%v)", protoStr, err)
 		res["ret"] = ParamErr
 		return
 	}
@@ -65,10 +65,10 @@ func GetServer0(w http.ResponseWriter, r *http.Request) {
 			ips = append(ips, addr.Addr)
 		}
 		server = routerCN.SelectBest(r.RemoteAddr, ips)
-		glog.V(1).Infof("select the best ip:\"%s\" match with remoteAddr:\"%s\" , from ip list:\"%v\"", server, r.RemoteAddr, ips)
+		log.Debug("select the best ip:\"%s\" match with remoteAddr:\"%s\" , from ip list:\"%v\"", server, r.RemoteAddr, ips)
 	}
 	if server == "" {
-		glog.V(1).Infof("remote addr: \"%s\" chose the ip: \"%s\"", r.RemoteAddr, addrs[0].Addr)
+		log.Debug("remote addr: \"%s\" chose the ip: \"%s\"", r.RemoteAddr, addrs[0].Addr)
 		server = addrs[0].Addr
 	}
 	res["data"] = map[string]interface{}{"server": server}
@@ -94,7 +94,7 @@ func GetOfflineMsg0(w http.ResponseWriter, r *http.Request) {
 	mid, err := strconv.ParseInt(midStr, 10, 64)
 	if err != nil {
 		res["ret"] = ParamErr
-		glog.Errorf("strconv.ParseInt(\"%s\", 10, 64) error(%v)", midStr, err)
+		log.Error("strconv.ParseInt(\"%s\", 10, 64) error(%v)", midStr, err)
 		return
 	}
 	// RPC get offline messages
@@ -106,7 +106,7 @@ func GetOfflineMsg0(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := client.Call(myrpc.MessageServiceGetPrivate, args, reply); err != nil {
-		glog.Errorf("myrpc.MessageRPC.Call(\"%s\", \"%v\", reply) error(%v)", myrpc.MessageServiceGetPrivate, args, err)
+		log.Error("myrpc.MessageRPC.Call(\"%s\", \"%v\", reply) error(%v)", myrpc.MessageServiceGetPrivate, args, err)
 		res["ret"] = InternalErr
 		return
 	}

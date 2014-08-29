@@ -17,58 +17,51 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"flag"
+	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/perf"
-	"github.com/Terry-Mao/gopush-cluster/process"
 	"github.com/Terry-Mao/gopush-cluster/ver"
-	"github.com/golang/glog"
+	"io/ioutil"
+	"os"
 	"runtime"
-	"time"
 )
 
 func main() {
 	flag.Parse()
-	glog.Infof("message ver: \"%s\" start", ver.Version)
-	defer glog.Flush()
+	log.Info("message ver: \"%s\" start", ver.Version)
 	if err := InitConfig(); err != nil {
-		glog.Errorf("InitConfig() error(%v)", err)
-		return
+		panic(err)
 	}
 	// Set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
+	// init log
+	log.LoadConfiguration(Conf.Log)
+	defer log.Close()
 	// start pprof http
 	perf.Init(Conf.PprofBind)
 	// Initialize redis
 	if err := InitStorage(); err != nil {
-		glog.Errorf("InitStorage() error(%v)", err)
-		return
+		panic(err)
 	}
 	// init rpc service
 	if err := InitRPC(); err != nil {
-		glog.Errorf("InitRPC() error(%v)", err)
-		return
+		panic(err)
 	}
 	// init zookeeper
 	zk, err := InitZK()
 	if err != nil {
-		glog.Errorf("InitZK() error(%v)", err)
-		if zk != nil {
-			zk.Close()
-		}
-		return
+		panic(err)
 	}
 	// if process exit, close zk
 	defer zk.Close()
-	// init process
-	// sleep one second, let the listen start
-	time.Sleep(time.Second)
-	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
-		glog.Errorf("process.Init(\"%s\", \"%s\", \"%s\") error(%v)", Conf.User, Conf.Dir, Conf.PidFile, err)
-		return
+	// create pid file
+	if err := ioutil.WriteFile(Conf.PidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644); err != nil {
+		panic(err)
 	}
 	// init signals, block wait signals
 	sig := InitSignal()
 	HandleSignal(sig)
 	// exit
-	glog.Info("message stop")
+	log.Info("message stop")
 }

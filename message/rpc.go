@@ -17,9 +17,9 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"fmt"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
-	"github.com/golang/glog"
 	"net"
 	"net/rpc"
 	"strings"
@@ -38,7 +38,7 @@ func InitRPC() error {
 		if len(addrs) != 2 {
 			return fmt.Errorf("config rpc.bind:\"%s\" format error", bind)
 		}
-		glog.Infof("start rpc listen addr: \"%s\"", bind)
+		log.Info("start rpc listen addr: \"%s\"", bind)
 		go rpcListen(addrs[1])
 	}
 
@@ -48,12 +48,12 @@ func InitRPC() error {
 func rpcListen(bind string) {
 	l, err := net.Listen("tcp", bind)
 	if err != nil {
-		glog.Errorf("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
+		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
 		panic(err)
 	}
 	defer func() {
 		if err := l.Close(); err != nil {
-			glog.Errorf("listener.Close() error(%v)", err)
+			log.Error("listener.Close() error(%v)", err)
 		}
 	}()
 	rpc.Accept(l)
@@ -65,26 +65,26 @@ func (r *MessageRPC) SavePrivate(m *myrpc.MessageSavePrivateArgs, ret *int) erro
 		return myrpc.ErrParam
 	}
 	if err := UseStorage.SavePrivate(m.Key, m.Msg, m.MsgId, m.Expire); err != nil {
-		glog.Errorf("UseStorage.SavePrivate(\"%s\", \"%s\", %d, %d) error(%v)", m.Key, string(m.Msg), m.MsgId, m.Expire, err)
+		log.Error("UseStorage.SavePrivate(\"%s\", \"%s\", %d, %d) error(%v)", m.Key, string(m.Msg), m.MsgId, m.Expire, err)
 		return err
 	}
-	glog.V(1).Infof("UseStorage.SavePrivate(\"%s\", \"%s\", %d, %d) ok", m.Key, string(m.Msg), m.MsgId, m.Expire)
+	log.Debug("UseStorage.SavePrivate(\"%s\", \"%s\", %d, %d) ok", m.Key, string(m.Msg), m.MsgId, m.Expire)
 	return nil
 }
 
 // GetPrivate rpc interface get user private message.
 func (r *MessageRPC) GetPrivate(m *myrpc.MessageGetPrivateArgs, rw *myrpc.MessageGetResp) error {
-	glog.V(1).Infof("messageRPC.GetPrivate key:\"%s\" mid:\"%d\"", m.Key, m.MsgId)
+	log.Debug("messageRPC.GetPrivate key:\"%s\" mid:\"%d\"", m.Key, m.MsgId)
 	if m == nil || m.Key == "" || m.MsgId < 0 {
 		return myrpc.ErrParam
 	}
 	msgs, err := UseStorage.GetPrivate(m.Key, m.MsgId)
 	if err != nil {
-		glog.Errorf("UseStorage.GetPrivate(\"%s\", %d) error(%v)", m.Key, m.MsgId, err)
+		log.Error("UseStorage.GetPrivate(\"%s\", %d) error(%v)", m.Key, m.MsgId, err)
 		return err
 	}
 	rw.Msgs = msgs
-	glog.V(1).Infof("UserStorage.GetPrivate(\"%s\", %d) ok", m.Key, m.MsgId)
+	log.Debug("UserStorage.GetPrivate(\"%s\", %d) ok", m.Key, m.MsgId)
 	return nil
 }
 
@@ -94,10 +94,10 @@ func (r *MessageRPC) DelPrivate(key string, ret *int) error {
 		return myrpc.ErrParam
 	}
 	if err := UseStorage.DelPrivate(key); err != nil {
-		glog.Errorf("UserStorage.DelPrivate(\"%s\") error(%v)", key, err)
+		log.Error("UserStorage.DelPrivate(\"%s\") error(%v)", key, err)
 		return err
 	}
-	glog.V(1).Infof("UserStorage.DelPrivate(\"%s\") ok", key)
+	log.Debug("UserStorage.DelPrivate(\"%s\") ok", key)
 	return nil
 }
 
@@ -135,6 +135,6 @@ func (r *MessageRPC) DelGroup(key string, ret *int) error {
 
 // Server Ping interface
 func (r *MessageRPC) Ping(p int, ret *int) error {
-	glog.V(2).Info("ping ok")
+	log.Debug("ping ok")
 	return nil
 }

@@ -17,10 +17,10 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"encoding/json"
 	"errors"
 	"github.com/Terry-Mao/gopush-cluster/rpc"
-	"github.com/golang/glog"
 )
 
 const (
@@ -48,7 +48,7 @@ func InitStorage() error {
 	} else if Conf.StorageType == MySQLStorageType {
 		UseStorage = NewMySQLStorage()
 	} else {
-		glog.Errorf("unknown storage type: \"%s\"", Conf.StorageType)
+		log.Error("unknown storage type: \"%s\"", Conf.StorageType)
 		return ErrStorageType
 	}
 	return nil

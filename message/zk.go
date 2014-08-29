@@ -21,8 +21,8 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	myzk "github.com/Terry-Mao/gopush-cluster/zk"
-	"github.com/golang/glog"
 	"github.com/samuel/go-zookeeper/zk"
 	"strings"
 )
@@ -31,18 +31,18 @@ import (
 func InitZK() (*zk.Conn, error) {
 	conn, err := myzk.Connect(Conf.ZookeeperAddr, Conf.ZookeeperTimeout)
 	if err != nil {
-		glog.Errorf("zk.Connect() error(%v)", err)
+		log.Error("zk.Connect() error(%v)", err)
 		return nil, err
 	}
 	if err = myzk.Create(conn, Conf.ZookeeperPath); err != nil {
-		glog.Errorf("zk.Create() error(%v)", err)
+		log.Error("zk.Create() error(%v)", err)
 		return conn, err
 	}
 	data := strings.Join(Conf.RPCBind, ",")
-	glog.V(1).Infof("zk data: \"%s\"", data)
+	log.Debug("zk data: \"%s\"", data)
 	// tcp, websocket and rpc bind address store in the zk
 	if err = myzk.RegisterTemp(conn, Conf.ZookeeperPath, data); err != nil {
-		glog.Errorf("zk.RegisterTemp() error(%v)", err)
+		log.Error("zk.RegisterTemp() error(%v)", err)
 		return conn, err
 	}
 	return conn, nil

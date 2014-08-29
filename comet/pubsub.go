@@ -17,8 +17,8 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"errors"
-	"github.com/golang/glog"
 	"time"
 )
 
@@ -67,7 +67,7 @@ func StartComet() error {
 				return err
 			}
 		} else {
-			glog.Warningf("unknown gopush-cluster protocol %s, (\"websocket\" or \"tcp\")", proto)
+			log.Warn("unknown gopush-cluster protocol %s, (\"websocket\" or \"tcp\")", proto)
 		}
 	}
 

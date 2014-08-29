@@ -17,9 +17,9 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/router"
-	"github.com/golang/glog"
 )
 
 const (
@@ -36,7 +36,7 @@ func InitRouter() error {
 	case NetworkRouterCN:
 		r, err := router.InitCN(Conf.QQWryPath)
 		if err != nil {
-			glog.Errorf("init china network router failed(%v)", err)
+			log.Error("init china network router failed(%v)", err)
 			return err
 		}
 		routerCN = r

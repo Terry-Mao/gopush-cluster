@@ -20,7 +20,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/Terry-Mao/goconf"
-	"github.com/golang/glog"
 	"runtime"
 	"time"
 )
@@ -40,6 +39,7 @@ type Config struct {
 	User             string            `goconf:"base:user"`
 	PidFile          string            `goconf:"base:pidfile"`
 	Dir              string            `goconf:"base:dir"`
+	Log              string            `goconf:"base:log"`
 	MaxProc          int               `goconf:"base:maxproc"`
 	PprofBind        []string          `goconf:"base:pprof.bind:,"`
 	StorageType      string            `goconf:"storage:type"`
@@ -62,7 +62,6 @@ type Config struct {
 func InitConfig() error {
 	gconf := goconf.New()
 	if err := gconf.Parse(confFile); err != nil {
-		glog.Errorf("goconf.Parse(\"%s\") error(%v)", confFile, err)
 		return err
 	}
 	Conf = &Config{
@@ -71,6 +70,7 @@ func InitConfig() error {
 		User:      "nobody nobody",
 		PidFile:   "/tmp/gopush-cluster-message.pid",
 		Dir:       "./",
+		Log:       "./log/xml",
 		MaxProc:   runtime.NumCPU(),
 		PprofBind: []string{"localhost:8170"},
 		// storage
@@ -90,7 +90,6 @@ func InitConfig() error {
 		ZookeeperPath:    "/gopush-cluster-message",
 	}
 	if err := gconf.Unmarshal(Conf); err != nil {
-		glog.Errorf("goconf.Unmarshal() error(%v)", err)
 		return err
 	}
 	// redis section
