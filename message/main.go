@@ -51,10 +51,11 @@ func main() {
 	// init zookeeper
 	zk, err := InitZK()
 	if err != nil {
+		if zk != nil {
+			zk.Close()
+		}
 		panic(err)
 	}
-	// if process exit, close zk
-	defer zk.Close()
 	// create pid file
 	if err := ioutil.WriteFile(Conf.PidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644); err != nil {
 		panic(err)

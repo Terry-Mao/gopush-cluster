@@ -43,10 +43,11 @@ func main() {
 	// init zookeeper
 	zkConn, err := InitZK()
 	if err != nil {
+		if zkConn != nil {
+			zkConn.Close()
+		}
 		panic(err)
 	}
-	// if process exit, close zk
-	defer zkConn.Close()
 	// start pprof http
 	perf.Init(Conf.PprofBind)
 	// Init network router
