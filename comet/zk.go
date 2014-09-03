@@ -93,20 +93,23 @@ func watchCometRoot(conn *zk.Conn, fpath string, vnode int) {
 		}
 
 		// handle nodes changed(eg:add or del)
-		nodesMap := map[string]bool{}
+		count := 0
 		changed := false
 		for _, node := range nodes {
 			if _, ok := cometNodeInfoMap[node]; !ok {
 				changed = true
 				break
 			}
-			nodesMap[node] = true
+			count++
 		}
-		if !changed && (len(nodesMap) != len(nodes)) {
-			UserChannel.Migrate()
-		}
-
 		cometNodeInfoMap = tmp
+		if changed {
+			UserChannel.Migrate()
+		} else {
+			if count != len(nodes) {
+				UserChannel.Migrate()
+			}
+		}
 
 		// blocking wait node changed
 		event := <-watch
