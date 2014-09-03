@@ -163,6 +163,13 @@ func (l *ChannelList) bucket(key string) *ChannelBucket {
 	return l.Channels[idx]
 }
 
+// bucketIdx return a channelBucket index.
+func (l *ChannelList) BucketIdx(key *string) uint {
+	h := hash.NewMurmur3C()
+	h.Write([]byte(*key))
+	return uint(h.Sum32()) & uint(Conf.ChannelBucket-1)
+}
+
 // New create a user channle.
 func (l *ChannelList) New(key string) (Channel, error) {
 	// get a channel bucket

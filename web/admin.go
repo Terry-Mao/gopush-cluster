@@ -132,6 +132,7 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 			nodes[node] = &[]string{keys[i]}
 		}
 	}
+	var fKeys []string
 	for cometInfo, ks := range nodes {
 		client := cometInfo.CometRPC.Get()
 		if client == nil {
@@ -139,11 +140,20 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		args := &myrpc.CometPushPrivatesArgs{Msg: json.RawMessage(msg), Expire: uint(expire), Keys: *ks}
-		if err := client.Call(myrpc.CometServicePushPrivates, args, &ret); err != nil {
+		resp := myrpc.CometPushPrivatesResp{}
+		if err := client.Call(myrpc.CometServicePushPrivates, args, &resp); err != nil {
 			log.Error("client.Call(\"%s\", \"%v\", &ret) error(%v)", myrpc.CometServicePushPrivates, args.Keys, err)
 			res["ret"] = InternalErr
 			return
 		}
+
+		for i := 0; i < len(resp.FKeys); i++ {
+			fKeys = append(fKeys, resp.FKeys[i])
+		}
+	}
+	res["ret"] = OK
+	if len(fKeys) != 0 {
+		res["ret"] = map[string]interface{}{"fk": fKeys}
 	}
 	return
 }

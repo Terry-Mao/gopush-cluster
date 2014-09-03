@@ -87,6 +87,11 @@ type CometPushPrivatesArgs struct {
 	Expire uint            // message expire second
 }
 
+// Channel Push multi Private Message response
+type CometPushPrivatesResp struct {
+	FKeys []string // subscriber keys
+}
+
 // Channel Push Public Message Args
 type CometPushPublicArgs struct {
 	MsgID int64  // message id

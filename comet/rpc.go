@@ -24,6 +24,7 @@ import (
 	"net"
 	"net/rpc"
 	"strings"
+	"sync"
 )
 
 var (
@@ -126,25 +127,57 @@ func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error
 
 // PushMultiplePrivate expored a method for publishing a user multiple private message for the channel.
 // because of it`s going asynchronously in this method, so it won`t return an error to caller.
-func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, ret *int) error {
+func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.CometPushPrivatesResp) error {
 	if args == nil || args.Msg == nil {
 		return myrpc.ErrParam
 	}
+
+	rw = &myrpc.CometPushPrivatesResp{}
+
+	// grouping rely on bucket
+	type pushChan struct {
+		Key string
+		Channel
+	}
+	type pushChans struct {
+		Pc    []*pushChan
+		FKeys []string
+	}
+	chMap := make(map[uint]*pushChans, Conf.ChannelBucket)
+	index := uint(0)
 	for i := 0; i < len(args.Keys); i++ {
-		go func(key *string) {
-			// get a user channel
-			ch, err := UserChannel.New(*key)
-			if err != nil {
-				log.Error("UserChannel.New(\"%s\") error(%v)", *key, err)
-				return
+		ch, _ := UserChannel.New(args.Keys[i])
+		index = UserChannel.BucketIdx(&args.Keys[i])
+		chTmp, ok := chMap[index]
+		if ok {
+			chTmp.Pc = append(chTmp.Pc, &pushChan{args.Keys[i], ch})
+		} else {
+			chMap[index] = &pushChans{[]*pushChan{&pushChan{args.Keys[i], ch}}, []string{}}
+		}
+	}
+
+	// wait for push
+	m := &myrpc.Message{Msg: args.Msg}
+	wg := sync.WaitGroup{}
+	wg.Add(len(chMap))
+	for _, chs := range chMap {
+		go func(pcs *pushChans) {
+			for _, pc := range pcs.Pc {
+				if err := pc.PushMsg(pc.Key, m, args.Expire); err != nil {
+					log.Error("pc.PushMsg(\"%s\", \"%v\") error(%v)", pc.Key, m, err)
+					pcs.FKeys = append(pcs.FKeys, pc.Key)
+					continue
+				}
 			}
-			// use the channel push message
-			m := &myrpc.Message{Msg: args.Msg}
-			if err = ch.PushMsg(*key, m, args.Expire); err != nil {
-				log.Error("ch.PushMsg(\"%s\", \"%v\") error(%v)", *key, m, err)
-				return
-			}
-		}(&args.Keys[i])
+			wg.Done()
+		}(chs)
+	}
+	wg.Wait()
+
+	for _, chs := range chMap {
+		for i := 0; i < len(chs.FKeys); i++ {
+			rw.FKeys = append(rw.FKeys, chs.FKeys[i])
+		}
 	}
 
 	return nil
