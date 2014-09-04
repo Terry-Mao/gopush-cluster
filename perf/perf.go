@@ -17,7 +17,7 @@
 package perf
 
 import (
-	"github.com/golang/glog"
+	log "code.google.com/p/log4go"
 	"net/http"
 	"net/http/pprof"
 )
@@ -32,7 +32,7 @@ func Init(pprofBind []string) {
 	for _, addr := range pprofBind {
 		go func() {
 			if err := http.ListenAndServe(addr, pprofServeMux); err != nil {
-				glog.Errorf("http.ListenAndServe(\"%s\", pprofServeMux) error(%v)", addr, err)
+				log.Error("http.ListenAndServe(\"%s\", pprofServeMux) error(%v)", addr, err)
 				panic(err)
 			}
 		}()

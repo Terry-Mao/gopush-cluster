@@ -17,10 +17,10 @@
 package main
 
 import (
+	log "code.google.com/p/log4go"
 	"errors"
 	"flag"
 	"github.com/Terry-Mao/goconf"
-	"github.com/golang/glog"
 )
 
 var (
@@ -50,11 +50,11 @@ func InitConfig(file string) (*Config, error) {
 	}
 	c := goconf.New()
 	if err := c.Parse(file); err != nil {
-		glog.Errorf("goconf.Parse(\"%s\") failed (%s)", file, err.Error())
+		log.Error("goconf.Parse(\"%s\") failed (%s)", file, err.Error())
 		return nil, err
 	}
 	if err := c.Unmarshal(cf); err != nil {
-		glog.Errorf("goconf.Unmarshal() failed (%s)", err.Error())
+		log.Error("goconf.Unmarshal() failed (%s)", err.Error())
 		return nil, err
 	}
 	return cf, nil

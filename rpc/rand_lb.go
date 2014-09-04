@@ -17,10 +17,10 @@
 package rpc
 
 import (
+	log "code.google.com/p/log4go"
 	"errors"
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/ketama"
-	"github.com/golang/glog"
 	"math/rand"
 	"net/rpc"
 	"strconv"
@@ -60,7 +60,7 @@ func NewRandLB(clients map[string]*RPCClient, service string, retry, ping time.D
 	length := len(clients)
 	r := &RandLB{Clients: clients, ring: ring, length: length}
 	if check && length > 0 {
-		glog.Info("rpc ping start")
+		log.Info("rpc ping start")
 		r.ping(service, retry, ping)
 	}
 
@@ -74,7 +74,7 @@ func (r *RandLB) Get() *rpc.Client {
 	}
 
 	addr := r.ring.Hash(strconv.FormatInt(rand.Int63n(time.Now().UnixNano()), 10))
-	glog.V(1).Infof("rand hit rpc node: \"%s\"", addr)
+	log.Debug("rand hit rpc node: \"%s\"", addr)
 
 	return r.Clients[addr].Client
 }
@@ -84,7 +84,7 @@ func (r *RandLB) Stop() {
 	if r.exitCH != nil {
 		close(r.exitCH)
 	}
-	glog.Info("stop the randlb retry connect goroutine and ping goroutines")
+	log.Info("stop the randlb retry connect goroutine and ping goroutines")
 }
 
 // Destroy release the rpc.Client resource.
@@ -93,7 +93,7 @@ func (r *RandLB) Destroy() {
 	for _, client := range r.Clients {
 		if client != nil {
 			if err := client.Client.Close(); err != nil {
-				glog.Errorf("client.Close() error(%v)", err)
+				log.Error("client.Close() error(%v)", err)
 			}
 		}
 	}
@@ -107,12 +107,12 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 	for _, client := range r.Clients {
 		// warn: closures problem
 		go func(client *RPCClient) {
-			glog.Infof("\"%s\" rpc ping goroutine start", client.Addr)
+			log.Info("\"%s\" rpc ping goroutine start", client.Addr)
 			ret := 0
 			for {
 				select {
 				case <-r.exitCH:
-					glog.Infof("\"%s\" rpc ping goroutine exit", client.Addr)
+					log.Info("\"%s\" rpc ping goroutine exit", client.Addr)
 					return
 				default:
 				}
@@ -121,12 +121,12 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 					// if failed send to chan reconnect, sleep
 					client.Client.Close()
 					retryCH <- client.Addr
-					glog.Errorf("client.Call(\"%s\", 0, &ret) error(%v), retry", method, err)
+					log.Error("client.Call(\"%s\", 0, &ret) error(%v), retry", method, err)
 					time.Sleep(retry)
 					continue
 				}
 				// if ok, sleep
-				glog.V(2).Infof("\"%s\": rpc ping ok", client.Addr)
+				log.Debug("\"%s\": rpc ping ok", client.Addr)
 				time.Sleep(ping)
 			}
 		}(client)
@@ -134,20 +134,20 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 	// rpc retry connect
 	go func() {
 		var retryAddr string
-		glog.Info("rpc retry connect goroutine start")
+		log.Info("rpc retry connect goroutine start")
 		for {
 			select {
 			case retryAddr = <-retryCH:
 			case <-r.exitCH:
-				glog.Info("rpc retry connect goroutine exit")
+				log.Info("rpc retry connect goroutine exit")
 				return
 			}
 			rpcTmp, err := rpc.Dial("tcp", retryAddr)
 			if err != nil {
-				glog.Errorf("rpc.Dial(\"tcp\", %s) error(%s)", retryAddr, err)
+				log.Error("rpc.Dial(\"tcp\", %s) error(%s)", retryAddr, err)
 				continue
 			}
-			glog.Infof("rpc.Dial(\"tcp\", %s) retry succeed", retryAddr)
+			log.Info("rpc.Dial(\"tcp\", %s) retry succeed", retryAddr)
 			// copy-on-write
 			tmpClients := make(map[string]*RPCClient, r.length)
 			for addr, client := range r.Clients {

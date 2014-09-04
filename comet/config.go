@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"github.com/Terry-Mao/goconf"
-	"github.com/golang/glog"
 	"runtime"
 	"time"
 )
@@ -110,11 +109,9 @@ func InitConfig() error {
 	}
 	c := goconf.New()
 	if err := c.Parse(confFile); err != nil {
-		glog.Errorf("goconf.Parse(\"%s\") error(%v)", confFile, err)
 		return err
 	}
 	if err := c.Unmarshal(Conf); err != nil {
-		glog.Errorf("goconf.Unmarshall() error(%v)", err)
 		return err
 	}
 	return nil
