@@ -203,7 +203,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	}
 	if Conf.ZookeeperCometNode != CometRing.Hash(key) {
 		conn.Write(NodeReply)
-		log.Warn("<%s> key node error", addr)
+		log.Warn("<%s> key node(%s) unmatch", addr, CometRing.Hash(key))
 		return
 	}
 	heartbeatStr := args[1]

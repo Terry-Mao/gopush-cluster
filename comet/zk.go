@@ -47,12 +47,12 @@ func InitZK() (*zk.Conn, error) {
 		return nil, err
 	}
 	fpath := path.Join(Conf.ZookeeperCometPath, Conf.ZookeeperCometNode)
-	if err = myzk.Create(conn, fpath); err != nil {
-		log.Error("myzk.Create() error(%v)", err)
+	if err = myzk.Create(conn, fpath, Conf.ZookeeperCometWeight); err != nil {
+		log.Error("myzk.CreateWithData(\"%s\",\"%s\") error(%v)", fpath, Conf.ZookeeperCometWeight, err)
 		return conn, err
 	}
-	// comet weight with tcp, websocket and rpc bind address store in the zk
-	data := fmt.Sprintf("%s;", Conf.ZookeeperCometWeight)
+	// comet websocket and rpc bind address store in the zk
+	data := ""
 	for _, addr := range Conf.TCPBind {
 		data += fmt.Sprintf("tcp://%s,", addr)
 	}
@@ -63,13 +63,13 @@ func InitZK() (*zk.Conn, error) {
 		data += fmt.Sprintf("rpc://%s,", addr)
 	}
 	data = strings.TrimRight(data, ",")
-	log.Debug("myzk data: \"%s\"", data)
+	log.Debug("myzk node:\"%s\" registe data: \"%s\"", fpath, data)
 	if err = myzk.RegisterTemp(conn, fpath, data); err != nil {
 		log.Error("myzk.RegisterTemp() error(%v)", err)
 		return conn, err
 	}
 	// watch and update
-	go watchCometRoot(conn, fpath, Conf.KetamaBase)
+	go watchCometRoot(conn, Conf.ZookeeperCometPath, Conf.KetamaBase)
 	rpc.InitMessage(conn, Conf.ZookeeperMessagePath, Conf.RPCRetry, Conf.RPCPing, Conf.KetamaBase)
 	return conn, nil
 }
@@ -103,6 +103,7 @@ func watchCometRoot(conn *zk.Conn, fpath string, vnode int) {
 			count++
 		}
 		cometNodeInfoMap = tmp
+		log.Info("cometnode info :%d", len(cometNodeInfoMap))
 		if changed {
 			UserChannel.Migrate()
 		} else {
