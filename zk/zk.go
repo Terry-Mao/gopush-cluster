@@ -71,9 +71,9 @@ func Create(conn *zk.Conn, fpath, data string) error {
 		}
 	}
 	if data != "" {
-		_, err := conn.Set(tpath, []byte(data), 0)
+		_, err := conn.Set(tpath, []byte(data), -1)
 		if err != nil {
-			log.Error("conn.Set(\"%s\",\"%s\",\"0\") error(%v)", tpath, data, err)
+			log.Error("conn.Set(\"%s\",\"%s\",\"-1\") error(%v)", tpath, data, err)
 			return err
 		}
 	}
