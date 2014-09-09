@@ -362,31 +362,3 @@ func InitComet(conn *zk.Conn, fpath string, retry, ping time.Duration, vnode int
 	go handleCometNodeEvent(conn, fpath, retry, ping, vnode, ch)
 	go watchCometRoot(conn, fpath, ch)
 }
-
-// GetNodesInfo get infomation of comet node without ping or reDial
-func GetNodesInfo(conn *zk.Conn, node, fpath string, vnode int) (*CometNodeInfo, error) {
-	bpath := path.Join(fpath, node)
-	nodes, err := myzk.GetNodes(conn, bpath)
-	if err != nil {
-		log.Error("zk.GetNodes(conn,\"%s\") error(%v)", bpath, err)
-		return nil, err
-	}
-	sort.Strings(nodes)
-	info, err := registerCometNode(conn, nodes[0], bpath, 0, 0, vnode, false, false)
-	if err != nil {
-		log.Error("registerCometNode() error(%v)", err)
-		return nil, err
-	}
-	data, _, err := conn.Get(bpath)
-	if err != nil {
-		log.Error("registerCometNode() error(%v)", err)
-		return nil, err
-	}
-	weight, err := strconv.Atoi(string(data))
-	if err != nil {
-		log.Error("node:\"%s\" data:\"%s\" format error", bpath, string(data))
-		return nil, err
-	}
-	info.Weight = weight
-	return info, nil
-}

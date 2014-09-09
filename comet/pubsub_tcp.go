@@ -201,6 +201,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		log.Warn("<%s> key param error", addr)
 		return
 	}
+	log.Debug("match node:%s hash node:%s", Conf.ZookeeperCometNode, CometRing.Hash(key))
 	if Conf.ZookeeperCometNode != CometRing.Hash(key) {
 		conn.Write(NodeReply)
 		log.Warn("<%s> key node(%s) unmatch", addr, CometRing.Hash(key))
@@ -210,7 +211,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	i, err := strconv.Atoi(heartbeatStr)
 	if err != nil {
 		conn.Write(ParamReply)
-		log.Error("<%s> user_key:\"%s\" heartbeat:\"%s\" argument error (%s)", addr, key, heartbeatStr, err)
+		log.Error("<%s> user_key:\"%s\" heartbeat:\"%s\" argument error (%v)", addr, key, heartbeatStr, err)
 		return
 	}
 	if i < minHearbeatSec {
@@ -266,7 +267,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 				log.Warn("<%s> user_key:\"%s\" conn.Read() failed, read heartbeat timedout error(%v)", addr, key, err)
 			} else {
 				// client connection close
-				log.Warn("<%s> user_key:\"%s\" client connection close error(%s)", addr, key, err)
+				log.Warn("<%s> user_key:\"%s\" client connection close error(%v)", addr, key, err)
 			}
 			break
 		}
@@ -284,7 +285,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	}
 	// remove exists conn
 	if err := c.RemoveConn(key, connElem); err != nil {
-		log.Error("<%s> user_key:\"%s\" remove conn error(%s)", addr, key, err)
+		log.Error("<%s> user_key:\"%s\" remove conn error(%v)", addr, key, err)
 	}
 	return
 }
@@ -294,7 +295,7 @@ func parseCmd(rd *bufio.Reader) ([]string, error) {
 	// get argument number
 	argNum, err := parseCmdSize(rd, '*')
 	if err != nil {
-		log.Error("tcp:cmd format error when find '*' (%s)", err)
+		log.Error("tcp:cmd format error when find '*' (%v)", err)
 		return nil, err
 	}
 	if argNum < minCmdNum || argNum > maxCmdNum {

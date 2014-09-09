@@ -103,7 +103,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	i, err := strconv.Atoi(heartbeatStr)
 	if err != nil {
 		ws.Write(ParamReply)
-		log.Error("<%s> user_key:\"%s\" heartbeat argument error(%s)", addr, key, err)
+		log.Error("<%s> user_key:\"%s\" heartbeat argument error(%v)", addr, key, err)
 		return
 	}
 	if i < minHearbeatSec {
@@ -119,7 +119,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	c, err := UserChannel.Get(key, true)
 	if err != nil {
 		ws.Write(ChannelReply)
-		log.Error("<%s> user_key:\"%s\" can't get a channel error(%s)", addr, key, err)
+		log.Error("<%s> user_key:\"%s\" can't get a channel error(%v)", addr, key, err)
 		return
 	}
 	// auth token
@@ -131,7 +131,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	// add a conn to the channel
 	connElem, err := c.AddConn(key, &Connection{Conn: ws, Proto: WebsocketProto, Version: version})
 	if err != nil {
-		log.Error("<%s> user_key:\"%s\" add conn error(%s)", addr, key, err)
+		log.Error("<%s> user_key:\"%s\" add conn error(%v)", addr, key, err)
 		return
 	}
 	// blocking wait client heartbeat
@@ -142,13 +142,13 @@ func SubscribeHandle(ws *websocket.Conn) {
 		// more then 1 sec, reset the timer
 		if end-begin >= Second {
 			if err = ws.SetReadDeadline(time.Now().Add(time.Second * time.Duration(heartbeat))); err != nil {
-				log.Error("<%s> user_key:\"%s\" websocket.SetReadDeadline() error(%s)", addr, key, err)
+				log.Error("<%s> user_key:\"%s\" websocket.SetReadDeadline() error(%v)", addr, key, err)
 				break
 			}
 			begin = end
 		}
 		if err = websocket.Message.Receive(ws, &reply); err != nil {
-			log.Error("<%s> user_key:\"%s\" websocket.Message.Receive() error(%s)", addr, key, err)
+			log.Error("<%s> user_key:\"%s\" websocket.Message.Receive() error(%v)", addr, key, err)
 			break
 		}
 		if reply == Heartbeat {
@@ -165,7 +165,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 	}
 	// remove exists conn
 	if err := c.RemoveConn(key, connElem); err != nil {
-		log.Error("<%s> user_key:\"%s\" remove conn error(%s)", addr, key, err)
+		log.Error("<%s> user_key:\"%s\" remove conn error(%v)", addr, key, err)
 	}
 	return
 }

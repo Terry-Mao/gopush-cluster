@@ -24,15 +24,15 @@ import (
 	log "code.google.com/p/log4go"
 	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/rpc"
-	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	myzk "github.com/Terry-Mao/gopush-cluster/zk"
 	"github.com/samuel/go-zookeeper/zk"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 )
 
-var cometNodeInfoMap = make(map[string]*myrpc.CometNodeInfo)
+var nodeWeightMap = make(map[string]int)
 
 const (
 	// wait node
@@ -82,32 +82,39 @@ func watchCometRoot(conn *zk.Conn, fpath string, vnode int) {
 			log.Error("myzk.GetNodesW() error(%v)", err)
 			continue
 		}
-		tmp := make(map[string]*myrpc.CometNodeInfo)
+		tmp := make(map[string]int)
 		for _, node := range nodes {
-			info, err := myrpc.GetNodesInfo(conn, node, fpath, vnode)
+			bpath := path.Join(fpath, node)
+			w, _, err := conn.Get(bpath)
 			if err != nil {
-				log.Error("myrpc.GetNodesInfo() error(%v)", err)
+				log.Error("conn.Get(\"%s\") error(%v)", bpath, err)
 				continue
 			}
-			tmp[node] = info
+			weight, err := strconv.Atoi(string(w))
+			if err != nil {
+				log.Error("node:\"%s\" data:\"%s\" format error", bpath, string(w))
+				continue
+			}
+			tmp[node] = weight
 		}
 
 		// handle nodes changed(eg:add or del)
 		count := 0
 		changed := false
 		for _, node := range nodes {
-			if _, ok := cometNodeInfoMap[node]; !ok {
+			if _, ok := nodeWeightMap[node]; !ok {
 				changed = true
 				break
 			}
 			count++
 		}
-		cometNodeInfoMap = tmp
-		log.Info("cometnode info :%d", len(cometNodeInfoMap))
+		lenMap := len(nodeWeightMap)
+		nodeWeightMap = tmp
+		log.Debug("cometnode info :%d", len(nodeWeightMap))
 		if changed {
 			UserChannel.Migrate()
 		} else {
-			if count != len(nodes) {
+			if count != lenMap {
 				UserChannel.Migrate()
 			}
 		}

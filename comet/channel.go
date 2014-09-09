@@ -257,8 +257,8 @@ func (l *ChannelList) Close() {
 func (l *ChannelList) Migrate() {
 	// init ketama
 	ring := ketama.NewRing(Conf.KetamaBase)
-	for node, info := range cometNodeInfoMap {
-		ring.AddNode(node, info.Weight)
+	for node, weight := range nodeWeightMap {
+		ring.AddNode(node, weight)
 	}
 	ring.Bake()
 	CometRing = ring
