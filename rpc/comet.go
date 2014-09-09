@@ -372,7 +372,7 @@ func GetNodesInfo(conn *zk.Conn, node, fpath string, vnode int) (*CometNodeInfo,
 		return nil, err
 	}
 	sort.Strings(nodes)
-	info, err := registerCometNode(conn, bpath, nodes[0], 0, 0, vnode, false, false)
+	info, err := registerCometNode(conn, nodes[0], bpath, 0, 0, vnode, false, false)
 	if err != nil {
 		log.Error("registerCometNode() error(%v)", err)
 		return nil, err
