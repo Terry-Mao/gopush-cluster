@@ -6,6 +6,17 @@
     <level>INFO</level>
   </filter>
   <filter enabled="true">
+    <tag>debug_file</tag>
+    <type>file</type>
+    <level>DEBUG</level>
+    <property name="filename">/tmp/comet_debug.log</property>
+    <property name="format">[%D %T] [%L] [%S] %M</property>
+    <property name="rotate">true</property> <!-- true enables log rotation, otherwise append -->
+    <property name="maxsize">0M</property> <!-- \d+[KMG]? Suffixes are in terms of 2**10 -->
+    <property name="maxlines">0K</property> <!-- \d+[KMG]? Suffixes are in terms of thousands -->
+    <property name="daily">true</property> <!-- Automatically rotates when a log message is written after midnight -->
+  </filter>
+  <filter enabled="true">
     <tag>info_file</tag>
     <type>file</type>
     <level>INFO</level>
@@ -22,7 +33,7 @@
        Recommended: "[%D %T] [%L] (%S) %M"
     -->
     <property name="format">[%D %T] [%L] [%S] %M</property>
-    <property name="rotate">false</property> <!-- true enables log rotation, otherwise append -->
+    <property name="rotate">true</property> <!-- true enables log rotation, otherwise append -->
     <property name="maxsize">0M</property> <!-- \d+[KMG]? Suffixes are in terms of 2**10 -->
     <property name="maxlines">0K</property> <!-- \d+[KMG]? Suffixes are in terms of thousands -->
     <property name="daily">true</property> <!-- Automatically rotates when a log message is written after midnight -->
@@ -33,7 +44,7 @@
     <level>WARNING</level>
     <property name="filename">/tmp/comet_warn.log</property>
     <property name="format">[%D %T] [%L] [%S] %M</property>
-    <property name="rotate">false</property> <!-- true enables log rotation, otherwise append -->
+    <property name="rotate">true</property> <!-- true enables log rotation, otherwise append -->
     <property name="maxsize">0M</property> <!-- \d+[KMG]? Suffixes are in terms of 2**10 -->
     <property name="maxlines">0K</property> <!-- \d+[KMG]? Suffixes are in terms of thousands -->
     <property name="daily">true</property> <!-- Automatically rotates when a log message is written after midnight -->
@@ -44,7 +55,7 @@
     <level>ERROR</level>
     <property name="filename">/tmp/comet_error.log</property>
     <property name="format">[%D %T] [%L] [%S] %M</property>
-    <property name="rotate">false</property> <!-- true enables log rotation, otherwise append -->
+    <property name="rotate">true</property> <!-- true enables log rotation, otherwise append -->
     <property name="maxsize">0M</property> <!-- \d+[KMG]? Suffixes are in terms of 2**10 -->
     <property name="maxlines">0K</property> <!-- \d+[KMG]? Suffixes are in terms of thousands -->
     <property name="daily">true</property> <!-- Automatically rotates when a log message is written after midnight -->
