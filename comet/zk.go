@@ -48,7 +48,7 @@ func InitZK() (*zk.Conn, error) {
 	}
 	fpath := path.Join(Conf.ZookeeperCometPath, Conf.ZookeeperCometNode)
 	if err = myzk.Create(conn, fpath, Conf.ZookeeperCometWeight); err != nil {
-		log.Error("myzk.CreateWithData(\"%s\",\"%s\") error(%v)", fpath, Conf.ZookeeperCometWeight, err)
+		log.Error("myzk.Create(\"%s\",\"%s\") error(%v)", fpath, Conf.ZookeeperCometWeight, err)
 		return conn, err
 	}
 	// comet websocket and rpc bind address store in the zk

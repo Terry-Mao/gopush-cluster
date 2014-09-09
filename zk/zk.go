@@ -60,7 +60,7 @@ func Create(conn *zk.Conn, fpath, data string) error {
 	for _, str := range strings.Split(fpath, "/")[1:] {
 		tpath = path.Join(tpath, "/", str)
 		log.Debug("create zookeeper path: \"%s\"", tpath)
-		_, err := conn.Create(tpath, []byte(data), 0, zk.WorldACL(zk.PermAll))
+		_, err := conn.Create(tpath, []byte(""), 0, zk.WorldACL(zk.PermAll))
 		if err != nil {
 			if err == zk.ErrNodeExists {
 				log.Warn("zk.create(\"%s\") exists", tpath)
@@ -70,6 +70,14 @@ func Create(conn *zk.Conn, fpath, data string) error {
 			}
 		}
 	}
+	if data != "" {
+		_, err := conn.Set(tpath, []byte(data), 0)
+		if err != nil {
+			log.Error("conn.Set(\"%s\",\"%s\",\"0\") error(%v)", tpath, data, err)
+			return err
+		}
+	}
+
 	return nil
 }
 

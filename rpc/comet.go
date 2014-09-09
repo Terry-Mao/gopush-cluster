@@ -172,6 +172,7 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 				log.Error("node:\"%s\" data:\"%s\" format error", path.Join(fpath, ev.Key), string(data))
 				continue
 			}
+			log.Debug("get node:%s weight:%s", ev.Key, string(data))
 			tmpMap[ev.Key] = &CometNodeInfo{Weight: weight}
 			go watchCometNode(conn, ev.Key, fpath, retry, ping, vnode, ch)
 		} else if ev.Event == eventNodeDel {
@@ -186,13 +187,14 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 		}
 		// if exist old node info, destroy
 		if info, ok := cometNodeInfoMap[ev.Key]; ok {
-			if info != nil {
+			if info != nil && info.CometRPC != nil {
 				info.CometRPC.Destroy()
 			}
 		}
 		// update comet hash, cause node has changed
 		tempRing := ketama.NewRing(vnode)
 		for k, v := range tmpMap {
+			log.Debug("AddNode node:%s weight:%d", k, v.Weight)
 			tempRing.AddNode(k, v.Weight)
 		}
 		tempRing.Bake()
@@ -241,6 +243,18 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 
 // registerCometNode get infomation of comet node
 func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int, startPing, reDial bool) (*CometNodeInfo, error) {
+	// get node weight
+	w, _, err := conn.Get(fpath)
+	if err != nil {
+		log.Error("conn.Get(\"%s\") error(%v)", fpath, err)
+		return nil, err
+	}
+	weight, err := strconv.Atoi(string(w))
+	if err != nil {
+		log.Error("node:\"%s\" data:\"%s\" format error", fpath, string(w))
+		return nil, err
+	}
+	//get subnode data
 	fpath = path.Join(fpath, node)
 	data, _, err := conn.Get(fpath)
 	if err != nil {
@@ -253,7 +267,7 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 		log.Error("parseCometNode(\"%s\") error(%v)", string(data), err)
 		return nil, err
 	}
-	info := &CometNodeInfo{Addr: addrs}
+	info := &CometNodeInfo{Addr: addrs, Weight: weight}
 	rpcAddr, ok := addrs[cometProtocolRPC]
 	if !ok || len(rpcAddr) == 0 {
 		log.Error("zk nodes: \"%s\" don't have rpc addr", fpath)
