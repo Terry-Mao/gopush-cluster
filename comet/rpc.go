@@ -132,8 +132,6 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 		return myrpc.ErrParam
 	}
 
-	rw = &myrpc.CometPushPrivatesResp{}
-
 	// grouping rely on bucket
 	type pushChan struct {
 		Key string
