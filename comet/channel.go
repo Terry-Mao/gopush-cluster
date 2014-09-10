@@ -156,9 +156,7 @@ func (l *ChannelList) Count() int {
 
 // bucket return a channelBucket use murmurhash3.
 func (l *ChannelList) bucket(key string) *ChannelBucket {
-	h := hash.NewMurmur3C()
-	h.Write([]byte(key))
-	idx := uint(h.Sum32()) & uint(Conf.ChannelBucket-1)
+	idx := l.BucketIdx(&key)
 	log.Debug("user_key:\"%s\" hit channel bucket index:%d", key, idx)
 	return l.Channels[idx]
 }

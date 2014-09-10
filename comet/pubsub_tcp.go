@@ -204,7 +204,7 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	log.Debug("match node:%s hash node:%s", Conf.ZookeeperCometNode, CometRing.Hash(key))
 	if Conf.ZookeeperCometNode != CometRing.Hash(key) {
 		conn.Write(NodeReply)
-		log.Warn("<%s> key node(%s) unmatch", addr, CometRing.Hash(key))
+		log.Warn("<%s> key node:%s unmatch this node:%s", addr, CometRing.Hash(key), Conf.ZookeeperCometNode)
 		return
 	}
 	heartbeatStr := args[1]

@@ -83,8 +83,9 @@ func watchCometRoot(conn *zk.Conn, fpath string, vnode int) {
 			continue
 		}
 		tmp := make(map[string]int)
+		bpath := ""
 		for _, node := range nodes {
-			bpath := path.Join(fpath, node)
+			bpath = path.Join(fpath, node)
 			w, _, err := conn.Get(bpath)
 			if err != nil {
 				log.Error("conn.Get(\"%s\") error(%v)", bpath, err)
@@ -100,21 +101,21 @@ func watchCometRoot(conn *zk.Conn, fpath string, vnode int) {
 
 		// handle nodes changed(eg:add or del)
 		count := 0
-		changed := false
+		added := false
 		for _, node := range nodes {
 			if _, ok := nodeWeightMap[node]; !ok {
-				changed = true
+				added = true
 				break
 			}
 			count++
 		}
 		lenMap := len(nodeWeightMap)
 		nodeWeightMap = tmp
-		log.Debug("cometnode info :%d", len(nodeWeightMap))
-		if changed {
+		log.Info("comet update watch node : %v", tmp)
+		if added {
 			UserChannel.Migrate()
 		} else {
-			if count != lenMap {
+			if count != lenMap { //if no added node and count != lenMap, it must be lost node
 				UserChannel.Migrate()
 			}
 		}
