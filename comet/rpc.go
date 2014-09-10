@@ -164,7 +164,7 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 		go func(pcs *pushChans) {
 			for _, pc := range pcs.Pc {
 				if err := pc.PushMsg(pc.Key, m, args.Expire); err != nil {
-					log.Error("pc.PushMsg(\"%s\", \"%v\") error(%v)", pc.Key, m, err)
+					log.Error("pc.PushMsg(\"%s\", \"%s\") error(%v)", pc.Key, string(m.Msg), err)
 					pcs.FKeys = append(pcs.FKeys, pc.Key)
 					continue
 				}
