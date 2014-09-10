@@ -81,7 +81,7 @@ func PushPrivate(w http.ResponseWriter, r *http.Request) {
 }
 
 // PushMultiPrivate handle for push multiple private messages.
-// because of it`s going asynchronously in this method, so it won`t return an InternalErr to caller.
+// Because of it`s going asynchronously in this method, so it won`t return a InternalErr to caller.
 func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method Not Allowed", 405)
@@ -90,13 +90,14 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 	body := ""
 	res := map[string]interface{}{"ret": OK}
 	defer retPWrite(w, r, res, &body, time.Now())
-	// param
+	// post param
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		res["ret"] = InternalErr
 		log.Error("ioutil.ReadAll() failed (%v)", err)
 		return
 	}
+	body = string(bodyBytes)
 	msgBytes, keys, ret := parseMultiPrivate(bodyBytes)
 	if ret != OK {
 		res["ret"] = ret
@@ -109,7 +110,7 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 		log.Error("json.RawMessage(\"%s\").MarshalJSON() error(%v)", string(msg), err)
 		return
 	}
-
+	// url param
 	params := r.URL.Query()
 	expire, err := strconv.ParseUint(params.Get("expire"), 10, 32)
 	if err != nil {
@@ -133,6 +134,7 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	var fKeys []string
+	//push to every node
 	for cometInfo, ks := range nodes {
 		client := cometInfo.CometRPC.Get()
 		if client == nil {

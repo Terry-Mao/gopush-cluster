@@ -50,12 +50,6 @@ func main() {
 	}
 	// start pprof http
 	perf.Init(Conf.PprofBind)
-	// Init network router
-	if Conf.Router != "" {
-		if err := InitRouter(); err != nil {
-			panic(err)
-		}
-	}
 	// start http listen.
 	StartHTTP()
 	// create pid file

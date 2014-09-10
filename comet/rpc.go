@@ -137,42 +137,50 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 		Key string
 		Channel
 	}
-	type pushChans struct {
-		Pc    []*pushChan
+	type bucketChan struct {
+		Pcs   []*pushChan
 		FKeys []string
 	}
-	chMap := make(map[uint]*pushChans, Conf.ChannelBucket)
+	bucketMap := make(map[uint]*bucketChan, Conf.ChannelBucket)
 	index := uint(0)
 	for i := 0; i < len(args.Keys); i++ {
-		ch, _ := UserChannel.New(args.Keys[i])
+		uc, _ := UserChannel.New(args.Keys[i])
 		index = UserChannel.BucketIdx(&args.Keys[i])
-		chTmp, ok := chMap[index]
+		bucket, ok := bucketMap[index]
 		if ok {
-			chTmp.Pc = append(chTmp.Pc, &pushChan{args.Keys[i], ch})
+			bucket.Pcs = append(bucket.Pcs, &pushChan{args.Keys[i], uc})
 		} else {
-			chMap[index] = &pushChans{[]*pushChan{&pushChan{args.Keys[i], ch}}, []string{}}
+			bucketMap[index] = &bucketChan{
+				[]*pushChan{
+					&pushChan{
+						args.Keys[i],
+						uc,
+					},
+				},
+				[]string{},
+			}
 		}
 	}
 
 	// wait for push
 	m := &myrpc.Message{Msg: args.Msg}
 	wg := sync.WaitGroup{}
-	wg.Add(len(chMap))
-	for _, chs := range chMap {
-		go func(pcs *pushChans) {
-			for _, pc := range pcs.Pc {
+	wg.Add(len(bucketMap))
+	for _, bucket := range bucketMap {
+		go func(bucket *bucketChan) {
+			for _, pc := range bucket.Pcs {
 				if err := pc.PushMsg(pc.Key, m, args.Expire); err != nil {
 					log.Error("pc.PushMsg(\"%s\", \"%s\") error(%v)", pc.Key, string(m.Msg), err)
-					pcs.FKeys = append(pcs.FKeys, pc.Key)
+					bucket.FKeys = append(bucket.FKeys, pc.Key)
 					continue
 				}
 			}
 			wg.Done()
-		}(chs)
+		}(bucket)
 	}
 	wg.Wait()
 
-	for _, chs := range chMap {
+	for _, chs := range bucketMap {
 		for i := 0; i < len(chs.FKeys); i++ {
 			rw.FKeys = append(rw.FKeys, chs.FKeys[i])
 		}

@@ -57,21 +57,7 @@ func GetServer(w http.ResponseWriter, r *http.Request) {
 		res["ret"] = NotFoundServer
 		return
 	}
-	server := ""
-	// Select the best ip
-	if Conf.Router != "" {
-		var ips []string
-		for _, addr := range addrs {
-			ips = append(ips, addr.Addr)
-		}
-		server = routerCN.SelectBest(r.RemoteAddr, ips)
-		log.Debug("select the best ip:\"%s\" match with remoteAddr:\"%s\" , from ip list:\"%v\"", server, r.RemoteAddr, ips)
-	}
-	if server == "" {
-		log.Debug("remote addr: \"%s\" chose the ip: \"%s\"", r.RemoteAddr, addrs[0].Addr)
-		server = addrs[0].Addr
-	}
-	res["data"] = map[string]interface{}{"server": server}
+	res["data"] = map[string]interface{}{"server": addrs[0].Addr}
 	return
 }
 
