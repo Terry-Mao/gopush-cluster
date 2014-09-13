@@ -105,7 +105,7 @@ func (s *RedisStorage) SavePrivate(key string, msg json.RawMessage, mid int64, e
 	rm := &RedisPrivateMessage{Msg: msg, Expire: int64(expire) + time.Now().Unix()}
 	m, err := json.Marshal(rm)
 	if err != nil {
-		log.Error("json.Marshal(\"%v\") error(%v)", rm, err)
+		log.Error("json.Marshal() key:\"%s\" error(%v)", key, err)
 		return err
 	}
 	if err := conn.Send("ZADD", key, mid, m); err != nil {
@@ -113,7 +113,7 @@ func (s *RedisStorage) SavePrivate(key string, msg json.RawMessage, mid int64, e
 		return err
 	}
 	if err := conn.Send("ZREMRANGEBYRANK", key, 0, -1*(Conf.RedisMaxStore+1)); err != nil {
-		log.Error("conn.Send(\"ZREMRANGEBYRANK\", \"%s\", 0, %d) error(%v)", key, mid, -1*(Conf.RedisMaxStore+1), err)
+		log.Error("conn.Send(\"ZREMRANGEBYRANK\", \"%s\", 0, %d) error(%v)", key, -1*(Conf.RedisMaxStore+1), err)
 		return err
 	}
 	if err := conn.Flush(); err != nil {
@@ -142,7 +142,7 @@ func (s *RedisStorage) GetPrivate(key string, mid int64) ([]*myrpc.Message, erro
 	defer conn.Close()
 	values, err := redis.Values(conn.Do("ZRANGEBYSCORE", key, fmt.Sprintf("(%d", mid), "+inf", "WITHSCORES"))
 	if err != nil {
-		log.Error("conn.Do(\"ZRANGEBYSCORE\", \"%s\", \"%s\", \"+inf\", \"WITHSCORES\") error(%v)", err)
+		log.Error("conn.Do(\"ZRANGEBYSCORE\", \"%s\", \"%d\", \"+inf\", \"WITHSCORES\") error(%v)", key, mid, err)
 		return nil, err
 	}
 	msgs := make([]*myrpc.Message, 0, len(values))
