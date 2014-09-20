@@ -136,6 +136,7 @@ func (c *SeqChannel) PushMsg(key string, m *myrpc.Message, expire uint) error {
 			}
 			sendMsg = msg
 		}
+		// TODO use goroutine
 		conn.Write(key, sendMsg)
 	}
 	c.mutex.Unlock()

@@ -251,7 +251,7 @@ func (l *ChannelList) Close() {
 	}
 }
 
-// Migrate migrate portion of connections which don`t belong to this Comet
+// Migrate migrate portion of connections which don`t belong to this Comet.
 func (l *ChannelList) Migrate() {
 	// init ketama
 	ring := ketama.NewRing(Conf.KetamaBase)
@@ -260,9 +260,9 @@ func (l *ChannelList) Migrate() {
 	}
 	ring.Bake()
 	CometRing = ring
-
 	// get all the channel lock
 	channels := []Channel{}
+	// TODO split lock
 	for i, c := range l.Channels {
 		c.Lock()
 		for k, v := range c.Data {

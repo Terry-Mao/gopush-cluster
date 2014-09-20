@@ -17,6 +17,7 @@
 package main
 
 import (
+	// TODO change the 3rd websocket lib
 	"code.google.com/p/go.net/websocket"
 	log "code.google.com/p/log4go"
 	"fmt"
@@ -98,6 +99,7 @@ func SubscribeHandle(ws *websocket.Conn) {
 		log.Warn("<%s> key param error", addr)
 		return
 	}
+	// TODO add node check
 	// get heartbeat second
 	heartbeatStr := params.Get("heartbeat")
 	i, err := strconv.Atoi(heartbeatStr)

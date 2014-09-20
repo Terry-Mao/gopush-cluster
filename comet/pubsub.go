@@ -70,6 +70,5 @@ func StartComet() error {
 			log.Warn("unknown gopush-cluster protocol %s, (\"websocket\" or \"tcp\")", proto)
 		}
 	}
-
 	return nil
 }

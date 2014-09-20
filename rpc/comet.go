@@ -144,6 +144,8 @@ func watchCometRoot(conn *zk.Conn, fpath string, ch chan *CometNodeEvent) error 
 				ch <- &CometNodeEvent{Event: eventNodeDel, Key: node}
 			}
 		}
+		// warn:ignore weight update, let comet module watch the update.
+		// cometnode will get weight, so web will know the notify.
 		// blocking wait node changed
 		event := <-watch
 		log.Info("zk path: \"%s\" receive a event %v", fpath, event)
@@ -225,7 +227,7 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 		// leader selection
 		// register node
 		sort.Strings(nodes)
-		if info, err := registerCometNode(conn, nodes[0], fpath, retry, ping, vnode, true, true); err != nil {
+		if info, err := registerCometNode(conn, nodes[0], fpath, retry, ping, vnode, true); err != nil {
 			log.Error("zk path: \"%s\" registerCometNode error(%v)", fpath, err)
 			time.Sleep(waitNodeDelaySecond)
 			continue
@@ -242,7 +244,7 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 }
 
 // registerCometNode get infomation of comet node
-func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int, startPing, reDial bool) (*CometNodeInfo, error) {
+func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int, startPing bool) (*CometNodeInfo, error) {
 	// get node weight
 	w, _, err := conn.Get(fpath)
 	if err != nil {
@@ -276,20 +278,18 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 	// init comet rpc
 	clients := make(map[string]*RPCClient, len(rpcAddr))
 	for _, addr := range rpcAddr {
-		if reDial == true {
-			r, err := rpc.Dial("tcp", addr.Addr)
-			if err != nil {
-				log.Error("rpc.Dial(\"%s\") error(%v)", addr.Addr, err)
-				return nil, err
-			}
-			addr.Client = r
+		r, err := rpc.Dial("tcp", addr.Addr)
+		if err != nil {
+			log.Error("rpc.Dial(\"%s\") error(%v)", addr.Addr, err)
+			return nil, err
 		}
+		addr.Client = r
 		clients[addr.Addr] = addr
 	}
 	lb, err := NewRandLB(clients, cometService, retry, ping, vnode, startPing)
 	if err != nil {
 		log.Error("NewRandLR() error(%v)", err)
-		panic(err)
+		return nil, err
 	}
 	info.CometRPC = lb
 	log.Info("zk path: \"%s\" register nodes: \"%s\"", fpath, node)
