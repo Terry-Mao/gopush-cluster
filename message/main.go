@@ -19,11 +19,9 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	"flag"
-	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/perf"
+	"github.com/Terry-Mao/gopush-cluster/process"
 	"github.com/Terry-Mao/gopush-cluster/ver"
-	"io/ioutil"
-	"os"
 	"runtime"
 )
 
@@ -56,8 +54,8 @@ func main() {
 		}
 		panic(err)
 	}
-	// create pid file
-	if err := ioutil.WriteFile(Conf.PidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644); err != nil {
+	// process init
+	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
 		panic(err)
 	}
 	// init signals, block wait signals
