@@ -137,9 +137,6 @@ func watchCometRoot(conn *zk.Conn, fpath string, ch chan *CometNodeEvent) error 
 				ch <- &CometNodeEvent{Event: eventNodeDel, Key: node, Migrate: true}
 			}
 		}
-		// warn:ignore weight update, let comet module watch the update.
-		// cometnode will get weight, so web will know the notify.
-		// blocking wait node changed
 		event := <-watch
 		log.Info("zk path: \"%s\" receive a event %v", fpath, event)
 	}
@@ -157,6 +154,7 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 		// handle event
 		if ev.Event == eventNodeAdd {
 			log.Info("add node: \"%s\"", ev.Key)
+			// get comet root node weight
 			data, _, err := conn.Get(path.Join(fpath, ev.Key))
 			if err != nil {
 				log.Error("cannot get data from node:\"%s\"", path.Join(fpath, ev.Key))
@@ -169,7 +167,7 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 			}
 			log.Debug("get node:%s weight:%s", ev.Key, string(data))
 			tmpMap[ev.Key] = &CometNodeInfo{Weight: weight}
-			go watchCometNode(conn, ev.Key, fpath, retry, ping, vnode, ch)
+			go watchCometNode(conn, ev.Key, fpath, weight, retry, ping, vnode, ch)
 		} else if ev.Event == eventNodeDel {
 			log.Info("del node: \"%s\"", ev.Key)
 			delete(tmpMap, ev.Key)
@@ -201,7 +199,7 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 			// TODO
 			// try lock
 			// if can't get lock, abandon migrate (at leaest one succeed)
-			// call rpc
+			// paranaell call rpc
 			// unlock
 		}
 		log.Debug("cometNodeInfoMap len: %d", len(cometNodeInfoMap))
@@ -209,7 +207,7 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 }
 
 // watchNode watch a named node for leader selection when failover
-func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int, ch chan *CometNodeEvent) {
+func watchCometNode(conn *zk.Conn, node, fpath string, pweight int, retry, ping time.Duration, vnode int, ch chan *CometNodeEvent) {
 	fpath = path.Join(fpath, node)
 	for {
 		nodes, watch, err := myzk.GetNodesW(conn, fpath)
@@ -226,15 +224,14 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 			continue
 		}
 		// leader selection
-		// register node
 		sort.Strings(nodes)
-		if info, migrate, err := registerCometNode(conn, nodes[0], fpath, retry, ping, vnode, true); err != nil {
+		if info, err := registerCometNode(conn, nodes[0], fpath, retry, ping, vnode, true); err != nil {
 			log.Error("zk path: \"%s\" registerCometNode error(%v)", fpath, err)
 			time.Sleep(waitNodeDelaySecond)
 			continue
 		} else {
 			// update node info
-			ch <- &CometNodeEvent{Event: eventNodeUpdate, Key: node, Value: info, Migrate: migrate}
+			ch <- &CometNodeEvent{Event: eventNodeUpdate, Key: node, Value: info, Migrate: pweight != info.Weight}
 		}
 		// blocking receive event
 		event := <-watch
@@ -245,33 +242,22 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 }
 
 // registerCometNode get infomation of comet node
-func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int, startPing bool) (*CometNodeInfo, bool, error) {
-	// get parent node weight from zookeeper
-	w, _, err := conn.Get(fpath)
-	if err != nil {
-		log.Error("conn.Get(\"%s\") error(%v)", fpath, err)
-		return nil, false, err
-	}
-	pweight, err := strconv.Atoi(string(w))
-	if err != nil {
-		log.Error("node:\"%s\" data:\"%s\" format error", fpath, string(w))
-		return nil, false, err
-	}
+func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int, startPing bool) (*CometNodeInfo, error) {
 	// get current node info from zookeeper
 	fpath = path.Join(fpath, node)
 	data, _, err := conn.Get(fpath)
 	if err != nil {
 		log.Error("zk.Get(\"%s\") error(%v)", fpath, err)
-		return nil, false, err
+		return nil, err
 	}
 	info := &CometNodeInfo{}
 	if err = json.Unmarshal(data, info); err != nil {
 		log.Error("json.Unmarshal(\"%s\", nodeData) error(%v)", string(data), err)
-		return nil, false, err
+		return nil, err
 	}
 	if info.RpcAddr == nil || len(info.RpcAddr) == 0 {
 		log.Error("zk nodes: \"%s\" don't have rpc addr", fpath)
-		return nil, false, ErrCometRPC
+		return nil, ErrCometRPC
 	}
 	// get old node info for finding the old rpc connection
 	oldInfo := cometNodeInfoMap[node]
@@ -288,7 +274,7 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 		}
 		if r, err := rpc.Dial("tcp", addr); err != nil {
 			log.Error("rpc.Dial(\"%s\") error(%v)", addr, err)
-			return nil, false, err
+			return nil, err
 		} else {
 			clients[addr] = &RPCClient{Weight: 1, Addr: addr, Client: r}
 		}
@@ -297,11 +283,11 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 	lb, err := NewRandLB(clients, cometService, retry, ping, vnode, startPing)
 	if err != nil {
 		log.Error("NewRandLR() error(%v)", err)
-		return nil, false, err
+		return nil, err
 	}
 	info.Rpc = lb
 	log.Info("zk path: \"%s\" register nodes: \"%s\"", fpath, node)
-	return info, info.Weight != pweight, nil
+	return info, nil
 }
 
 // GetComet get the node infomation under the node.
