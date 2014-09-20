@@ -24,6 +24,29 @@ import (
 	"time"
 )
 
+const (
+	wsProto  = "1"
+	tcpProto = "2"
+)
+
+// getProtoAddr get specified protocol addresss.
+func getProtoAddr(node *myrpc.CometNodeInfo, p string) (addrs []string, ret int) {
+	if p == wsProto {
+		addrs = node.WsAddr
+	} else if p == tcpProto {
+		addrs = node.TcpAddr
+	} else {
+		ret = ParamErr
+		return
+	}
+	if len(addrs) == 0 {
+		ret = NotFoundServer
+		return
+	}
+	ret = OK
+	return
+}
+
 // GetServer handle for server get
 func GetServer0(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
@@ -40,24 +63,18 @@ func GetServer0(w http.ResponseWriter, r *http.Request) {
 		res["ret"] = ParamErr
 		return
 	}
-	proto, err := strconv.Atoi(protoStr)
-	if err != nil {
-		log.Error("strconv.Atoi(\"%s\") error(%v)", protoStr, err)
-		res["ret"] = ParamErr
-		return
-	}
 	// Match a push-server with the value computed through ketama algorithm
 	node := myrpc.GetComet(key)
 	if node == nil {
 		res["ret"] = NotFoundServer
 		return
 	}
-	addrs := node.Addr[proto]
-	if addrs == nil || len(addrs) == 0 {
-		res["ret"] = NotFoundServer
+	addrs, ret := getProtoAddr(node, protoStr)
+	if ret != OK {
+		res["ret"] = ret
 		return
 	}
-	res["data"] = map[string]interface{}{"server": addrs[0].Addr}
+	res["data"] = map[string]interface{}{"server": addrs[0]}
 	return
 }
 

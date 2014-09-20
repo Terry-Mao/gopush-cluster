@@ -54,11 +54,11 @@ func PushPrivate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	node := myrpc.GetComet(key)
-	if node == nil || node.CometRPC == nil {
+	if node == nil || node.Rpc == nil {
 		res["ret"] = NotFoundServer
 		return
 	}
-	client := node.CometRPC.Get()
+	client := node.Rpc.Get()
 	if client == nil {
 		res["ret"] = NotFoundServer
 		return
@@ -122,7 +122,7 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 	nodes := map[*myrpc.CometNodeInfo]*[]string{}
 	for i := 0; i < len(keys); i++ {
 		node := myrpc.GetComet(keys[i])
-		if node == nil || node.CometRPC == nil {
+		if node == nil || node.Rpc == nil {
 			res["ret"] = NotFoundServer
 			return
 		}
@@ -136,7 +136,7 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 	var fKeys []string
 	//push to every node
 	for cometInfo, ks := range nodes {
-		client := cometInfo.CometRPC.Get()
+		client := cometInfo.Rpc.Get()
 		if client == nil {
 			log.Error("cannot get comet rpc client")
 			for i := 0; i < len(*ks); i++ {

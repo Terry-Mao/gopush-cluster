@@ -36,6 +36,7 @@ var (
 	ErrRandLBAddr   = errors.New("clients map no addr key")
 )
 
+// TODO easy rand with weight
 type RPCClient struct {
 	Client *rpc.Client
 	Addr   string

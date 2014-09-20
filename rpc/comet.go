@@ -20,7 +20,6 @@ import (
 	log "code.google.com/p/log4go"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/ketama"
 	myzk "github.com/Terry-Mao/gopush-cluster/zk"
 	"github.com/samuel/go-zookeeper/zk"
@@ -28,19 +27,10 @@ import (
 	"path"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 )
 
 const (
-	// protocol of Comet subcription
-	cometProtocolUnknown     = 0
-	cometProtocolWS          = 1
-	cometProtocolWSStr       = "ws"
-	cometProtocolTCP         = 2
-	cometProtocolTCPStr      = "tcp"
-	cometProtocolRPC         = 3
-	cometProtocolRPCStr      = "rpc"
 	cometService             = "CometRPC"
 	CometServicePushPrivate  = "CometRPC.PushPrivate"
 	CometServicePushPrivates = "CometRPC.PushPrivates"
@@ -55,13 +45,13 @@ var (
 	ErrCometRPC = errors.New("comet rpc call failed")
 )
 
+// CometNodeData stored in zookeeper
 type CometNodeInfo struct {
-	// The addr for subscribe, format like:map[Protocol]Addr
-	Addr map[int][]*RPCClient
-	// The connection for Comet RPC
-	CometRPC *RandLB
-	// The comet wieght
-	Weight int
+	RpcAddr []string `json:"ws"`
+	TcpAddr []string `json:"tcp"`
+	WsAddr  []string `json:"rpc"`
+	Weight  int      `json:"weight"`
+	Rpc     *RandLB  `json:"-"`
 }
 
 type CometNodeEvent struct {
@@ -192,8 +182,8 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 		}
 		// if exist old node info, destroy
 		if info, ok := cometNodeInfoMap[ev.Key]; ok {
-			if info != nil && info.CometRPC != nil {
-				info.CometRPC.Destroy()
+			if info != nil && info.Rpc != nil {
+				info.Rpc.Destroy()
 			}
 		}
 		// update comet hash, cause node has changed
@@ -208,6 +198,7 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 		cometRing = tempRing
 		// migrate
 		if ev.Migrate {
+			// TODO
 			// try lock
 			// if can't get lock, abandon migrate (at leaest one succeed)
 			// call rpc
@@ -255,7 +246,7 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 
 // registerCometNode get infomation of comet node
 func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int, startPing bool) (*CometNodeInfo, bool, error) {
-	// get parent node weight
+	// get parent node weight from zookeeper
 	w, _, err := conn.Get(fpath)
 	if err != nil {
 		log.Error("conn.Get(\"%s\") error(%v)", fpath, err)
@@ -266,104 +257,51 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 		log.Error("node:\"%s\" data:\"%s\" format error", fpath, string(w))
 		return nil, false, err
 	}
-	// get cur data
+	// get current node info from zookeeper
 	fpath = path.Join(fpath, node)
 	data, _, err := conn.Get(fpath)
 	if err != nil {
 		log.Error("zk.Get(\"%s\") error(%v)", fpath, err)
 		return nil, false, err
 	}
-	// fetch and parse comet info
-	addrs, weight, err := parseCometNode(string(data))
-	if err != nil {
-		log.Error("parseCometNode(\"%s\") error(%v)", string(data), err)
+	info := &CometNodeInfo{}
+	if err = json.Unmarshal(data, info); err != nil {
+		log.Error("json.Unmarshal(\"%s\", nodeData) error(%v)", string(data), err)
 		return nil, false, err
 	}
-	info := &CometNodeInfo{Addr: addrs, Weight: weight}
-	rpcAddr, ok := addrs[cometProtocolRPC]
-	if !ok || len(rpcAddr) == 0 {
+	if info.RpcAddr == nil || len(info.RpcAddr) == 0 {
 		log.Error("zk nodes: \"%s\" don't have rpc addr", fpath)
 		return nil, false, ErrCometRPC
 	}
-	// init comet rpc
-	clients := make(map[string]*RPCClient, len(rpcAddr))
 	// get old node info for finding the old rpc connection
 	oldInfo := cometNodeInfoMap[node]
-	for _, addr := range rpcAddr {
-		if oldInfo != nil && oldInfo.CometRPC != nil {
-			if r, ok := oldInfo.CometRPC.Clients[addr]; ok && r.Client != nil {
+	// init comet rpc
+	clients := make(map[string]*RPCClient, len(info.RpcAddr))
+	for _, addr := range info.RpcAddr {
+		if oldInfo != nil && oldInfo.Rpc != nil {
+			if r, ok := oldInfo.Rpc.Clients[addr]; ok && r.Client != nil {
 				// reuse the rpc connection must let old client = nil, avoid reclose rpc.
-				oldInfo.CometRPC.Clients[addr].Client = nil
-				addr.Client = r
-				clients[addr.Addr] = addr
+				oldInfo.Rpc.Clients[addr].Client = nil
+				clients[addr] = &RPCClient{Weight: 1, Addr: addr, Client: r.Client}
 				continue
 			}
 		}
-		if r, err := rpc.Dial("tcp", addr.Addr); err != nil {
-			log.Error("rpc.Dial(\"%s\") error(%v)", addr.Addr, err)
+		if r, err := rpc.Dial("tcp", addr); err != nil {
+			log.Error("rpc.Dial(\"%s\") error(%v)", addr, err)
 			return nil, false, err
 		} else {
-			addr.Client = r
-			clients[addr.Addr] = addr
+			clients[addr] = &RPCClient{Weight: 1, Addr: addr, Client: r}
 		}
 	}
+	// comet rpc use rand load balance
 	lb, err := NewRandLB(clients, cometService, retry, ping, vnode, startPing)
 	if err != nil {
 		log.Error("NewRandLR() error(%v)", err)
 		return nil, false, err
 	}
-	info.CometRPC = lb
+	info.Rpc = lb
 	log.Info("zk path: \"%s\" register nodes: \"%s\"", fpath, node)
-	return info, weight != pweight, nil
-}
-
-// parseCometNode parse the protocol data, the data format like: 1;ws://ip:port1,tcp://ip:port2,rpc://ip:port3
-func parseCometNode(data string) (res map[int][]*RPCClient, err error) {
-	protoArr := strings.Split(data, ",") // eg tcp://1-ip:port,ws://1-ip:port
-	res = make(map[int][]*RPCClient, len(protoArr))
-	for i := 0; i < len(protoArr); i++ {
-		addrArr := strings.Split(protoArr[i], "://") // eg: tcp://1-ip:port
-		if len(addrArr) != 2 {
-			err = fmt.Errorf("data:\"%s\" format error", data)
-			res = nil
-			return
-		}
-		proto := cometProtoInt(addrArr[0])
-		wArr := strings.Split(addrArr[1], "-") // eg: 1-ip:port
-		if len(wArr) != 2 {
-			err = fmt.Errorf("data:\"%s\" format error", data)
-			res = nil
-			return
-		}
-		var wAddr int
-		wAddr, err = strconv.Atoi(wArr[0])
-		if err != nil {
-			err = fmt.Errorf("data:\"%s\" format error(%v)", data, err)
-			return
-		}
-		client := &RPCClient{Addr: wArr[1], Weight: wAddr}
-		val, ok := res[proto]
-		if ok {
-			val = append(val, client)
-		} else {
-			val = []*RPCClient{client}
-		}
-		res[proto] = val
-	}
-	return
-}
-
-// cometProtoInt get the figure corresponding with protocol string
-func cometProtoInt(protocol string) int {
-	if protocol == cometProtocolWSStr {
-		return cometProtocolWS
-	} else if protocol == cometProtocolTCPStr {
-		return cometProtocolTCP
-	} else if protocol == cometProtocolRPCStr {
-		return cometProtocolRPC
-	} else {
-		return cometProtocolUnknown
-	}
+	return info, info.Weight != pweight, nil
 }
 
 // GetComet get the node infomation under the node.

@@ -40,9 +40,34 @@ func GetServer(w http.ResponseWriter, r *http.Request) {
 		res["ret"] = ParamErr
 		return
 	}
-	proto, err := strconv.Atoi(protoStr)
-	if err != nil {
-		log.Error("strconv.Atoi(\"%s\") error(%v)", protoStr, err)
+	// Match a push-server with the value computed through ketama algorithm
+	node := myrpc.GetComet(key)
+	if node == nil {
+		res["ret"] = NotFoundServer
+		return
+	}
+	addrs, ret := getProtoAddr(node, protoStr)
+	if ret != OK {
+		res["ret"] = ret
+		return
+	}
+	res["data"] = map[string]interface{}{"server": addrs[0]}
+	return
+}
+
+// GetServer1 handle for server get.
+func GetServer1(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Method Not Allowed", 405)
+		return
+	}
+	params := r.URL.Query()
+	key := params.Get("k")
+	callback := params.Get("cb")
+	protoStr := params.Get("p")
+	res := map[string]interface{}{"ret": OK}
+	defer retWrite(w, r, res, callback, time.Now())
+	if key == "" {
 		res["ret"] = ParamErr
 		return
 	}
@@ -52,12 +77,13 @@ func GetServer(w http.ResponseWriter, r *http.Request) {
 		res["ret"] = NotFoundServer
 		return
 	}
-	addrs := node.Addr[proto]
-	if addrs == nil || len(addrs) == 0 {
-		res["ret"] = NotFoundServer
+	addrs, ret := getProtoAddr(node, protoStr)
+	if ret != OK {
+		res["ret"] = ret
 		return
 	}
-	res["data"] = map[string]interface{}{"server": addrs[0].Addr}
+	// give client a addr list, client do the best choice
+	res["data"] = map[string]interface{}{"server": addrs}
 	return
 }
 
