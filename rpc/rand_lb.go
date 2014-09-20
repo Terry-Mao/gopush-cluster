@@ -63,7 +63,6 @@ func NewRandLB(clients map[string]*RPCClient, service string, retry, ping time.D
 		log.Info("rpc ping start")
 		r.ping(service, retry, ping)
 	}
-
 	return r, nil
 }
 
@@ -72,10 +71,8 @@ func (r *RandLB) Get() *rpc.Client {
 	if len(r.Clients) == 0 {
 		return nil
 	}
-
-	addr := r.ring.Hash(strconv.FormatInt(rand.Int63n(time.Now().UnixNano()), 10))
+	addr := r.ring.Hash(strconv.FormatInt(rand.Int63(), 10))
 	log.Debug("rand hit rpc node: \"%s\"", addr)
-
 	return r.Clients[addr].Client
 }
 
