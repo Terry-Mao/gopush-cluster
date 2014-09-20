@@ -33,8 +33,7 @@ func main() {
 	log.Info("comet ver: \"%s\" start", ver.Version)
 	// init config
 	if err := InitConfig(); err != nil {
-		log.Error("InitConfig() error(%v)", err)
-		return
+		panic(err)
 	}
 	// set max routine
 	runtime.GOMAXPROCS(Conf.MaxProc)
@@ -65,8 +64,8 @@ func main() {
 		}
 		panic(err)
 	}
-	// create pid file
-	if err := ioutil.WriteFile(Conf.PidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644); err != nil {
+	// process init
+	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
 		panic(err)
 	}
 	// init signals, block wait signals

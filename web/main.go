@@ -52,8 +52,8 @@ func main() {
 	perf.Init(Conf.PprofBind)
 	// start http listen.
 	StartHTTP()
-	// create pid file
-	if err := ioutil.WriteFile(Conf.PidFile, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0644); err != nil {
+	// process init
+	if err = process.Init(Conf.User, Conf.Dir, Conf.PidFile); err != nil {
 		panic(err)
 	}
 	// init signals, block wait signals
