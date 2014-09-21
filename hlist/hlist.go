@@ -16,11 +16,6 @@
 
 package hlist
 
-// Head is an head of a linked hlist.
-type Head struct {
-	first *Element
-}
-
 // Element is an element of a linked hlist.
 type Element struct {
 	next  *Element
@@ -30,21 +25,21 @@ type Element struct {
 	Value interface{}
 }
 
+// Hlist represents a doubly linked hlist.
+// The zero value for Hlist is an empty Hlist ready to use.
+type Hlist struct {
+	root *Element // sentinel hlist head
+	len  int      // current hlist length excluding (this) sentinel element
+}
+
 // Next returns the next hlist element or nil.
 func (e *Element) Next() *Element {
 	return e.next
 }
 
-// Hlist represents a doubly linked hlist.
-// The zero value for Hlist is an empty Hlist ready to use.
-type Hlist struct {
-	root Head // sentinel hlist head
-	len  int  // current hlist length excluding (this) sentinel element
-}
-
 // Init initializes or clears hlist l.
 func (l *Hlist) Init() *Hlist {
-	l.root.first = nil
+	l.root = nil
 	l.len = 0
 	return l
 }
@@ -58,19 +53,19 @@ func (l *Hlist) Len() int { return l.len }
 
 // Front returns the first element of hlist l or nil
 func (l *Hlist) Front() *Element {
-	return l.root.first
+	return l.root
 }
 
 // PushFront inserts a new element e with value v at the front of hlist l and returns e.
 func (l *Hlist) PushFront(v interface{}) *Element {
-	first := l.root.first
+	first := l.root
 	n := &Element{Value: v}
 	n.next = first
 	if first != nil {
 		first.pprev = &n.next
 	}
-	l.root.first = n
-	n.pprev = &l.root.first
+	l.root = n
+	n.pprev = &l.root
 	l.len++
 	return n
 }

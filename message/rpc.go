@@ -25,6 +25,10 @@ import (
 	"strings"
 )
 
+const (
+	rpcBindSpliter = "-"
+)
+
 // RPC For receive offline messages
 type MessageRPC struct {
 }
@@ -34,7 +38,7 @@ func InitRPC() error {
 	msg := &MessageRPC{}
 	rpc.Register(msg)
 	for _, bind := range Conf.RPCBind {
-		addrs := strings.Split(bind, "-")
+		addrs := strings.Split(bind, rpcBindSpliter)
 		if len(addrs) != 2 {
 			return fmt.Errorf("config rpc.bind:\"%s\" format error", bind)
 		}
