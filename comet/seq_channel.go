@@ -89,12 +89,46 @@ func (c *SeqChannel) AuthToken(key, token string) bool {
 	return true
 }
 
-// PushMsg implements the Channel PushMsg method.
-func (c *SeqChannel) PushMsg(key string, m *myrpc.Message, expire uint) error {
+// WriteMsg implements the Channel WriteMsg method.
+func (c *SeqChannel) WriteMsg(key string, m *myrpc.Message) (err error) {
+	c.mutex.Lock()
+	err = c.writeMsg(key, m)
+	c.mutex.Unlock()
+	return
+}
+
+// writeMsg write msg to conn.
+func (c *SeqChannel) writeMsg(key string, m *myrpc.Message) (err error) {
 	var (
 		oldMsg, msg, sendMsg []byte
-		err                  error
 	)
+	// push message
+	for e := c.conn.Front(); e != nil; e = e.Next() {
+		conn, _ := e.Value.(*Connection)
+		// if version empty then use old protocol
+		if conn.Version == "" {
+			if oldMsg == nil {
+				if oldMsg, err = m.OldBytes(); err != nil {
+					return
+				}
+			}
+			sendMsg = oldMsg
+		} else {
+			if msg == nil {
+				if msg, err = m.Bytes(); err != nil {
+					return
+				}
+			}
+			sendMsg = msg
+		}
+		// TODO use goroutine
+		conn.Write(key, sendMsg)
+	}
+	return
+}
+
+// PushMsg implements the Channel PushMsg method.
+func (c *SeqChannel) PushMsg(key string, m *myrpc.Message, expire uint) (err error) {
 	client := myrpc.MessageRPC.Get()
 	if client == nil {
 		return ErrMessageRPC
@@ -110,37 +144,17 @@ func (c *SeqChannel) PushMsg(key string, m *myrpc.Message, expire uint) error {
 		if err = client.Call(myrpc.MessageServiceSavePrivate, args, &ret); err != nil {
 			c.mutex.Unlock()
 			log.Error("%s(\"%s\", \"%v\", &ret) error(%v)", myrpc.MessageServiceSavePrivate, key, args, err)
-			return err
+			return
 		}
 	}
 	// push message
-	for e := c.conn.Front(); e != nil; e = e.Next() {
-		conn, _ := e.Value.(*Connection)
-		// if version empty then use old protocol
-		if conn.Version == "" {
-			if oldMsg == nil {
-				oldMsg, err = m.OldBytes()
-				if err != nil {
-					c.mutex.Unlock()
-					return err
-				}
-			}
-			sendMsg = oldMsg
-		} else {
-			if msg == nil {
-				msg, err = m.Bytes()
-				if err != nil {
-					c.mutex.Unlock()
-					return err
-				}
-			}
-			sendMsg = msg
-		}
-		// TODO use goroutine
-		conn.Write(key, sendMsg)
+	if err = c.writeMsg(key, m); err != nil {
+		c.mutex.Unlock()
+		log.Error("c.WriteMsg(\"%s\", m) error(%v)", key, err)
+		return
 	}
 	c.mutex.Unlock()
-	return nil
+	return
 }
 
 // AddConn implements the Channel AddConn method.

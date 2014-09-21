@@ -35,6 +35,7 @@ const (
 var (
 	ErrChannelNotExist = errors.New("Channle not exist")
 	ErrConnProto       = errors.New("Unknown connection protocol")
+	ErrChannelKey      = errors.New("Key not belong this comet")
 	UserChannel        *ChannelList
 	CometRing          *ketama.HashRing
 	nodeWeightMap      = map[string]int{}
@@ -42,6 +43,8 @@ var (
 
 // The subscriber interface.
 type Channel interface {
+	// WriteMsg push a message to the subscriber.
+	WriteMsg(key string, m *myrpc.Message) error
 	// PushMsg push a message to the subscriber.
 	PushMsg(key string, m *myrpc.Message, expire uint) error
 	// Add a token for one subscriber
@@ -160,23 +163,33 @@ func (l *ChannelList) Count() int {
 }
 
 // bucket return a channelBucket use murmurhash3.
-func (l *ChannelList) bucket(key string) *ChannelBucket {
-	idx := l.BucketIdx(&key)
+func (l *ChannelList) Bucket(key string) *ChannelBucket {
+	h := hash.NewMurmur3C()
+	h.Write([]byte(key))
+	idx := uint(h.Sum32()) & uint(Conf.ChannelBucket-1)
 	log.Debug("user_key:\"%s\" hit channel bucket index:%d", key, idx)
 	return l.Channels[idx]
 }
 
-// bucketIdx return a channelBucket index.
-func (l *ChannelList) BucketIdx(key *string) uint {
-	h := hash.NewMurmur3C()
-	h.Write([]byte(*key))
-	return uint(h.Sum32()) & uint(Conf.ChannelBucket-1)
+// validate check the key is belong to this comet.
+func (l *ChannelList) validate(key string) error {
+	node := CometRing.Hash(key)
+	log.Debug("match node:%s hash node:%s", Conf.ZookeeperCometNode, node)
+	if Conf.ZookeeperCometNode != node {
+		log.Warn("user_key:\"%s\" node:%s not match this node:%s", key, node, Conf.ZookeeperCometNode)
+		return ErrChannelKey
+	}
+	return nil
 }
 
 // New create a user channle.
 func (l *ChannelList) New(key string) (Channel, error) {
+	// validate
+	if err := l.validate(key); err != nil {
+		return nil, err
+	}
 	// get a channel bucket
-	b := l.bucket(key)
+	b := l.Bucket(key)
 	b.Lock()
 	if c, ok := b.Data[key]; ok {
 		b.Unlock()
@@ -195,8 +208,12 @@ func (l *ChannelList) New(key string) (Channel, error) {
 
 // Get a user channel from ChannleList.
 func (l *ChannelList) Get(key string, newOne bool) (Channel, error) {
+	// validate
+	if err := l.validate(key); err != nil {
+		return nil, err
+	}
 	// get a channel bucket
-	b := l.bucket(key)
+	b := l.Bucket(key)
 	b.Lock()
 	if c, ok := b.Data[key]; !ok {
 		if !Conf.Auth && newOne {
@@ -222,7 +239,7 @@ func (l *ChannelList) Get(key string, newOne bool) (Channel, error) {
 // Delete a user channel from ChannleList.
 func (l *ChannelList) Delete(key string) (Channel, error) {
 	// get a channel bucket
-	b := l.bucket(key)
+	b := l.Bucket(key)
 	b.Lock()
 	if c, ok := b.Data[key]; !ok {
 		b.Unlock()

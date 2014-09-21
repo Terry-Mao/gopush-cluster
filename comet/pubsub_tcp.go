@@ -201,12 +201,6 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 		log.Warn("<%s> key param error", addr)
 		return
 	}
-	log.Debug("match node:%s hash node:%s", Conf.ZookeeperCometNode, CometRing.Hash(key))
-	if Conf.ZookeeperCometNode != CometRing.Hash(key) {
-		conn.Write(NodeReply)
-		log.Warn("<%s> key node:%s unmatch this node:%s", addr, CometRing.Hash(key), Conf.ZookeeperCometNode)
-		return
-	}
 	heartbeatStr := args[1]
 	i, err := strconv.Atoi(heartbeatStr)
 	if err != nil {
@@ -233,7 +227,11 @@ func SubscribeTCPHandle(conn net.Conn, args []string) {
 	c, err := UserChannel.Get(key, true)
 	if err != nil {
 		log.Warn("<%s> user_key:\"%s\" can't get a channel (%s)", addr, key, err)
-		conn.Write(ChannelReply)
+		if err == ErrChannelKey {
+			conn.Write(NodeReply)
+		} else {
+			conn.Write(ChannelReply)
+		}
 		return
 	}
 	// auth token

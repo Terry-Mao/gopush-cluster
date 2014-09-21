@@ -99,7 +99,6 @@ func SubscribeHandle(ws *websocket.Conn) {
 		log.Warn("<%s> key param error", addr)
 		return
 	}
-	// TODO add node check
 	// get heartbeat second
 	heartbeatStr := params.Get("heartbeat")
 	i, err := strconv.Atoi(heartbeatStr)
@@ -120,8 +119,12 @@ func SubscribeHandle(ws *websocket.Conn) {
 	// fetch subscriber from the channel
 	c, err := UserChannel.Get(key, true)
 	if err != nil {
-		ws.Write(ChannelReply)
-		log.Error("<%s> user_key:\"%s\" can't get a channel error(%v)", addr, key, err)
+		log.Warn("<%s> user_key:\"%s\" can't get a channel (%s)", addr, key, err)
+		if err == ErrChannelKey {
+			ws.Write(NodeReply)
+		} else {
+			ws.Write(ChannelReply)
+		}
 		return
 	}
 	// auth token

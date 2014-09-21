@@ -131,61 +131,48 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 	if args == nil || args.Msg == nil {
 		return myrpc.ErrParam
 	}
-
-	// grouping rely on bucket
-	type pushChan struct {
-		Key string
-		Channel
-	}
-	type bucketChan struct {
-		Pcs   []*pushChan
-		FKeys []string
-	}
-	bucketMap := make(map[uint]*bucketChan, Conf.ChannelBucket)
-	index := uint(0)
-	for i := 0; i < len(args.Keys); i++ {
-		uc, _ := UserChannel.New(args.Keys[i])
-		index = UserChannel.BucketIdx(&args.Keys[i])
-		bucket, ok := bucketMap[index]
-		if ok {
-			bucket.Pcs = append(bucket.Pcs, &pushChan{args.Keys[i], uc})
+	bucketMap := make(map[*ChannelBucket]map[string]Channel, Conf.ChannelBucket)
+	for _, key := range args.Keys {
+		// get channel
+		ch, err := UserChannel.New(key)
+		if err != nil {
+			log.Error("UserChannel.New(\"%s\") error(%v)", key, err)
+			// log failed keys.
+			rw.FKeys = append(rw.FKeys, key)
+		}
+		// get bucket index
+		bp := UserChannel.Bucket(key)
+		if bucket, ok := bucketMap[bp]; !ok {
+			bucketMap[bp] = map[string]Channel{key: ch}
 		} else {
-			bucketMap[index] = &bucketChan{
-				[]*pushChan{
-					&pushChan{
-						args.Keys[i],
-						uc,
-					},
-				},
-				[]string{},
-			}
+			bucket[key] = ch
 		}
 	}
-
-	// wait for push
-	m := &myrpc.Message{Msg: args.Msg}
+	// every bucket start a goroutine, return till all bucket gorouint finish
+	//lock := &sync.Mutex{}
+	msg := &myrpc.Message{Msg: args.Msg}
 	wg := sync.WaitGroup{}
 	wg.Add(len(bucketMap))
-	for _, bucket := range bucketMap {
-		go func(bucket *bucketChan) {
-			for _, pc := range bucket.Pcs {
-				if err := pc.PushMsg(pc.Key, m, args.Expire); err != nil {
-					log.Error("pc.PushMsg(\"%s\", \"%s\") error(%v)", pc.Key, string(m.Msg), err)
-					bucket.FKeys = append(bucket.FKeys, pc.Key)
+	for tb, tm := range bucketMap {
+		go func(b *ChannelBucket, m map[string]Channel) {
+			b.Lock()
+			// TODO rpc push msgs
+			// lock log failed keys.
+			//lock.Lock()
+			//rw.FKeys = append(rw.FKeys, key)
+			//lock.Unlock()
+			// comet push msgs
+			for key, ch := range m {
+				if err := ch.WriteMsg(key, msg); err != nil {
+					log.Error("ch.WriteMsg(\"%s\", \"%s\") error(%v)", key, string(msg.Msg), err)
 					continue
 				}
 			}
+			b.Unlock()
 			wg.Done()
-		}(bucket)
+		}(tb, tm)
 	}
 	wg.Wait()
-
-	for _, chs := range bucketMap {
-		for i := 0; i < len(chs.FKeys); i++ {
-			rw.FKeys = append(rw.FKeys, chs.FKeys[i])
-		}
-	}
-
 	return nil
 }
 

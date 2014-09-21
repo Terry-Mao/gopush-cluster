@@ -219,8 +219,7 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 				}
 			}
 			if ev.Event == eventNodeUpdate {
-				_, err := conn.Set(path.Join(fpath, ev.Key), []byte(strconv.Itoa(ev.Value.Weight)), -1)
-				if err != nil {
+				if _, err := conn.Set(path.Join(fpath, ev.Key), []byte(strconv.Itoa(ev.Value.Weight)), -1); err != nil {
 					log.Error("conn.Set(\"%s\",\"%d\",\"-1\") error(%v)", path.Join(fpath, ev.Key), ev.Value.Weight, err)
 					continue
 				}
@@ -232,15 +231,11 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 
 // notify every Comet node to migrate
 func notifyMigrate(conn *zk.Conn, nodeWeightMap map[string]int) (err error) {
-	_, err = conn.Create("/gopush-migrate-lock", []byte("1"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
-	if err != nil {
+	if _, err = conn.Create("/gopush-migrate-lock", []byte("1"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll)); err != nil {
 		log.Error("conn.Create(\"/gopush-migrate-lock\", \"1\", zk.FlagEphemeral) error(%v)", err)
-		return err
+		return
 	}
-	var (
-		wg    sync.WaitGroup
-		reply int
-	)
+	wg := &sync.WaitGroup
 	wg.Add(len(cometNodeInfoMap))
 	for node, nodeInfo := range cometNodeInfoMap {
 		go func(info *CometNodeInfo) {
@@ -255,6 +250,7 @@ func notifyMigrate(conn *zk.Conn, nodeWeightMap map[string]int) (err error) {
 				wg.Done()
 				return
 			}
+			reply := 0
 			if err = r.Call(CometServiceMigrate, nodeWeightMap, &reply); err != nil {
 				log.Error("rpc.Call(\"%s\") error(%v)", CometServiceMigrate, err)
 				wg.Done()
@@ -265,8 +261,7 @@ func notifyMigrate(conn *zk.Conn, nodeWeightMap map[string]int) (err error) {
 		}(nodeInfo)
 	}
 	wg.Wait()
-
-	return nil
+	return
 }
 
 // watchNode watch a named node for leader selection when failover
