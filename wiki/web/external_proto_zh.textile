@@ -3,8 +3,9 @@ Web外部接口文档，用于获取Subcribe节点,获取离线消息等
 
 <h3>接口汇总</h3>
 (head). | 接口名 | URL | 访问方式 |
-| "获取订阅节点":ServerGet | /server/get | GET |
-| "获取离线消息":MsgGet    | /msg/get    | GET |
+| "获取订阅节点":ServerGet | /1/server/get | GET |
+| "获取离线消息":MsgGet    | /1/msg/get    | GET |
+| "获取初始消息ID":GetTime | /1/time/get   | GET |
 
 <h3>公共返回码</h3>
 
@@ -17,14 +18,14 @@ Web外部接口文档，用于获取Subcribe节点,获取离线消息等
 <pre>
 {
     "ret": 0,  //错误码
-    "data": {….}//如果有数据返回，则有data，无数据返回就只有前面的ret和msg
+    "data": {….}//如果有数据返回，则有data，无数据返回就只有前面的ret
 }
 </pre>
 如何接口需要返回jsonp结构(例如客户端使用js解析json)，则指定callback参数，例如：callback=test，则返回结构如下：
 <pre>
 test({
     "ret": 0,  //错误码
-    "data": {….}//如果有数据返回，则有data，无数据返回就只有前面的ret和msg
+    "data": {….}//如果有数据返回，则有data，无数据返回就只有前面的ret
 })
 </pre>
 
@@ -32,9 +33,9 @@ test({
  * 请求参数
 
 (head). | 参数 | 类型 | 描述 |
-| key   | string | 订阅key |
-| proto | int    | 订阅协议 1:websocket 2:tcp |
-| callback   | string | 返回jsonp结构函数名(可选) |
+| k   | string | 订阅key |
+| p | int    | 订阅协议 1:websocket 2:tcp |
+| cb   | string | 返回jsonp结构函数名(可选) |
 
  * 返回参数说明
 
@@ -45,7 +46,6 @@ test({
 
 (head). | 错误码 | 描述 |
 | 1001 | 没有找到key对应的节点 |
-| 1003 | 未知的订阅协议 |
 <pre>
 {
     "ret": 0,
@@ -59,19 +59,16 @@ test({
  * 请求参数
 
 (head). | 参数 | 类型 | 描述 |
-| key  | string | 订阅key |
-| mid  | int64  | 最新接收的私有消息ID |
-| pmid | int64  | 最新接收收的公共消息ID |
-| callback   | string | jsonp函数名(可选) |
+| k  | string | 订阅key |
+| m  | int64  | 最新接收的私有消息ID |
+| cb   | string | jsonp函数名(可选) |
 
  * 返回参数说明
 
 (head). | 参数 | 类型 | 描述 |
 | msgs  | string数组 | 私有离线消息 |
-| pmsgs | string数组 | 公共离线消息 |
 注：
-1.解析每条message的时候注意，每条信息是string数据，而不是结构体
-2.返回msgs、pmsgs消息中的参数mid类型为int64.
+1.返回msgs、pmsgs消息中的参数mid类型为int64,注意长度.
 
  * 返回结果
 
@@ -81,13 +78,36 @@ test({
         "msgs": [
             {"msg":"{\"test\":1}","mid":13999084541846408,"gid":0},
             {"msg":"{\"test\":2}","mid":13999084579056605,"gid":0}
-        ],
-        "pmsgs": []
+        ]
     },
     "ret": 0
+}
+</pre>
+
+<h3>获取初始消息ID</h3>
+ * 请求参数
+
+(head). | 参数 | 类型 | 描述 |
+| cb   | string | 返回jsonp结构函数名(可选) |
+
+ * 返回参数说明
+
+(head). | 参数 | 类型 | 描述 |
+| timeid | string | 初始消息ID |
+
+ * 返回码
+
+公共返回码
+<pre>
+{
+    "ret": 0,
+    "data": {
+        "timeid": 13999084541846408  //MID
+    }
 }
 </pre>
 
 
 [ServerGet]#获取订阅节点
 [MsgGet]#获取离线消息
+[GetTime]#获取初始消息ID

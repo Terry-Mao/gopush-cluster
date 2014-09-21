@@ -1,10 +1,10 @@
 <h3>Terry-Mao/gopush-cluster Web http协议文档</h3>
-Web内部接口文档，用于推送消息、节点管理等
+Web内部接口文档，用于推送、删除消息等
 
 <h3>接口汇总</h3>
 (head). | 接口名 | URL | 访问方式 |
-| "推送私有消息":AdminPush | /admin/push     | POST |
-| "清理消息":AdminMsgClean | /admin/msg/clean | POST |
+| "推送私有消息":AdminPush | /1/admin/push/private     | POST |
+| "清理消息":AdminMsgClean | /1/admin/msg/del | POST |
 
 <h3>公共返回码</h3>
 
@@ -17,7 +17,7 @@ Web内部接口文档，用于推送消息、节点管理等
 <pre>
 {
     "ret": 0,  //错误码
-    "data": {….}//如果有数据返回，则有data，无数据返回就只有前面的ret和msg
+    "data": {….}//如果有数据返回，则有data，无数据返回就只有前面的ret
 }
 </pre>
 
@@ -26,9 +26,8 @@ Web内部接口文档，用于推送消息、节点管理等
 
 (head). | 参数 | 类型 | 描述 |
 | key    | string | 订阅key |
-| gid    | string | Group ID (写死0即可)|
 | expire | int64  | 消息过期时间，单位：秒(s)|
-注: 消息体存放到body中，以上参数为URL参数
+注: 消息体存放到body中,且内容必须为json格式,以上参数为URL参数.
 
  * 返回码
 

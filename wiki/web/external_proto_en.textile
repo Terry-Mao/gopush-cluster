@@ -3,8 +3,9 @@ Web external interface document, used for getting subscription node, getting off
 
 <h3>Interface Summary</h3>
 (head). | Name | URL | Method |
-| "<a href="#Get Subscription Node">Get Subscription Node</a>":ServerGet | /server/get | GET |
-| "<a href="#Get Offline Messages">Get Offline Messages</a>":MsgGet    | /msg/get    | GET |
+| "<a href="#Get Subscription Node">Get Subscription Node</a>":ServerGet | /1/server/get | GET |
+| "<a href="#Get Offline Messages">Get Offline Messages</a>":MsgGet    | /1/msg/get    | GET |
+| "<a href="#Get Initial Message ID">Get Initial Message ID</a>":GetTime    | /1/time/get    | GET |
 
 <h3>Public ErrorCode</h3>
 
@@ -35,9 +36,9 @@ test({
  * Request Parameter
 
 (head). | Parameter | Type | Description |
-| key   | string | Subscription Key |
-| proto | int    | Subscription Protocol (1:websocket 2:tcp) |
-| callback | string | Callback Name(Optional) |
+| k   | string | Subscription Key |
+| p | int    | Subscription Protocol (1:websocket 2:tcp) |
+| cb | string | Callback Name(Optional) |
 
  * Response Parameter Description
 
@@ -48,7 +49,6 @@ test({
 
 (head). | ErrorCode | Description |
 | 1001 | no node corresponding with subscription key |
-| 1003 | Unknown Subscription Protocol |
 <pre>
 {
     "ret": 0,
@@ -64,19 +64,16 @@ test({
  * Request Parameter
 
 (head). | Parameter | Type | Description |
-| key  | string | Subscription Key |
-| mid  | int64  | Latest Private Message ID |
-| pmid | int64  | Latest Public Message ID |
-| callback   | string | Callback Name(Optional) |
+| k  | string | Subscription Key |
+| m  | int64  | Latest Private Message ID |
+| cb   | string | Callback Name(Optional) |
 
  * Response Parameter Description
 
 (head). | Parameter | Type | Description |
 | msgs  | string Array | Private Offline Message |
-| pmsgs | string Array | Public Offline Message |
 Note:
-	1.Every message is a string rather than struct, so you need to Unmarshal message one by one
-	2.The type of parameter "mid" is int64.
+	1.The type of parameter "mid" is int64.
 
  * Response result
 
@@ -86,9 +83,33 @@ Note:
         "msgs": [
             {"msg":"{\"test\":1}","mid":13999084541846408,"gid":0},
             {"msg":"{\"test\":2}","mid":13999084579056605,"gid":0}
-        ],
-        "pmsgs": []
+        ]
     },
     "ret": 0
+}
+</pre>
+
+<a name="Get Initial Message ID"></a>
+
+<h3>Get Initial Message ID</h3>
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| cb   | string | Callback Name(Optional) |
+
+ * Response Parameter Description
+
+(head). | Parameter | Type | Description |
+| timeid | string | The Initial MID |
+
+ * 返回码
+
+公共返回码
+<pre>
+{
+    "ret": 0,
+    "data": {
+        "timeid": 13999084541846408  //MID
+    }
 }
 </pre>
