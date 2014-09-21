@@ -195,6 +195,7 @@ func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
 	return nil
 }
 
+// Ping check health.
 func (c *CometRPC) Ping(args int, ret *int) error {
 	log.Debug("ping ok")
 	return nil
