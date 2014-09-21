@@ -47,6 +47,7 @@ type Config struct {
 	ZookeeperTimeout     time.Duration `goconf:"zookeeper:timeout:time"`
 	ZookeeperCometPath   string        `goconf:"zookeeper:comet.path"`
 	ZookeeperMessagePath string        `goconf:"zookeeper:message.path"`
+	ZookeeperMigratePath string        `goconf:"zookeeper:migrate.path"`
 	RPCRetry             time.Duration `goconf:"rpc:retry:time"`
 	RPCPing              time.Duration `goconf:"rpc:ping:time"`
 }
@@ -72,6 +73,7 @@ func InitConfig() error {
 		ZookeeperTimeout:     30 * time.Second,
 		ZookeeperCometPath:   "/gopush-cluster-comet",
 		ZookeeperMessagePath: "/gopush-cluster-message",
+		ZookeeperMigratePath: "/gopush-migrate-lock",
 		RPCRetry:             3 * time.Second,
 		RPCPing:              1 * time.Second,
 	}

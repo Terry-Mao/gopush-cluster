@@ -145,7 +145,7 @@ func watchCometRoot(conn *zk.Conn, fpath string, ch chan *CometNodeEvent) error 
 }
 
 // handleCometNodeEvent add and remove CometNodeInfo, copy the src map to a new map then replace the variable.
-func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration, vnode int, ch chan *CometNodeEvent) {
+func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, ping time.Duration, vnode int, ch chan *CometNodeEvent) {
 	for {
 		ev := <-ch
 		// copy map from src
@@ -206,7 +206,7 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 		cometRing = tempRing
 		// migrate
 		if ev.Migrate {
-			if err := notifyMigrate(conn, nodeWeightMap); err != nil {
+			if err := notifyMigrate(conn, migrateLockPath, nodeWeightMap); err != nil {
 				// if err == zk.ErrNodeExists meaning anyone is going through.
 				// we hopefully that only one web node notify comet migrate.
 				// also it was judged in Comet whether it needs migrate or not.
@@ -230,8 +230,8 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 }
 
 // notify every Comet node to migrate
-func notifyMigrate(conn *zk.Conn, nodeWeightMap map[string]int) (err error) {
-	if _, err = conn.Create("/gopush-migrate-lock", []byte("1"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll)); err != nil {
+func notifyMigrate(conn *zk.Conn, migrateLockPath string, nodeWeightMap map[string]int) (err error) {
+	if _, err = conn.Create(migrateLockPath, []byte("1"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll)); err != nil {
 		log.Error("conn.Create(\"/gopush-migrate-lock\", \"1\", zk.FlagEphemeral) error(%v)", err)
 		return
 	}
@@ -261,6 +261,9 @@ func notifyMigrate(conn *zk.Conn, nodeWeightMap map[string]int) (err error) {
 		}(nodeInfo)
 	}
 	wg.Wait()
+	if err = conn.Delete(migrateLockPath, -1); err != nil {
+		log.Error("conn.Delete(\"%s\") error(%v)", migrateLockPath, err)
+	}
 	return
 }
 
@@ -363,9 +366,9 @@ func GetComet(key string) *CometNodeInfo {
 }
 
 // InitComet init a rand lb rpc for comet module.
-func InitComet(conn *zk.Conn, fpath string, retry, ping time.Duration, vnode int) {
+func InitComet(conn *zk.Conn, migrateLockPath, fpath string, retry, ping time.Duration, vnode int) {
 	// watch comet path
 	ch := make(chan *CometNodeEvent, 1024)
-	go handleCometNodeEvent(conn, fpath, retry, ping, vnode, ch)
+	go handleCometNodeEvent(conn, migrateLockPath, fpath, retry, ping, vnode, ch)
 	go watchCometRoot(conn, fpath, ch)
 }
