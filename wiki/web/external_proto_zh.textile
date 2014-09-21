@@ -95,9 +95,6 @@ test({
 (head). | 参数 | 类型 | 描述 |
 | timeid | string | 初始消息ID |
 
- * 返回码
-
-公共返回码
 <pre>
 {
     "ret": 0,
@@ -106,7 +103,6 @@ test({
     }
 }
 </pre>
-
 
 [ServerGet]#获取订阅节点
 [MsgGet]#获取离线消息
