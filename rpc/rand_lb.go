@@ -20,10 +20,9 @@ import (
 	log "code.google.com/p/log4go"
 	"errors"
 	"fmt"
-	"github.com/Terry-Mao/gopush-cluster/ketama"
 	"math/rand"
 	"net/rpc"
-	"strconv"
+	"sort"
 	"time"
 )
 
@@ -36,45 +35,91 @@ var (
 	ErrRandLBAddr   = errors.New("clients map no addr key")
 )
 
-// TODO easy rand with weight
-type RPCClient struct {
+// WeightRpc is a rand weight rpc struct.
+type WeightRpc struct {
 	Client *rpc.Client
 	Addr   string
 	Weight int
 }
 
+type byWeight []*WeightRpc
+
+// Len is part of sort.Interface.
+func (r byWeight) Len() int {
+	return len(r)
+}
+
+// Swap is part of sort.Interface.
+func (r byWeight) Swap(i, j int) {
+	r[i], r[j] = r[j], r[i]
+}
+
+// Less is part of sort.Interface.
+func (r byWeight) Less(i, j int) bool {
+	return r[i].Weight < r[j].Weight
+}
+
 // random load balancing object
 type RandLB struct {
-	Clients map[string]*RPCClient
-	ring    *ketama.HashRing
-	length  int
+	Clients map[string]*WeightRpc
+	s       []*WeightRpc
+	p       []float64
 	exitCH  chan int
 }
 
 // NewRandLB new a random load balancing object.
-func NewRandLB(clients map[string]*RPCClient, service string, retry, ping time.Duration, vnode int, check bool) (*RandLB, error) {
-	ring := ketama.NewRing(vnode)
-	for _, client := range clients {
-		ring.AddNode(client.Addr, client.Weight)
-	}
-	ring.Bake()
-	length := len(clients)
-	r := &RandLB{Clients: clients, ring: ring, length: length}
-	if check && length > 0 {
+func NewRandLB(clients map[string]*WeightRpc, service string, retry, ping time.Duration, vnode int, check bool) (*RandLB, error) {
+	r := &RandLB{Clients: clients}
+	r.initWeightRand()
+	if check && len(clients) > 0 {
 		log.Info("rpc ping start")
 		r.ping(service, retry, ping)
 	}
 	return r, nil
 }
 
+// initRand init the rpc weight rand.
+func (r *RandLB) initWeightRand() {
+	if len(r.Clients) == 0 {
+		return
+	}
+	total := 0.0
+	s := []*WeightRpc{}
+	for _, v := range r.Clients {
+		s = append(s, v)
+		total += float64(v.Weight)
+	}
+	sort.Sort(byWeight(s))
+	p := []float64{}
+	ratio := 0.0
+	for i := 0; i < len(s)-1; i++ {
+		ratio += float64(s[i].Weight) / total
+		p = append(p, ratio)
+	}
+	p = append(p, float64(1))
+	r.p = p
+	r.s = s
+}
+
+// updateWeightRand update the rpc.Client by retryAddr.
+func (r *RandLB) updateWeightRand(retryAddr string, rpcTmp *rpc.Client) {
+	for i, c := range r.s {
+		if c.Addr == retryAddr {
+			r.s[i].Client = rpcTmp
+			break
+		}
+	}
+}
+
 // Get get a rpc client randomly.
 func (r *RandLB) Get() *rpc.Client {
-	if len(r.Clients) == 0 {
+	l := len(r.Clients)
+	if l == 0 {
 		return nil
+	} else if l == 1 {
+		return r.s[0].Client
 	}
-	addr := r.ring.Hash(strconv.FormatInt(rand.Int63(), 10))
-	log.Debug("rand hit rpc node: \"%s\"", addr)
-	return r.Clients[addr].Client
+	return r.s[sort.Search(len(r.p), func(i int) bool { return r.p[i] >= rand.Float64() })].Client
 }
 
 // Stop stop the retry connect goroutine and ping goroutines.
@@ -104,7 +149,7 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 	r.exitCH = make(chan int, 1)
 	for _, client := range r.Clients {
 		// warn: closures problem
-		go func(client *RPCClient) {
+		go func(client *WeightRpc) {
 			log.Info("\"%s\" rpc ping goroutine start", client.Addr)
 			ret := 0
 			for {
@@ -147,7 +192,7 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 			}
 			log.Info("rpc.Dial(\"tcp\", %s) retry succeed", retryAddr)
 			// copy-on-write
-			tmpClients := make(map[string]*RPCClient, r.length)
+			tmpClients := make(map[string]*WeightRpc, len(r.Clients))
 			for addr, client := range r.Clients {
 				tmpClients[addr] = client
 				if client.Addr == retryAddr {
@@ -156,6 +201,8 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 			}
 			// atomic update clients
 			r.Clients = tmpClients
+			// update rand s.
+			r.updateWeightRand(retryAddr, rpcTmp)
 		}
 	}()
 }
