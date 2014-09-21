@@ -93,7 +93,6 @@ type CometPushPublicArgs struct {
 // Channel Migrate Args
 type CometMigrateArgs struct {
 	Nodes map[string]int // current comet nodes
-	Vnode int            // ketama virtual node number
 }
 
 // Channel New Args

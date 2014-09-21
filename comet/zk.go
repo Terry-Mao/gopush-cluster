@@ -31,8 +31,6 @@ import (
 	"time"
 )
 
-var nodeWeightMap = make(map[string]int)
-
 const (
 	// wait node
 	waitNodeDelay       = 3
@@ -67,11 +65,12 @@ func InitZK() (*zk.Conn, error) {
 		return conn, err
 	}
 	// watch and update
-	go watchCometRoot(conn, Conf.ZookeeperCometPath, Conf.KetamaBase)
-	rpc.InitMessage(conn, Conf.ZookeeperMessagePath, Conf.RPCRetry, Conf.RPCPing, Conf.KetamaBase)
+	//go watchCometRoot(conn, Conf.ZookeeperCometPath, Conf.KetamaBase)
+	rpc.InitMessage(conn, Conf.ZookeeperMessagePath, Conf.RPCRetry, Conf.RPCPing, ketamaBase)
 	return conn, nil
 }
 
+/*
 // watchCometRoot monitoring all Comet nodes
 func watchCometRoot(conn *zk.Conn, fpath string, vnode int) {
 	for {
@@ -118,3 +117,4 @@ func watchCometRoot(conn *zk.Conn, fpath string, vnode int) {
 		log.Info("zk path: \"%s\" receive a event %v", fpath, event)
 	}
 }
+*/

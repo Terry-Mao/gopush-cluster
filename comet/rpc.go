@@ -189,60 +189,11 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 	return nil
 }
 
-/*
-// Publish expored a method for publishing a message for the channel
+// Migrate update the inner hashring and node info.
 func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
-	if len(args.Nodes) == 0 {
-		return myrpc.ErrParam
-	}
-	// find current node exists in new nodes
-	has := false
-	for str, _ := range args.Nodes {
-		if str == Conf.ZookeeperCometNode {
-			has = true
-		}
-	}
-	if !has {
-		glog.Error("make sure your migrate nodes right, there is no %s in nodes, this will cause all the node hit miss", Conf.ZookeeperCometNode)
-		return ErrMigrate
-	}
-	// init ketama
-	ring := ketama.NewRing(args.Vnode)
-	for k, v := range args.Nodes {
-		ring.AddNode(k, v)
-	}
-	ring.Bake()
-	channels := []Channel{}
-	keys := []string{}
-	// get all the channel lock
-	for i, c := range UserChannel.Channels {
-		c.Lock()
-		for k, v := range c.Data {
-			hn := ring.Hash(k)
-			if hn != Conf.ZookeeperCometNode {
-				channels = append(channels, v)
-				keys = append(keys, k)
-				glog.V(1).Infof("migrate key:\"%s\" hit node:\"%s\"", k, hn)
-			}
-		}
-		for _, k := range keys {
-			delete(c.Data, k)
-			glog.Infof("migrate delete channel key \"%s\"", k)
-		}
-		c.Unlock()
-		glog.Infof("migrate channel bucket:%d finished", i)
-	}
-	// close all the migrate channels
-	glog.Info("close all the migrate channels")
-	for _, channel := range channels {
-		if err := channel.Close(); err != nil {
-			log.Error("channel.Close() error(%v)", err)
-			continue
-		}
-	}
-	glog.Info("close all the migrate channels finished")
+	UserChannel.Migrate(args.Nodes)
 	return nil
-}*/
+}
 
 func (c *CometRPC) Ping(args int, ret *int) error {
 	log.Debug("ping ok")

@@ -28,11 +28,16 @@ import (
 	"sync"
 )
 
+const (
+	ketamaBase = 255
+)
+
 var (
 	ErrChannelNotExist = errors.New("Channle not exist")
 	ErrConnProto       = errors.New("Unknown connection protocol")
 	UserChannel        *ChannelList
 	CometRing          *ketama.HashRing
+	nodeWeightMap      = map[string]int{}
 )
 
 // The subscriber interface.
@@ -251,18 +256,42 @@ func (l *ChannelList) Close() {
 	}
 }
 
-// Migrate migrate portion of connections which don`t belong to this Comet.
-func (l *ChannelList) Migrate() {
+// Migrate migrate portion of connections which don't belong to this comet.
+func (l *ChannelList) Migrate(nw map[string]int) {
+	migrate := false
+	// check new/update node
+	for k, v := range nw {
+		weight, ok := nodeWeightMap[k]
+		// not found or weight change
+		if !ok || weight != v {
+			migrate = true
+			break
+		}
+	}
+	// check del node
+	if !migrate {
+		for k, _ := range nodeWeightMap {
+			// node deleted
+			if _, ok := nw[k]; !ok {
+				migrate = true
+				break
+			}
+		}
+	}
+	if !migrate {
+		return
+	}
 	// init ketama
-	ring := ketama.NewRing(Conf.KetamaBase)
-	for node, weight := range nodeWeightMap {
+	ring := ketama.NewRing(ketamaBase)
+	for node, weight := range nw {
 		ring.AddNode(node, weight)
 	}
 	ring.Bake()
+	// atomic update
+	nodeWeightMap = nw
 	CometRing = ring
 	// get all the channel lock
 	channels := []Channel{}
-	// TODO split lock
 	for i, c := range l.Channels {
 		c.Lock()
 		for k, v := range c.Data {
