@@ -242,22 +242,23 @@ func watchCometNode(conn *zk.Conn, node, fpath string, pweight int, retry, ping 
 }
 
 // registerCometNode get infomation of comet node
-func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int, startPing bool) (*CometNodeInfo, error) {
+func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int, startPing bool) (info *CometNodeInfo, err error) {
 	// get current node info from zookeeper
 	fpath = path.Join(fpath, node)
 	data, _, err := conn.Get(fpath)
 	if err != nil {
 		log.Error("zk.Get(\"%s\") error(%v)", fpath, err)
-		return nil, err
+		return
 	}
-	info := &CometNodeInfo{}
+	info = &CometNodeInfo{}
 	if err = json.Unmarshal(data, info); err != nil {
 		log.Error("json.Unmarshal(\"%s\", nodeData) error(%v)", string(data), err)
-		return nil, err
+		return
 	}
-	if info.RpcAddr == nil || len(info.RpcAddr) == 0 {
+	if len(info.RpcAddr) == 0 {
 		log.Error("zk nodes: \"%s\" don't have rpc addr", fpath)
-		return nil, ErrCometRPC
+		err = ErrCometRPC
+		return
 	}
 	// get old node info for finding the old rpc connection
 	oldInfo := cometNodeInfoMap[node]
@@ -274,7 +275,7 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 		}
 		if r, err := rpc.Dial("tcp", addr); err != nil {
 			log.Error("rpc.Dial(\"%s\") error(%v)", addr, err)
-			return nil, err
+			return
 		} else {
 			clients[addr] = &RPCClient{Weight: 1, Addr: addr, Client: r}
 		}
@@ -283,11 +284,11 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 	lb, err := NewRandLB(clients, cometService, retry, ping, vnode, startPing)
 	if err != nil {
 		log.Error("NewRandLR() error(%v)", err)
-		return nil, err
+		return
 	}
 	info.Rpc = lb
 	log.Info("zk path: \"%s\" register nodes: \"%s\"", fpath, node)
-	return info, nil
+	return
 }
 
 // GetComet get the node infomation under the node.

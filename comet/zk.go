@@ -22,13 +22,12 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"fmt"
+	"encoding/json"
 	"github.com/Terry-Mao/gopush-cluster/rpc"
 	myzk "github.com/Terry-Mao/gopush-cluster/zk"
 	"github.com/samuel/go-zookeeper/zk"
 	"path"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -47,23 +46,22 @@ func InitZK() (*zk.Conn, error) {
 		return nil, err
 	}
 	fpath := path.Join(Conf.ZookeeperCometPath, Conf.ZookeeperCometNode)
-	if err = myzk.Create(conn, fpath, Conf.ZookeeperCometWeight); err != nil {
+	if err = myzk.Create(conn, fpath, strconv.Itoa(Conf.ZookeeperCometWeight)); err != nil {
 		log.Error("myzk.Create(\"%s\",\"%s\") error(%v)", fpath, Conf.ZookeeperCometWeight, err)
 		return conn, err
 	}
-	// comet websocket and rpc bind address store in the zk
-	data := ""
-	for _, addr := range Conf.TCPBind {
-		data += fmt.Sprintf("tcp://%s,", addr)
+	// comet tcp, websocket and rpc bind address store in the zk
+	nodeInfo := &rpc.CometNodeInfo{}
+	nodeInfo.RpcAddr = Conf.RPCBind
+	nodeInfo.TcpAddr = Conf.TCPBind
+	nodeInfo.WsAddr = Conf.WebsocketBind
+	nodeInfo.Weight = Conf.ZookeeperCometWeight
+	data, err := json.Marshal(nodeInfo)
+	if err != nil {
+		log.Error("json.Marshal() error(%v)", err)
+		return conn, err
 	}
-	for _, addr := range Conf.WebsocketBind {
-		data += fmt.Sprintf("ws://%s,", addr)
-	}
-	for _, addr := range Conf.RPCBind {
-		data += fmt.Sprintf("rpc://%s,", addr)
-	}
-	data = strings.TrimRight(data, ",")
-	log.Debug("myzk node:\"%s\" registe data: \"%s\"", fpath, data)
+	log.Debug("myzk node:\"%s\" registe data: \"%s\"", fpath, string(data))
 	if err = myzk.RegisterTemp(conn, fpath, data); err != nil {
 		log.Error("myzk.RegisterTemp() error(%v)", err)
 		return conn, err

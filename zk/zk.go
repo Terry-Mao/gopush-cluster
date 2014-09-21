@@ -82,10 +82,10 @@ func Create(conn *zk.Conn, fpath, data string) error {
 }
 
 // RegisterTmp create a ephemeral node, and watch it, if node droped then send a SIGQUIT to self.
-func RegisterTemp(conn *zk.Conn, fpath, data string) error {
-	tpath, err := conn.Create(path.Join(fpath)+"/", []byte(data), zk.FlagEphemeral|zk.FlagSequence, zk.WorldACL(zk.PermAll))
+func RegisterTemp(conn *zk.Conn, fpath string, data []byte) error {
+	tpath, err := conn.Create(path.Join(fpath)+"/", data, zk.FlagEphemeral|zk.FlagSequence, zk.WorldACL(zk.PermAll))
 	if err != nil {
-		log.Error("conn.Create(\"%s\", \"%s\", zk.FlagEphemeral|zk.FlagSequence) error(%v)", fpath, data, err)
+		log.Error("conn.Create(\"%s\", \"%s\", zk.FlagEphemeral|zk.FlagSequence) error(%v)", fpath, string(data), err)
 		return err
 	}
 	log.Debug("create a zookeeper node:%s", tpath)
