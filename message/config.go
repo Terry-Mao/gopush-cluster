@@ -36,6 +36,7 @@ func init() {
 // Config struct
 type Config struct {
 	RPCBind          []string          `goconf:"base:rpc.bind:,"`
+	NodeWeight       int               `goconf:"base:node.weight"`
 	User             string            `goconf:"base:user"`
 	PidFile          string            `goconf:"base:pidfile"`
 	Dir              string            `goconf:"base:dir"`
@@ -66,13 +67,14 @@ func InitConfig() error {
 	}
 	Conf = &Config{
 		// base
-		RPCBind:   []string{"localhost:8070"},
-		User:      "nobody nobody",
-		PidFile:   "/tmp/gopush-cluster-message.pid",
-		Dir:       "./",
-		Log:       "./log/xml",
-		MaxProc:   runtime.NumCPU(),
-		PprofBind: []string{"localhost:8170"},
+		RPCBind:    []string{"localhost:8070"},
+		NodeWeight: 1,
+		User:       "nobody nobody",
+		PidFile:    "/tmp/gopush-cluster-message.pid",
+		Dir:        "./",
+		Log:        "./log/xml",
+		MaxProc:    runtime.NumCPU(),
+		PprofBind:  []string{"localhost:8170"},
 		// storage
 		StorageType: "redis",
 		// redis

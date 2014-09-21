@@ -19,13 +19,10 @@ package rpc
 import (
 	log "code.google.com/p/log4go"
 	"encoding/json"
-	"fmt"
 	myzk "github.com/Terry-Mao/gopush-cluster/zk"
 	"github.com/samuel/go-zookeeper/zk"
 	"net/rpc"
 	"path"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -52,6 +49,12 @@ type MessageNodeEvent struct {
 	Key *WeightRpc
 	// event type
 	Event int
+}
+
+// Message node info
+type MessageNodeInfo struct {
+	Rpc    []string `json:"rpc"`
+	Weight int      `json:"weight"`
 }
 
 // The Message struct
@@ -145,19 +148,18 @@ func watchMessageRoot(conn *zk.Conn, fpath string, ch chan *MessageNodeEvent) er
 				log.Error("zk.Get(\"%s\") error(%v)", path.Join(fpath, node), err)
 				continue
 			}
-			// may contains many addrs split by ,
-			//addrs := strings.Split(string(data), ",")
-			addrInfos, err := parseMessageAddr(string(data))
-			if err != nil {
-				log.Error("parseMessageAddr(\"%s\") error(%v)", string(data), err)
+			// parse message node info
+			nodeInfo := &MessageNodeInfo{}
+			if err := json.Unmarshal(data, nodeInfo); err != nil {
+				log.Error("json.Unmarshal(\"%s\", nodeInfo) error(%v)", string(data), err)
 				continue
 			}
-			for _, addInfo := range addrInfos {
+			for _, addr := range nodeInfo.Rpc {
 				// if not exists in old map then trigger a add event
-				if _, ok := MessageRPC.Clients[addInfo.Addr]; !ok {
-					ch <- &MessageNodeEvent{Event: eventNodeAdd, Key: addInfo}
+				if _, ok := MessageRPC.Clients[addr]; !ok {
+					ch <- &MessageNodeEvent{Event: eventNodeAdd, Key: &WeightRpc{Addr: addr, Weight: nodeInfo.Weight}}
 				}
-				nodesMap[addInfo.Addr] = true
+				nodesMap[addr] = true
 			}
 		}
 		// handle delete nodes
@@ -170,27 +172,6 @@ func watchMessageRoot(conn *zk.Conn, fpath string, ch chan *MessageNodeEvent) er
 		event := <-watch
 		log.Info("zk path: \"%s\" receive a event %v", fpath, event)
 	}
-}
-
-// parseMessageAddr parse message listener addrs like:1-ip:port,2-ip:port
-func parseMessageAddr(data string) (res []*WeightRpc, err error) {
-	AddrArr := strings.Split(data, ",") // eg 1-ip:port,2-ip:port
-	for _, addr := range AddrArr {
-		wArr := strings.Split(addr, "-") // eg: 1-ip:port
-		if len(wArr) != 2 {
-			err = fmt.Errorf("data:\"%s\" format error", data)
-			return
-		}
-		var wAddr int
-		wAddr, err = strconv.Atoi(wArr[0])
-		if err != nil {
-			err = fmt.Errorf("data:\"%s\" format error(%v)", data, err)
-			return
-		}
-		res = append(res, &WeightRpc{Addr: wArr[1], Weight: wAddr})
-	}
-
-	return
 }
 
 // handleNodeEvent add and remove MessageRPC.Clients, copy the src map to a new map then replace the variable.

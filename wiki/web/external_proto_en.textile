@@ -102,9 +102,6 @@ Note:
 (head). | Parameter | Type | Description |
 | timeid | string | The Initial MID |
 
- * 返回码
-
-公共返回码
 <pre>
 {
     "ret": 0,
