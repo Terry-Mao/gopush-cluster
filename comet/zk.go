@@ -27,7 +27,6 @@ import (
 	myzk "github.com/Terry-Mao/gopush-cluster/zk"
 	"github.com/samuel/go-zookeeper/zk"
 	"path"
-	"strconv"
 	"time"
 )
 
@@ -44,8 +43,8 @@ func InitZK() (*zk.Conn, error) {
 		return nil, err
 	}
 	fpath := path.Join(Conf.ZookeeperCometPath, Conf.ZookeeperCometNode)
-	if err = myzk.Create(conn, fpath, strconv.Itoa(Conf.ZookeeperCometWeight)); err != nil {
-		log.Error("myzk.Create(\"%s\",\"%s\") error(%v)", fpath, Conf.ZookeeperCometWeight, err)
+	if err = myzk.Create(conn, fpath); err != nil {
+		log.Error("myzk.Create(conn,\"%s\",\"\") error(%v)", fpath, err)
 		return conn, err
 	}
 	// comet tcp, websocket and rpc bind address store in the zk

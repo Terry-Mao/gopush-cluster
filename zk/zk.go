@@ -54,7 +54,7 @@ func Connect(addr []string, timeout time.Duration) (*zk.Conn, error) {
 }
 
 // Create create zookeeper path, if path exists ignore error
-func Create(conn *zk.Conn, fpath, data string) error {
+func Create(conn *zk.Conn, fpath string) error {
 	// create zk root path
 	tpath := ""
 	for _, str := range strings.Split(fpath, "/")[1:] {
@@ -68,13 +68,6 @@ func Create(conn *zk.Conn, fpath, data string) error {
 				log.Error("zk.create(\"%s\") error(%v)", tpath, err)
 				return err
 			}
-		}
-	}
-	if data != "" {
-		_, err := conn.Set(tpath, []byte(data), -1)
-		if err != nil {
-			log.Error("conn.Set(\"%s\",\"%s\",\"-1\") error(%v)", tpath, data, err)
-			return err
 		}
 	}
 

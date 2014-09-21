@@ -35,7 +35,7 @@ func InitZK() (*zk.Conn, error) {
 		log.Error("zk.Connect() error(%v)", err)
 		return nil, err
 	}
-	if err = myzk.Create(conn, Conf.ZookeeperPath, ""); err != nil {
+	if err = myzk.Create(conn, Conf.ZookeeperPath); err != nil {
 		log.Error("zk.Create() error(%v)", err)
 		return conn, err
 	}
