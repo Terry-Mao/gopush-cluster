@@ -40,6 +40,14 @@ const (
 	MessageServiceDelPrivate  = "MessageRPC.DelPrivate"
 )
 
+var (
+	MessageRPC *RandLB
+)
+
+func init() {
+	MessageRPC, _ = NewRandLB(map[string]*WeightRpc{}, MessageService, 0, 0, 255, false)
+}
+
 type MessageNodeEvent struct {
 	Key *WeightRpc
 	// event type
@@ -105,14 +113,6 @@ type MessageGetPrivateArgs struct {
 // Message Get Response
 type MessageGetResp struct {
 	Msgs []*Message // messages
-}
-
-var (
-	MessageRPC *RandLB
-)
-
-func init() {
-	MessageRPC, _ = NewRandLB(map[string]*WeightRpc{}, MessageService, 0, 0, 255, false)
 }
 
 // watchMessageRoot watch the message root path.
@@ -201,32 +201,23 @@ func handleMessageNodeEvent(conn *zk.Conn, retry, ping time.Duration, vnode int,
 		tmpMessageRPCMap := make(map[string]*WeightRpc, len(MessageRPC.Clients))
 		for k, v := range MessageRPC.Clients {
 			tmpMessageRPCMap[k] = v
+			// reuse rpc connection
+			v.Client = nil
 		}
 		// handle event
 		if ev.Event == eventNodeAdd {
 			log.Info("add message rpc node: \"%s\"", ev.Key.Addr)
-			// if exist old node info, reuse
-			if client, ok := MessageRPC.Clients[ev.Key.Addr]; ok && client != nil {
-				tmpMessageRPCMap[ev.Key.Addr] = client
-				log.Info("reuse message rpc node: \"%s\"", ev.Key.Addr)
-			} else {
-				rpcTmp, err := rpc.Dial("tcp", ev.Key.Addr)
-				if err != nil {
-					log.Error("rpc.Dial(\"tcp\", \"%s\") error(%v)", ev.Key, err)
-					log.Warn("discard message rpc node: \"%s\", connect failed", ev.Key)
-					continue
-				}
-				ev.Key.Client = rpcTmp
-				tmpMessageRPCMap[ev.Key.Addr] = ev.Key
+			rpcTmp, err := rpc.Dial("tcp", ev.Key.Addr)
+			if err != nil {
+				log.Error("rpc.Dial(\"tcp\", \"%s\") error(%v)", ev.Key, err)
+				log.Warn("discard message rpc node: \"%s\", connect failed", ev.Key)
+				continue
 			}
+			ev.Key.Client = rpcTmp
+			tmpMessageRPCMap[ev.Key.Addr] = ev.Key
 		} else if ev.Event == eventNodeDel {
 			log.Info("del message rpc node: \"%s\"", ev.Key.Addr)
 			delete(tmpMessageRPCMap, ev.Key.Addr)
-			// if exist old node info, close
-			if client, ok := MessageRPC.Clients[ev.Key.Addr]; ok && client != nil {
-				client.Client.Close()
-				log.Info("close message rpc node: \"%s\"", ev.Key.Addr)
-			}
 		} else {
 			log.Error("unknown node event: %d", ev.Event)
 			panic("unknown node event")
@@ -236,9 +227,11 @@ func handleMessageNodeEvent(conn *zk.Conn, retry, ping time.Duration, vnode int,
 			log.Error("NewRandLR() error(%v)", err)
 			panic(err)
 		}
+		oldMessageRPC := MessageRPC
 		// atomic update
-		MessageRPC.Stop()
 		MessageRPC = tmpMessageRPC
+		// release resource
+		oldMessageRPC.Destroy()
 		log.Debug("MessageRPC.Client length: %d", len(MessageRPC.Clients))
 	}
 }
