@@ -27,6 +27,7 @@ import (
 	"path"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -34,6 +35,7 @@ const (
 	cometService             = "CometRPC"
 	CometServicePushPrivate  = "CometRPC.PushPrivate"
 	CometServicePushPrivates = "CometRPC.PushPrivates"
+	CometServiceMigrate      = "CometRPC.Migrate"
 )
 
 var (
@@ -93,6 +95,7 @@ type CometPushPublicArgs struct {
 // Channel Migrate Args
 type CometMigrateArgs struct {
 	Nodes map[string]int // current comet nodes
+	Vnode int            // ketama virtual node number
 }
 
 // Channel New Args
@@ -191,9 +194,11 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 		}
 		// update comet hash, cause node has changed
 		tempRing := ketama.NewRing(vnode)
+		nodeWeightMap := map[string]int{}
 		for k, v := range tmpMap {
 			log.Debug("AddNode node:%s weight:%d", k, v.Weight)
 			tempRing.AddNode(k, v.Weight)
+			nodeWeightMap[k] = v.Weight
 		}
 		tempRing.Bake()
 		// use the tmpMap atomic replace the global cometNodeInfoMap
@@ -201,14 +206,67 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 		cometRing = tempRing
 		// migrate
 		if ev.Migrate {
-			// TODO
-			// try lock
-			// if can't get lock, abandon migrate (at leaest one succeed)
-			// paranaell call rpc
-			// unlock
+			if err := notifyMigrate(conn, nodeWeightMap); err != nil {
+				// if err == zk.ErrNodeExists meaning anyone is going through.
+				// we hopefully that only one web node notify comet migrate.
+				// also it was judged in Comet whether it needs migrate or not.
+				if err == zk.ErrNodeExists {
+					log.Info("ignore notify migrate")
+					continue
+				} else {
+					log.Error("notifyMigrate(conn, \"%v\") error(%v)", nodeWeightMap, err)
+					continue
+				}
+			}
+			if ev.Event == eventNodeUpdate {
+				_, err := conn.Set(path.Join(fpath, ev.Key), []byte(strconv.Itoa(ev.Value.Weight)), -1)
+				if err != nil {
+					log.Error("conn.Set(\"%s\",\"%d\",\"-1\") error(%v)", path.Join(fpath, ev.Key), ev.Value.Weight, err)
+					continue
+				}
+			}
 		}
 		log.Debug("cometNodeInfoMap len: %d", len(cometNodeInfoMap))
 	}
+}
+
+// notify every Comet node to migrate
+func notifyMigrate(conn *zk.Conn, nodeWeightMap map[string]int) (err error) {
+	_, err = conn.Create("/gopush-migrate-lock", []byte("1"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
+	if err != nil {
+		log.Error("conn.Create(\"/gopush-migrate-lock\", \"1\", zk.FlagEphemeral) error(%v)", err)
+		return err
+	}
+	var (
+		wg    sync.WaitGroup
+		reply int
+	)
+	wg.Add(len(cometNodeInfoMap))
+	for node, nodeInfo := range cometNodeInfoMap {
+		go func(info *CometNodeInfo) {
+			if info.Rpc == nil {
+				log.Error("notify migrate failed, no rpc found, node(%s)", node)
+				wg.Done()
+				return
+			}
+			r := info.Rpc.Get()
+			if r == nil {
+				log.Error("notify migrate failed, no rpc found, node(%s)", node)
+				wg.Done()
+				return
+			}
+			if err = r.Call(CometServiceMigrate, nodeWeightMap, &reply); err != nil {
+				log.Error("rpc.Call(\"%s\") error(%v)", CometServiceMigrate, err)
+				wg.Done()
+				return
+			}
+			log.Debug("notify node(%s) migrate succeed", node)
+			wg.Done()
+		}(nodeInfo)
+	}
+	wg.Wait()
+
+	return nil
 }
 
 // watchNode watch a named node for leader selection when failover
