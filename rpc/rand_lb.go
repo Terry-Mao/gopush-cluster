@@ -134,7 +134,8 @@ func (r *RandLB) Stop() {
 func (r *RandLB) Destroy() {
 	r.Stop()
 	for _, client := range r.Clients {
-		if client != nil {
+		// rpc may be nil, someone steal and reuse it.
+		if client != nil && client.Client != nil {
 			if err := client.Client.Close(); err != nil {
 				log.Error("client.Close() error(%v)", err)
 			}
