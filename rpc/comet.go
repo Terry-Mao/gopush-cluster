@@ -235,7 +235,7 @@ func notifyMigrate(conn *zk.Conn, nodeWeightMap map[string]int) (err error) {
 		log.Error("conn.Create(\"/gopush-migrate-lock\", \"1\", zk.FlagEphemeral) error(%v)", err)
 		return
 	}
-	wg := &sync.WaitGroup
+	wg := &sync.WaitGroup{}
 	wg.Add(len(cometNodeInfoMap))
 	for node, nodeInfo := range cometNodeInfoMap {
 		go func(info *CometNodeInfo) {

@@ -133,6 +133,53 @@ func (s *RedisStorage) SavePrivate(key string, msg json.RawMessage, mid int64, e
 	return nil
 }
 
+// SavePrivates implements the Storage SavePrivates method.
+func (s *RedisStorage) SavePrivates(keys []string, msg json.RawMessage, mid int64, expire uint) error {
+	// todo
+	conn := s.getConn("")
+	if conn == nil {
+		return RedisNoConnErr
+	}
+	defer conn.Close()
+	rm := &RedisPrivateMessage{Msg: msg, Expire: int64(expire) + time.Now().Unix()}
+	m, err := json.Marshal(rm)
+	if err != nil {
+		log.Error("json.Marshal() key:\"%s\" error(%v)", "", err)
+		return err
+	}
+	i := 0
+	for _, key := range keys {
+		if err := conn.Send("ZADD", key, mid, m); err != nil {
+			log.Error("conn.Send(\"ZADD\", \"%s\", %d, \"%s\") error(%v)", key, mid, string(m), err)
+			return err
+		}
+		if err := conn.Send("ZREMRANGEBYRANK", key, 0, -1*(Conf.RedisMaxStore+1)); err != nil {
+			log.Error("conn.Send(\"ZREMRANGEBYRANK\", \"%s\", 0, %d) error(%v)", key, -1*(Conf.RedisMaxStore+1), err)
+			return err
+		}
+		if err := conn.Flush(); err != nil {
+			log.Error("conn.Flush() error(%v)", err)
+			return err
+		}
+		i += 2
+		if i%saveBatchNum == 0 {
+			for j := 0; j < i; j++ {
+				_, err = conn.Receive()
+				if err != nil {
+					log.Error("conn.Receive() error(%v)", err)
+					return err
+				}
+				_, err = conn.Receive()
+				if err != nil {
+					log.Error("conn.Receive() error(%v)", err)
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // GetPrivate implements the Storage GetPrivate method.
 func (s *RedisStorage) GetPrivate(key string, mid int64) ([]*myrpc.Message, error) {
 	conn := s.getConn(key)

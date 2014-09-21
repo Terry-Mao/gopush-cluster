@@ -76,6 +76,19 @@ func (r *MessageRPC) SavePrivate(m *myrpc.MessageSavePrivateArgs, ret *int) erro
 	return nil
 }
 
+// SavePrivates rpc interface save user private messages.
+func (r *MessageRPC) SavePrivates(m *myrpc.MessageSavePrivatesArgs, ret *int) error {
+	if m == nil || m.Msg == nil || m.MsgId < 0 {
+		return myrpc.ErrParam
+	}
+	if err := UseStorage.SavePrivates(m.Keys, m.Msg, m.MsgId, m.Expire); err != nil {
+		log.Error("UseStorage.SavePrivates(\"%v\", \"%s\", %d, %d) error(%v)", m.Keys, string(m.Msg), m.MsgId, m.Expire, err)
+		return err
+	}
+	log.Debug("UseStorage.SavePrivates(\"%v\", \"%s\", %d, %d) ok", m.Keys, string(m.Msg), m.MsgId, m.Expire)
+	return nil
+}
+
 // GetPrivate rpc interface get user private message.
 func (r *MessageRPC) GetPrivate(m *myrpc.MessageGetPrivateArgs, rw *myrpc.MessageGetResp) error {
 	log.Debug("messageRPC.GetPrivate key:\"%s\" mid:\"%d\"", m.Key, m.MsgId)

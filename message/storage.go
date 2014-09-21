@@ -26,6 +26,7 @@ import (
 const (
 	RedisStorageType = "redis"
 	MySQLStorageType = "mysql"
+	saveBatchNum     = 1000
 )
 
 var (
@@ -38,6 +39,7 @@ type Storage interface {
 	// private message method
 	GetPrivate(key string, mid int64) ([]*rpc.Message, error)
 	SavePrivate(key string, msg json.RawMessage, mid int64, expire uint) error
+	SavePrivates(keys []string, msg json.RawMessage, mid int64, expire uint) error
 	DelPrivate(key string) error
 }
 

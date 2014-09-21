@@ -98,6 +98,12 @@ func (s *MySQLStorage) SavePrivate(key string, msg json.RawMessage, mid int64, e
 	return nil
 }
 
+// SavePrivates implements the Storage SavePrivates method.
+func (s *MySQLStorage) SavePrivates(keys []string, msg json.RawMessage, mid int64, expire uint) error {
+	// TODO
+	return nil
+}
+
 // GetPrivate implements the Storage GetPrivate method.
 func (s *MySQLStorage) GetPrivate(key string, mid int64) ([]*myrpc.Message, error) {
 	db := s.getConn(key)

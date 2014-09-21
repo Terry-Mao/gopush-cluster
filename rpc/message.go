@@ -100,6 +100,14 @@ type MessageSavePrivateArgs struct {
 	Expire uint            // message expire second
 }
 
+// Message SavePrivates Args
+type MessageSavePrivatesArgs struct {
+	Keys   []string        // subscriber keys
+	Msg    json.RawMessage // message content
+	MsgId  int64           // message id
+	Expire uint            // message expire second
+}
+
 // Message SavePublish Args
 type MessageSavePublishArgs struct {
 	MsgID  int64  // message id
