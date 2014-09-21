@@ -41,7 +41,7 @@ const (
 )
 
 type MessageNodeEvent struct {
-	Key *RPCClient
+	Key *WeightRpc
 	// event type
 	Event int
 }
@@ -112,7 +112,7 @@ var (
 )
 
 func init() {
-	MessageRPC, _ = NewRandLB(map[string]*RPCClient{}, MessageService, 0, 0, 255, false)
+	MessageRPC, _ = NewRandLB(map[string]*WeightRpc{}, MessageService, 0, 0, 255, false)
 }
 
 // watchMessageRoot watch the message root path.
@@ -128,7 +128,7 @@ func watchMessageRoot(conn *zk.Conn, fpath string, ch chan *MessageNodeEvent) er
 			// all child died, kick all the nodes
 			for _, client := range MessageRPC.Clients {
 				log.Debug("node: \"%s\" send del node event", client.Addr)
-				ch <- &MessageNodeEvent{Event: eventNodeDel, Key: &RPCClient{Addr: client.Addr, Weight: client.Weight}}
+				ch <- &MessageNodeEvent{Event: eventNodeDel, Key: &WeightRpc{Addr: client.Addr, Weight: client.Weight}}
 			}
 			time.Sleep(waitNodeDelaySecond)
 			continue
@@ -173,7 +173,7 @@ func watchMessageRoot(conn *zk.Conn, fpath string, ch chan *MessageNodeEvent) er
 }
 
 // parseMessageAddr parse message listener addrs like:1-ip:port,2-ip:port
-func parseMessageAddr(data string) (res []*RPCClient, err error) {
+func parseMessageAddr(data string) (res []*WeightRpc, err error) {
 	AddrArr := strings.Split(data, ",") // eg 1-ip:port,2-ip:port
 	for _, addr := range AddrArr {
 		wArr := strings.Split(addr, "-") // eg: 1-ip:port
@@ -187,7 +187,7 @@ func parseMessageAddr(data string) (res []*RPCClient, err error) {
 			err = fmt.Errorf("data:\"%s\" format error(%v)", data, err)
 			return
 		}
-		res = append(res, &RPCClient{Addr: wArr[1], Weight: wAddr})
+		res = append(res, &WeightRpc{Addr: wArr[1], Weight: wAddr})
 	}
 
 	return
@@ -198,7 +198,7 @@ func handleMessageNodeEvent(conn *zk.Conn, retry, ping time.Duration, vnode int,
 	for {
 		ev := <-ch
 		// copy map from src
-		tmpMessageRPCMap := make(map[string]*RPCClient, len(MessageRPC.Clients))
+		tmpMessageRPCMap := make(map[string]*WeightRpc, len(MessageRPC.Clients))
 		for k, v := range MessageRPC.Clients {
 			tmpMessageRPCMap[k] = v
 		}

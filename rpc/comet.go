@@ -167,19 +167,25 @@ func handleCometNodeEvent(conn *zk.Conn, fpath string, retry, ping time.Duration
 			}
 			log.Debug("get node:%s weight:%s", ev.Key, string(data))
 			tmpMap[ev.Key] = &CometNodeInfo{Weight: weight}
+			// warn: when start a watchCometNode goroutine, we don't know rpc connection will reuse or not.
+			// so add a a wait group delta, when register comet node finish, then release let the old node info do a destory.
 			go watchCometNode(conn, ev.Key, fpath, weight, retry, ping, vnode, ch)
 		} else if ev.Event == eventNodeDel {
 			log.Info("del node: \"%s\"", ev.Key)
 			delete(tmpMap, ev.Key)
 		} else if ev.Event == eventNodeUpdate {
 			log.Info("update node: \"%s\"", ev.Key)
+			// when new node added to watchCometNode then trigger node update
 			tmpMap[ev.Key] = ev.Value
 		} else {
 			log.Error("unknown node event: %d", ev.Event)
 			panic("unknown node event")
 		}
 		// if exist old node info, destroy
-		if info, ok := cometNodeInfoMap[ev.Key]; ok {
+		// if node add this may not happan
+		// if node del this will clean the resource
+		// if node update, after reuse rpc connection, this will clean the resource
+		if info, ok := cometNodeInfoMap[ev.Key]; !ok {
 			if info != nil && info.Rpc != nil {
 				info.Rpc.Destroy()
 			}
@@ -263,22 +269,25 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 	// get old node info for finding the old rpc connection
 	oldInfo := cometNodeInfoMap[node]
 	// init comet rpc
-	clients := make(map[string]*RPCClient, len(info.RpcAddr))
+	clients := make(map[string]*WeightRpc, len(info.RpcAddr))
 	for _, addr := range info.RpcAddr {
+		var (
+			r *rpc.Client
+		)
 		if oldInfo != nil && oldInfo.Rpc != nil {
-			if r, ok := oldInfo.Rpc.Clients[addr]; ok && r.Client != nil {
+			if wr, ok := oldInfo.Rpc.Clients[addr]; ok && wr.Client != nil {
 				// reuse the rpc connection must let old client = nil, avoid reclose rpc.
 				oldInfo.Rpc.Clients[addr].Client = nil
-				clients[addr] = &RPCClient{Weight: 1, Addr: addr, Client: r.Client}
-				continue
+				r = wr.Client
 			}
 		}
-		if r, err := rpc.Dial("tcp", addr); err != nil {
-			log.Error("rpc.Dial(\"%s\") error(%v)", addr, err)
-			return
-		} else {
-			clients[addr] = &RPCClient{Weight: 1, Addr: addr, Client: r}
+		if r == nil {
+			if r, err = rpc.Dial("tcp", addr); err != nil {
+				log.Error("rpc.Dial(\"%s\") error(%v)", addr, err)
+				return
+			}
 		}
+		clients[addr] = &WeightRpc{Weight: 1, Addr: addr, Client: r}
 	}
 	// comet rpc use rand load balance
 	lb, err := NewRandLB(clients, cometService, retry, ping, vnode, startPing)
