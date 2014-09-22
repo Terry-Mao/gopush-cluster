@@ -108,7 +108,7 @@ func (c *CometRPC) Close(key string, ret *int) error {
 // PushPrivate expored a method for publishing a user private message for the channel.
 // if it`s going failed then it`ll return an error
 func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error {
-	if args == nil || args.Key == "" || args.Msg == nil {
+	if args == nil || args.Key == "" {
 		return myrpc.ErrParam
 	}
 	// get a user channel
@@ -126,20 +126,16 @@ func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error
 	return nil
 }
 
-// batchChannel is user for PushPrivates.
+// batchChannel is use for PushPrivates.
 type batchChannel struct {
 	Keys []string
 	Chs  map[string]Channel
 }
 
-// PushMultiplePrivate expored a method for publishing a user multiple private message for the channel.
+// PushPrivates expored a method for publishing a user multiple private message for the channel.
 // because of it`s going asynchronously in this method, so it won`t return an error to caller.
 func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.CometPushPrivatesResp) error {
 	if args == nil {
-		return myrpc.ErrParam
-	}
-	if args.Msg == nil {
-		rw.FKeys = args.Keys
 		return myrpc.ErrParam
 	}
 	bucketMap := make(map[*ChannelBucket]*batchChannel, Conf.ChannelBucket)
@@ -167,8 +163,6 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 		}
 	}
 	// every bucket start a goroutine, return till all bucket gorouint finish
-	timeId := id.Get()
-	msg := &myrpc.Message{Msg: args.Msg, MsgId: timeId}
 	wg := &sync.WaitGroup{}
 	wg.Add(len(bucketMap))
 	// stored every gorouint failed keys
@@ -186,6 +180,8 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 			}
 			b.Lock()
 			defer b.Unlock()
+			timeId := id.Get()
+			msg := &myrpc.Message{Msg: args.Msg, MsgId: timeId}
 			// private message need persistence
 			// if message expired no need persistence, only send online message
 			// rewrite message id
