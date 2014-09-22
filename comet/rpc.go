@@ -20,6 +20,7 @@ import (
 	log "code.google.com/p/log4go"
 	"errors"
 	"fmt"
+	"github.com/Terry-Mao/gopush-cluster/id"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"net/rpc"
@@ -125,13 +126,23 @@ func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error
 	return nil
 }
 
+// batchChannel is user for PushPrivates.
+type batchChannel struct {
+	Keys []string
+	Chs  map[string]Channel
+}
+
 // PushMultiplePrivate expored a method for publishing a user multiple private message for the channel.
 // because of it`s going asynchronously in this method, so it won`t return an error to caller.
 func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.CometPushPrivatesResp) error {
-	if args == nil || args.Msg == nil {
+	if args == nil {
 		return myrpc.ErrParam
 	}
-	bucketMap := make(map[*ChannelBucket]map[string]Channel, Conf.ChannelBucket)
+	if args.Msg == nil {
+		rw.FKeys = args.Keys
+		return myrpc.ErrParam
+	}
+	bucketMap := make(map[*ChannelBucket]*batchChannel, Conf.ChannelBucket)
 	for _, key := range args.Keys {
 		// get channel
 		ch, err := UserChannel.New(key)
@@ -139,47 +150,77 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 			log.Error("UserChannel.New(\"%s\") error(%v)", key, err)
 			// log failed keys.
 			rw.FKeys = append(rw.FKeys, key)
+			continue
 		}
-		// get bucket index
 		bp := UserChannel.Bucket(key)
 		if bucket, ok := bucketMap[bp]; !ok {
-			bucketMap[bp] = map[string]Channel{key: ch}
+			bucketMap[bp] = &batchChannel{
+				Keys: []string{key},
+				Chs:  map[string]Channel{key: ch},
+			}
 		} else {
-			bucket[key] = ch
+			// ignore duplicate key
+			if _, ok := bucket.Chs[key]; !ok {
+				bucket.Chs[key] = ch
+				bucket.Keys = append(bucket.Keys, key)
+			}
 		}
 	}
 	// every bucket start a goroutine, return till all bucket gorouint finish
-	//lock := &sync.Mutex{}
-	msg := &myrpc.Message{Msg: args.Msg}
-	wg := sync.WaitGroup{}
+	timeId := id.Get()
+	msg := &myrpc.Message{Msg: args.Msg, MsgId: timeId}
+	wg := &sync.WaitGroup{}
 	wg.Add(len(bucketMap))
+	// stored every gorouint failed keys
+	fKeysList := make([][]string, len(bucketMap))
+	ti := 0
 	for tb, tm := range bucketMap {
-		go func(b *ChannelBucket, m map[string]Channel) {
+		go func(b *ChannelBucket, m *batchChannel, i int) {
+			defer wg.Done()
+			c := myrpc.MessageRPC.Get()
+			if c == nil {
+				// static slice is thread-safe
+				// log all keys
+				fKeysList[i] = m.Keys
+				return
+			}
 			b.Lock()
-			// TODO rpc push msgs
-			// lock log failed keys.
-			//lock.Lock()
-			//rw.FKeys = append(rw.FKeys, key)
-			//lock.Unlock()
-			// comet push msgs
-			for key, ch := range m {
+			defer b.Unlock()
+			// private message need persistence
+			// if message expired no need persistence, only send online message
+			// rewrite message id
+			if args.Expire > 0 {
+				args := &myrpc.MessageSavePrivatesArgs{Keys: m.Keys, Msg: args.Msg, MsgId: timeId, Expire: args.Expire}
+				resp := &myrpc.MessageSavePrivatesResp{}
+				if err := c.Call(myrpc.MessageServiceSavePrivates, args, resp); err != nil {
+					log.Error("%s(\"%v\", \"%v\", &ret) error(%v)", myrpc.MessageServiceSavePrivates, m.Keys, args, err)
+					// static slice is thread-safe
+					fKeysList[i] = resp.FKeys
+					return
+				}
+			}
+			// get all channels from batchChannel chs.
+			for key, ch := range m.Chs {
 				if err := ch.WriteMsg(key, msg); err != nil {
+					// ignore online push error, cause offline msg succeed
 					log.Error("ch.WriteMsg(\"%s\", \"%s\") error(%v)", key, string(msg.Msg), err)
 					continue
 				}
 			}
-			b.Unlock()
-			wg.Done()
-		}(tb, tm)
+		}(tb, tm, ti)
+		ti++
 	}
 	wg.Wait()
+	// merge all failed keys
+	for _, k := range fKeysList {
+		rw.FKeys = append(rw.FKeys, k...)
+	}
 	return nil
 }
 
 // Migrate update the inner hashring and node info.
 func (c *CometRPC) Migrate(args *myrpc.CometMigrateArgs, ret *int) error {
-	UserChannel.Migrate(args.Nodes)
-	return nil
+	return UserChannel.Migrate(args.Nodes)
 }
 
 // Ping check health.

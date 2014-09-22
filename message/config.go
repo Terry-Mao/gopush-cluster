@@ -48,9 +48,7 @@ type Config struct {
 	RedisMaxIdle     int               `goconf:"redis:idle"`
 	RedisMaxActive   int               `goconf:"redis:active"`
 	RedisMaxStore    int               `goconf:"redis:store"`
-	RedisKetamaBase  int               `goconf:"redis:ketama.base"`
 	MySQLClean       time.Duration     `goconf:"mysql:clean:time"`
-	MySQLKetamaBase  int               `goconf:"mysql:ketama.base"`
 	RedisSource      map[string]string `goconf:"-"`
 	MySQLSource      map[string]string `goconf:"-"`
 	// zookeeper

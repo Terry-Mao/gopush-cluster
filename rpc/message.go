@@ -31,10 +31,11 @@ const (
 	PrivateGroupId = 0
 	PublicGroupId  = 1
 	// message rpc service
-	MessageService            = "MessageRPC"
-	MessageServiceGetPrivate  = "MessageRPC.GetPrivate"
-	MessageServiceSavePrivate = "MessageRPC.SavePrivate"
-	MessageServiceDelPrivate  = "MessageRPC.DelPrivate"
+	MessageService             = "MessageRPC"
+	MessageServiceGetPrivate   = "MessageRPC.GetPrivate"
+	MessageServiceSavePrivate  = "MessageRPC.SavePrivate"
+	MessageServiceSavePrivates = "MessageRPC.SavePrivates"
+	MessageServiceDelPrivate   = "MessageRPC.DelPrivate"
 )
 
 var (
@@ -92,7 +93,7 @@ func (m *Message) OldBytes() ([]byte, error) {
 	return byteJson, nil
 }
 
-// Message SavePrivate Args
+// Message SavePrivate args
 type MessageSavePrivateArgs struct {
 	Key    string          // subscriber key
 	Msg    json.RawMessage // message content
@@ -100,7 +101,7 @@ type MessageSavePrivateArgs struct {
 	Expire uint            // message expire second
 }
 
-// Message SavePrivates Args
+// Message SavePrivates args
 type MessageSavePrivatesArgs struct {
 	Keys   []string        // subscriber keys
 	Msg    json.RawMessage // message content
@@ -108,14 +109,19 @@ type MessageSavePrivatesArgs struct {
 	Expire uint            // message expire second
 }
 
-// Message SavePublish Args
+// Message SavePrivates response
+type MessageSavePrivatesResp struct {
+	FKeys []string // failed key
+}
+
+// Message SavePublish args
 type MessageSavePublishArgs struct {
 	MsgID  int64  // message id
 	Msg    string // message content
 	Expire int64  // message expire second
 }
 
-// Message Get Args
+// Message Get args
 type MessageGetPrivateArgs struct {
 	MsgId int64  // message id
 	Key   string // subscriber key

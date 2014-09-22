@@ -20,6 +20,7 @@ import (
 	"time"
 )
 
+/*
 type TimeID struct {
 	lastID int64
 }
@@ -36,7 +37,7 @@ func (t *TimeID) ID() int64 {
 		if t.lastID >= s {
 			// if last time id > current time, may be who change the system id,
 			// so sleep last time id minus current time
-			time.Sleep(time.Duration((t.lastID-s+1)*100) * time.Nanosecond)
+			panic("time delay!!!!!!")
 		} else {
 			// save the current time id
 			t.lastID = s
@@ -44,4 +45,10 @@ func (t *TimeID) ID() int64 {
 		}
 	}
 	return 0
+}
+*/
+
+// Get get a time id.
+func Get() int64 {
+	return time.Now().UnixNano() / 100
 }

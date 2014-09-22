@@ -38,8 +38,8 @@ type SeqChannel struct {
 	mutex *sync.Mutex
 	// client conn double linked-list
 	conn *hlist.Hlist
-	// TODO Remove time id or lazy New
-	timeID *id.TimeID
+	// Remove time id or lazy New
+	// timeID *id.TimeID
 	// token
 	token *Token
 }
@@ -47,10 +47,10 @@ type SeqChannel struct {
 // New a user seq stored message channel.
 func NewSeqChannel() *SeqChannel {
 	ch := &SeqChannel{
-		mutex:  &sync.Mutex{},
-		conn:   hlist.New(),
-		timeID: id.NewTimeID(),
-		token:  nil,
+		mutex: &sync.Mutex{},
+		conn:  hlist.New(),
+		//timeID: id.NewTimeID(),
+		token: nil,
 	}
 	// save memory
 	if Conf.Auth {
@@ -137,7 +137,8 @@ func (c *SeqChannel) PushMsg(key string, m *myrpc.Message, expire uint) (err err
 	// private message need persistence
 	// if message expired no need persistence, only send online message
 	// rewrite message id
-	m.MsgId = c.timeID.ID()
+	//m.MsgId = c.timeID.ID()
+	m.MsgId = id.Get()
 	if m.GroupId != myrpc.PublicGroupId && expire > 0 {
 		args := &myrpc.MessageSavePrivateArgs{Key: key, Msg: m.Msg, MsgId: m.MsgId, Expire: expire}
 		ret := 0

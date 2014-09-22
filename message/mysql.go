@@ -56,7 +56,7 @@ func NewMySQLStorage() *MySQLStorage {
 		db  *sql.DB
 	)
 	dbPool := make(map[string]*sql.DB)
-	ring := ketama.NewRing(Conf.MySQLKetamaBase)
+	ring := ketama.NewRing(ketamaBase)
 	for n, source := range Conf.MySQLSource {
 		nw = strings.Split(n, ":")
 		if len(nw) != 2 {
@@ -99,9 +99,9 @@ func (s *MySQLStorage) SavePrivate(key string, msg json.RawMessage, mid int64, e
 }
 
 // SavePrivates implements the Storage SavePrivates method.
-func (s *MySQLStorage) SavePrivates(keys []string, msg json.RawMessage, mid int64, expire uint) error {
+func (s *MySQLStorage) SavePrivates(keys []string, msg json.RawMessage, mid int64, expire uint) ([]string, error) {
 	// TODO
-	return nil
+	return nil, nil
 }
 
 // GetPrivate implements the Storage GetPrivate method.
