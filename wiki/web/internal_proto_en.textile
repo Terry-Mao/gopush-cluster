@@ -4,7 +4,7 @@ Web internal interface document, used for push or delete messages so on
 <h3>Interface Summary</h3>
 (head). | Name | URL | Method |
 | "<a href="#Push Private Message">Push Private Message</a>":AdminPush | /1/admin/push/private     | POST |
-| "<a href="#Clean Message">Clean Message</a>":AdminMsgClean | /admin/msg/clean | POST |
+| "<a href="#Clean Message">Clean Message</a>":AdminMsgClean | /1/admin/msg/del | POST |
 
 <h3>Public ErrorCode</h3>
 

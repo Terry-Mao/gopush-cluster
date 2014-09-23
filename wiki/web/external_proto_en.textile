@@ -23,12 +23,13 @@ Web external interface document, used for getting subscription node, getting off
 </pre>
 If you are working on JavaScript, you can specify a callback to URL Parameter "callback" eg: callback=test.
 Respond data like following:
-<pre>
+
+```scala
 test({
     "ret": 0,
     "data": {….}
 })
-</pre>
+```
 
 <a name="Get Subscription Node"></a>
 

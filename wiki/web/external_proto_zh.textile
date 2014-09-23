@@ -22,12 +22,13 @@ Web外部接口文档，用于获取Subcribe节点,获取离线消息等
 }
 </pre>
 如何接口需要返回jsonp结构(例如客户端使用js解析json)，则指定callback参数，例如：callback=test，则返回结构如下：
-<pre>
+
+```scala
 test({
     "ret": 0,  //错误码
     "data": {….}//如果有数据返回，则有data，无数据返回就只有前面的ret
 })
-</pre>
+```
 
 <h3>获取订阅节点</h3>
  * 请求参数
