@@ -17,6 +17,7 @@
 package rpc
 
 import (
+	"bytes"
 	log "code.google.com/p/log4go"
 	"encoding/json"
 	"errors"
@@ -26,7 +27,6 @@ import (
 	"net/rpc"
 	"path"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -175,7 +175,7 @@ func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, p
 		// if node add this may not happan
 		// if node del this will clean the resource
 		// if node update, after reuse rpc connection, this will clean the resource
-		if info, ok := cometNodeInfoMap[ev.Key]; !ok {
+		if info, ok := cometNodeInfoMap[ev.Key]; ok {
 			if info != nil && info.Rpc != nil {
 				info.Rpc.Destroy()
 			}
@@ -194,7 +194,7 @@ func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, p
 		cometRing = tempRing
 		// migrate
 		if ev.Migrate {
-			if err := notifyMigrate(conn, migrateLockPath, nodeWeightMap); err != nil {
+			if err := notifyMigrate(conn, migrateLockPath, nodeWeightMap, vnode); err != nil {
 				// if err == zk.ErrNodeExists meaning anyone is going through.
 				// we hopefully that only one web node notify comet migrate.
 				// also it was judged in Comet whether it needs migrate or not.
@@ -207,8 +207,13 @@ func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, p
 				}
 			}
 			if ev.Event == eventNodeUpdate {
-				if _, err := conn.Set(path.Join(fpath, ev.Key), []byte(strconv.Itoa(ev.Value.Weight)), -1); err != nil {
-					log.Error("conn.Set(\"%s\",\"%d\",\"-1\") error(%v)", path.Join(fpath, ev.Key), ev.Value.Weight, err)
+				data, err := json.Marshal(ev.Value)
+				if err != nil {
+					log.Error("json.Marshal(\"%v\") error(%v)", *ev.Value, err)
+					continue
+				}
+				if _, err := conn.Set(path.Join(fpath, ev.Key), data, -1); err != nil {
+					log.Error("conn.Set(\"%s\",\"%s\",\"-1\") error(%v)", path.Join(fpath, ev.Key), string(data), err)
 					continue
 				}
 			}
@@ -218,7 +223,7 @@ func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, p
 }
 
 // notify every Comet node to migrate
-func notifyMigrate(conn *zk.Conn, migrateLockPath string, nodeWeightMap map[string]int) (err error) {
+func notifyMigrate(conn *zk.Conn, migrateLockPath string, nodeWeightMap map[string]int, vnode int) (err error) {
 	if _, err = conn.Create(migrateLockPath, []byte("1"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll)); err != nil {
 		log.Error("conn.Create(\"/gopush-migrate-lock\", \"1\", zk.FlagEphemeral) error(%v)", err)
 		return
@@ -239,7 +244,8 @@ func notifyMigrate(conn *zk.Conn, migrateLockPath string, nodeWeightMap map[stri
 				return
 			}
 			reply := 0
-			if err = r.Call(CometServiceMigrate, nodeWeightMap, &reply); err != nil {
+			args := &CometMigrateArgs{Nodes: nodeWeightMap, Vnode: vnode}
+			if err = r.Call(CometServiceMigrate, args, &reply); err != nil {
 				log.Error("rpc.Call(\"%s\") error(%v)", CometServiceMigrate, err)
 				wg.Done()
 				return
@@ -280,24 +286,19 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 			continue
 		} else {
 			// update node info
-			var pweight int
-			data, _, err := conn.Get(fpath)
+			var pData []byte
+			pData, _, err = conn.Get(fpath)
 			if err != nil {
 				log.Error("conn.Get(\"%s\") error(%v)", fpath, err)
 				time.Sleep(waitNodeDelaySecond)
 				continue
 			}
-			if len(data) == 0 {
-				pweight = 0
-			} else {
-				pweight, err = strconv.Atoi(string(data))
-				if err != nil {
-					log.Error("strconv.Atoi(\"%s\") error(%v)", string(data), err)
-					time.Sleep(waitNodeDelaySecond)
-					continue
-				}
+			data, err := json.Marshal(info)
+			if err != nil {
+				log.Error("json.Marshal(\"%v\") error(%v)", *info, err)
+				continue
 			}
-			ch <- &CometNodeEvent{Event: eventNodeUpdate, Key: node, Value: info, Migrate: pweight != info.Weight}
+			ch <- &CometNodeEvent{Event: eventNodeUpdate, Key: node, Value: info, Migrate: !bytes.Equal(pData, data)}
 		}
 		// blocking receive event
 		event := <-watch
