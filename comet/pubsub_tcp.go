@@ -20,11 +20,9 @@ import (
 	"bufio"
 	log "code.google.com/p/log4go"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -89,12 +87,8 @@ func putBufioReader(c chan *bufio.Reader, r *bufio.Reader) {
 // StartTCP Start tcp listen.
 func StartTCP() error {
 	for _, bind := range Conf.TCPBind {
-		addrs := strings.Split(bind, "-")
-		if len(addrs) != 2 {
-			return fmt.Errorf("config tcp.bind:\"%s\" format error", bind)
-		}
 		log.Info("start tcp listen addr:\"%s\"", bind)
-		go tcpListen(addrs[1])
+		go tcpListen(bind)
 	}
 
 	return nil

@@ -55,8 +55,8 @@ func GetServer(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetServer1 handle for server get.
-func GetServer1(w http.ResponseWriter, r *http.Request) {
+// GetServer2 handle for server get.
+func GetServer2(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, "Method Not Allowed", 405)
 		return

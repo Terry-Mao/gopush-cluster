@@ -20,11 +20,9 @@ import (
 	// TODO change the 3rd websocket lib
 	"code.google.com/p/go.net/websocket"
 	log "code.google.com/p/log4go"
-	"fmt"
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -55,12 +53,8 @@ func (l *KeepAliveListener) Accept() (c net.Conn, err error) {
 // StartHttp start http listen.
 func StartWebsocket() error {
 	for _, bind := range Conf.WebsocketBind {
-		addrs := strings.Split(bind, "-")
-		if len(addrs) != 2 {
-			return fmt.Errorf("config websocket.bind:\"%s\" format error", bind)
-		}
 		log.Info("start websocket listen addr:\"%s\"", bind)
-		go websocketListen(addrs[1])
+		go websocketListen(bind)
 	}
 
 	return nil

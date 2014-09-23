@@ -19,12 +19,10 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	"errors"
-	"fmt"
 	"github.com/Terry-Mao/gopush-cluster/id"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"net/rpc"
-	"strings"
 	"sync"
 )
 
@@ -37,12 +35,8 @@ func StartRPC() error {
 	c := &CometRPC{}
 	rpc.Register(c)
 	for _, bind := range Conf.RPCBind {
-		addrs := strings.Split(bind, "-")
-		if len(addrs) != 2 {
-			return fmt.Errorf("config rpc.bind:\"%s\" format error", bind)
-		}
 		log.Info("start listen rpc addr: \"%s\"", bind)
-		go rpcListen(addrs[1])
+		go rpcListen(bind)
 	}
 
 	return nil

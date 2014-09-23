@@ -18,15 +18,9 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	"fmt"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net"
 	"net/rpc"
-	"strings"
-)
-
-const (
-	rpcBindSpliter = "-"
 )
 
 // RPC For receive offline messages
@@ -38,12 +32,8 @@ func InitRPC() error {
 	msg := &MessageRPC{}
 	rpc.Register(msg)
 	for _, bind := range Conf.RPCBind {
-		addrs := strings.Split(bind, rpcBindSpliter)
-		if len(addrs) != 2 {
-			return fmt.Errorf("config rpc.bind:\"%s\" format error", bind)
-		}
 		log.Info("start rpc listen addr: \"%s\"", bind)
-		go rpcListen(addrs[1])
+		go rpcListen(bind)
 	}
 
 	return nil
