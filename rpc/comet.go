@@ -63,8 +63,6 @@ type CometNodeEvent struct {
 	Value *CometNodeInfo
 	// event type
 	Event int
-	// Migrate
-	Migrate bool
 }
 
 // Channel Push Private Message Args
@@ -115,7 +113,7 @@ func watchCometRoot(conn *zk.Conn, fpath string, ch chan *CometNodeEvent) error 
 		} else if err == myzk.ErrNoChild {
 			log.Warn("zk don't have any children in \"%s\", retry in %d second", fpath, waitNodeDelay)
 			for node, _ := range cometNodeInfoMap {
-				ch <- &CometNodeEvent{Event: eventNodeDel, Key: node, Migrate: true}
+				ch <- &CometNodeEvent{Event: eventNodeDel, Key: node}
 			}
 			time.Sleep(waitNodeDelaySecond)
 			continue
@@ -128,14 +126,14 @@ func watchCometRoot(conn *zk.Conn, fpath string, ch chan *CometNodeEvent) error 
 		// handle new add nodes
 		for _, node := range nodes {
 			if _, ok := cometNodeInfoMap[node]; !ok {
-				ch <- &CometNodeEvent{Event: eventNodeAdd, Key: node, Migrate: false}
+				ch <- &CometNodeEvent{Event: eventNodeAdd, Key: node}
 			}
 			nodesMap[node] = true
 		}
 		// handle delete nodes
 		for node, _ := range cometNodeInfoMap {
 			if _, ok := nodesMap[node]; !ok {
-				ch <- &CometNodeEvent{Event: eventNodeDel, Key: node, Migrate: true}
+				ch <- &CometNodeEvent{Event: eventNodeDel, Key: node}
 			}
 		}
 		event := <-watch
@@ -147,6 +145,12 @@ func watchCometRoot(conn *zk.Conn, fpath string, ch chan *CometNodeEvent) error 
 func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, ping time.Duration, ch chan *CometNodeEvent) {
 	for {
 		ev := <-ch
+		var (
+			data    []byte
+			migrate = false
+			update  = false
+			znode   = path.Join(fpath, ev.Key)
+		)
 		// copy map from src
 		tmpMap := make(map[string]*CometNodeInfo, len(cometNodeInfoMap))
 		for k, v := range cometNodeInfoMap {
@@ -155,17 +159,33 @@ func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, p
 		// handle event
 		if ev.Event == eventNodeAdd {
 			log.Info("add node: \"%s\"", ev.Key)
+			migrate = false
 			tmpMap[ev.Key] = &CometNodeInfo{Weight: 1}
-			// warn: when start a watchCometNode goroutine, we don't know rpc connection will reuse or not.
-			// so add a a wait group delta, when register comet node finish, then release let the old node info do a destory.
 			go watchCometNode(conn, ev.Key, fpath, retry, ping, ch)
 		} else if ev.Event == eventNodeDel {
 			log.Info("del node: \"%s\"", ev.Key)
+			migrate = true
 			delete(tmpMap, ev.Key)
 		} else if ev.Event == eventNodeUpdate {
 			log.Info("update node: \"%s\"", ev.Key)
 			// when new node added to watchCometNode then trigger node update
 			tmpMap[ev.Key] = ev.Value
+			// old znode info
+			pData, _, err := conn.Get(znode)
+			if err != nil {
+				log.Error("conn.Get(\"%s\") error(%v)", znode, err)
+				time.Sleep(waitNodeDelaySecond)
+				continue
+			}
+			// cur znoe info
+			data, err = json.Marshal(ev.Value)
+			if err != nil {
+				log.Error("json.Marshal(\"%v\") error(%v)", ev.Value, err)
+				continue
+			}
+			// if not equals then need to trigger migrate
+			migrate = !bytes.Equal(pData, data)
+			update = true
 		} else {
 			log.Error("unknown node event: %d", ev.Event)
 			panic("unknown node event")
@@ -192,8 +212,8 @@ func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, p
 		cometNodeInfoMap = tmpMap
 		cometRing = tempRing
 		// migrate
-		if ev.Migrate {
-			if err := notifyMigrate(conn, migrateLockPath, nodeWeightMap); err != nil {
+		if migrate {
+			if err := notifyMigrate(conn, migrateLockPath, znode, data, update, nodeWeightMap); err != nil {
 				// if err == zk.ErrNodeExists meaning anyone is going through.
 				// we hopefully that only one web node notify comet migrate.
 				// also it was judged in Comet whether it needs migrate or not.
@@ -205,28 +225,19 @@ func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, p
 					continue
 				}
 			}
-			if ev.Event == eventNodeUpdate {
-				data, err := json.Marshal(ev.Value)
-				if err != nil {
-					log.Error("json.Marshal(\"%v\") error(%v)", *ev.Value, err)
-					continue
-				}
-				if _, err := conn.Set(path.Join(fpath, ev.Key), data, -1); err != nil {
-					log.Error("conn.Set(\"%s\",\"%s\",\"-1\") error(%v)", path.Join(fpath, ev.Key), string(data), err)
-					continue
-				}
-			}
 		}
 		log.Debug("cometNodeInfoMap len: %d", len(cometNodeInfoMap))
 	}
 }
 
 // notify every Comet node to migrate
-func notifyMigrate(conn *zk.Conn, migrateLockPath string, nodeWeightMap map[string]int) (err error) {
+func notifyMigrate(conn *zk.Conn, migrateLockPath, znode string, data []byte, update bool, nodeWeightMap map[string]int) (err error) {
+	// try lock
 	if _, err = conn.Create(migrateLockPath, []byte("1"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll)); err != nil {
 		log.Error("conn.Create(\"/gopush-migrate-lock\", \"1\", zk.FlagEphemeral) error(%v)", err)
 		return
 	}
+	// call comet migrate rpc
 	wg := &sync.WaitGroup{}
 	wg.Add(len(cometNodeInfoMap))
 	for node, nodeInfo := range cometNodeInfoMap {
@@ -254,6 +265,14 @@ func notifyMigrate(conn *zk.Conn, migrateLockPath string, nodeWeightMap map[stri
 		}(nodeInfo)
 	}
 	wg.Wait()
+	// update znode info
+	if update {
+		if _, err = conn.Set(znode, data, -1); err != nil {
+			log.Error("conn.Set(\"%s\",\"%s\",\"-1\") error(%v)", znode, string(data), err)
+			return
+		}
+	}
+	// release lock
 	if err = conn.Delete(migrateLockPath, -1); err != nil {
 		log.Error("conn.Delete(\"%s\") error(%v)", migrateLockPath, err)
 	}
@@ -285,19 +304,7 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 			continue
 		} else {
 			// update node info
-			var pData []byte
-			pData, _, err = conn.Get(fpath)
-			if err != nil {
-				log.Error("conn.Get(\"%s\") error(%v)", fpath, err)
-				time.Sleep(waitNodeDelaySecond)
-				continue
-			}
-			data, err := json.Marshal(info)
-			if err != nil {
-				log.Error("json.Marshal(\"%v\") error(%v)", *info, err)
-				continue
-			}
-			ch <- &CometNodeEvent{Event: eventNodeUpdate, Key: node, Value: info, Migrate: !bytes.Equal(pData, data)}
+			ch <- &CometNodeEvent{Event: eventNodeUpdate, Key: node, Value: info}
 		}
 		// blocking receive event
 		event := <-watch
