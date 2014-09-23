@@ -112,6 +112,10 @@ func (l *ChannelList) Bucket(key string) *ChannelBucket {
 
 // validate check the key is belong to this comet.
 func (l *ChannelList) validate(key string) error {
+	if len(nodeWeightMap) == 0 {
+		log.Debug("no node found")
+		return ErrChannelKey
+	}
 	node := CometRing.Hash(key)
 	log.Debug("match node:%s hash node:%s", Conf.ZookeeperCometNode, node)
 	if Conf.ZookeeperCometNode != node {

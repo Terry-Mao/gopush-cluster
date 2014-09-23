@@ -136,6 +136,7 @@ func (r *RandLB) Destroy() {
 	for _, client := range r.Clients {
 		// rpc may be nil, someone steal and reuse it.
 		if client != nil && client.Client != nil {
+			log.Debug("rpc connection close")
 			if err := client.Client.Close(); err != nil {
 				log.Error("client.Close() error(%v)", err)
 			}
