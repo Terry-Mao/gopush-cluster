@@ -95,7 +95,6 @@ type CometPushPublicArgs struct {
 // Channel Migrate Args
 type CometMigrateArgs struct {
 	Nodes map[string]int // current comet nodes
-	Vnode int            // ketama virtual node number
 }
 
 // Channel New Args
@@ -145,7 +144,7 @@ func watchCometRoot(conn *zk.Conn, fpath string, ch chan *CometNodeEvent) error 
 }
 
 // handleCometNodeEvent add and remove CometNodeInfo, copy the src map to a new map then replace the variable.
-func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, ping time.Duration, vnode int, ch chan *CometNodeEvent) {
+func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, ping time.Duration, ch chan *CometNodeEvent) {
 	for {
 		ev := <-ch
 		// copy map from src
@@ -159,7 +158,7 @@ func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, p
 			tmpMap[ev.Key] = &CometNodeInfo{Weight: 1}
 			// warn: when start a watchCometNode goroutine, we don't know rpc connection will reuse or not.
 			// so add a a wait group delta, when register comet node finish, then release let the old node info do a destory.
-			go watchCometNode(conn, ev.Key, fpath, retry, ping, vnode, ch)
+			go watchCometNode(conn, ev.Key, fpath, retry, ping, ch)
 		} else if ev.Event == eventNodeDel {
 			log.Info("del node: \"%s\"", ev.Key)
 			delete(tmpMap, ev.Key)
@@ -181,7 +180,7 @@ func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, p
 			}
 		}
 		// update comet hash, cause node has changed
-		tempRing := ketama.NewRing(vnode)
+		tempRing := ketama.NewRing(ketama.Base)
 		nodeWeightMap := map[string]int{}
 		for k, v := range tmpMap {
 			log.Debug("AddNode node:%s weight:%d", k, v.Weight)
@@ -194,7 +193,7 @@ func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, p
 		cometRing = tempRing
 		// migrate
 		if ev.Migrate {
-			if err := notifyMigrate(conn, migrateLockPath, nodeWeightMap, vnode); err != nil {
+			if err := notifyMigrate(conn, migrateLockPath, nodeWeightMap); err != nil {
 				// if err == zk.ErrNodeExists meaning anyone is going through.
 				// we hopefully that only one web node notify comet migrate.
 				// also it was judged in Comet whether it needs migrate or not.
@@ -223,7 +222,7 @@ func handleCometNodeEvent(conn *zk.Conn, migrateLockPath, fpath string, retry, p
 }
 
 // notify every Comet node to migrate
-func notifyMigrate(conn *zk.Conn, migrateLockPath string, nodeWeightMap map[string]int, vnode int) (err error) {
+func notifyMigrate(conn *zk.Conn, migrateLockPath string, nodeWeightMap map[string]int) (err error) {
 	if _, err = conn.Create(migrateLockPath, []byte("1"), zk.FlagEphemeral, zk.WorldACL(zk.PermAll)); err != nil {
 		log.Error("conn.Create(\"/gopush-migrate-lock\", \"1\", zk.FlagEphemeral) error(%v)", err)
 		return
@@ -244,7 +243,7 @@ func notifyMigrate(conn *zk.Conn, migrateLockPath string, nodeWeightMap map[stri
 				return
 			}
 			reply := 0
-			args := &CometMigrateArgs{Nodes: nodeWeightMap, Vnode: vnode}
+			args := &CometMigrateArgs{Nodes: nodeWeightMap}
 			if err = r.Call(CometServiceMigrate, args, &reply); err != nil {
 				log.Error("rpc.Call(\"%s\") error(%v)", CometServiceMigrate, err)
 				wg.Done()
@@ -262,7 +261,7 @@ func notifyMigrate(conn *zk.Conn, migrateLockPath string, nodeWeightMap map[stri
 }
 
 // watchNode watch a named node for leader selection when failover
-func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int, ch chan *CometNodeEvent) {
+func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, ch chan *CometNodeEvent) {
 	fpath = path.Join(fpath, node)
 	for {
 		nodes, watch, err := myzk.GetNodesW(conn, fpath)
@@ -280,7 +279,7 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 		}
 		// leader selection
 		sort.Strings(nodes)
-		if info, err := registerCometNode(conn, nodes[0], fpath, retry, ping, vnode, true); err != nil {
+		if info, err := registerCometNode(conn, nodes[0], fpath, retry, ping, true); err != nil {
 			log.Error("zk path: \"%s\" registerCometNode error(%v)", fpath, err)
 			time.Sleep(waitNodeDelaySecond)
 			continue
@@ -309,7 +308,7 @@ func watchCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration
 }
 
 // registerCometNode get infomation of comet node
-func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, vnode int, startPing bool) (info *CometNodeInfo, err error) {
+func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Duration, startPing bool) (info *CometNodeInfo, err error) {
 	// get current node info from zookeeper
 	fpath = path.Join(fpath, node)
 	data, _, err := conn.Get(fpath)
@@ -351,7 +350,7 @@ func registerCometNode(conn *zk.Conn, node, fpath string, retry, ping time.Durat
 		clients[addr] = &WeightRpc{Weight: 1, Addr: addr, Client: r}
 	}
 	// comet rpc use rand load balance
-	lb, err := NewRandLB(clients, cometService, retry, ping, vnode, startPing)
+	lb, err := NewRandLB(clients, cometService, retry, ping, startPing)
 	if err != nil {
 		log.Error("NewRandLR() error(%v)", err)
 		return
@@ -372,9 +371,9 @@ func GetComet(key string) *CometNodeInfo {
 }
 
 // InitComet init a rand lb rpc for comet module.
-func InitComet(conn *zk.Conn, migrateLockPath, fpath string, retry, ping time.Duration, vnode int) {
+func InitComet(conn *zk.Conn, migrateLockPath, fpath string, retry, ping time.Duration) {
 	// watch comet path
 	ch := make(chan *CometNodeEvent, 1024)
-	go handleCometNodeEvent(conn, migrateLockPath, fpath, retry, ping, vnode, ch)
+	go handleCometNodeEvent(conn, migrateLockPath, fpath, retry, ping, ch)
 	go watchCometRoot(conn, fpath, ch)
 }

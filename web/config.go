@@ -42,7 +42,6 @@ type Config struct {
 	PidFile              string        `goconf:"base:pidfile"`
 	Dir                  string        `goconf:"base:dir"`
 	Log                  string        `goconf:"base:log"`
-	KetamaBase           int           `goconf:"base:ketama.base"`
 	ZookeeperAddr        []string      `goconf:"zookeeper:addr:,"`
 	ZookeeperTimeout     time.Duration `goconf:"zookeeper:timeout:time"`
 	ZookeeperCometPath   string        `goconf:"zookeeper:comet.path"`
@@ -68,7 +67,6 @@ func InitConfig() error {
 		PidFile:              "/tmp/gopush-cluster-web.pid",
 		Dir:                  "./",
 		Log:                  "./log/xml",
-		KetamaBase:           255,
 		ZookeeperAddr:        []string{":2181"},
 		ZookeeperTimeout:     30 * time.Second,
 		ZookeeperCometPath:   "/gopush-cluster-comet",

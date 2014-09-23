@@ -30,6 +30,11 @@ import (
 	"strconv"
 )
 
+const (
+	// TODO you can modify this get more virtual node
+	Base = 255
+)
+
 type node struct {
 	node string
 	hash uint

@@ -68,7 +68,7 @@ type RandLB struct {
 }
 
 // NewRandLB new a random load balancing object.
-func NewRandLB(clients map[string]*WeightRpc, service string, retry, ping time.Duration, vnode int, check bool) (*RandLB, error) {
+func NewRandLB(clients map[string]*WeightRpc, service string, retry, ping time.Duration, check bool) (*RandLB, error) {
 	r := &RandLB{Clients: clients}
 	r.initWeightRand()
 	if check && len(clients) > 0 {

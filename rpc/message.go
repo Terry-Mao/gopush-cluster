@@ -43,7 +43,7 @@ var (
 )
 
 func init() {
-	MessageRPC, _ = NewRandLB(map[string]*WeightRpc{}, MessageService, 0, 0, 255, false)
+	MessageRPC, _ = NewRandLB(map[string]*WeightRpc{}, MessageService, 0, 0, false)
 }
 
 type MessageNodeEvent struct {
@@ -189,7 +189,7 @@ func watchMessageRoot(conn *zk.Conn, fpath string, ch chan *MessageNodeEvent) er
 }
 
 // handleNodeEvent add and remove MessageRPC.Clients, copy the src map to a new map then replace the variable.
-func handleMessageNodeEvent(conn *zk.Conn, retry, ping time.Duration, vnode int, ch chan *MessageNodeEvent) {
+func handleMessageNodeEvent(conn *zk.Conn, retry, ping time.Duration, ch chan *MessageNodeEvent) {
 	for {
 		ev := <-ch
 		// copy map from src
@@ -217,7 +217,7 @@ func handleMessageNodeEvent(conn *zk.Conn, retry, ping time.Duration, vnode int,
 			log.Error("unknown node event: %d", ev.Event)
 			panic("unknown node event")
 		}
-		tmpMessageRPC, err := NewRandLB(tmpMessageRPCMap, MessageService, retry, ping, vnode, true)
+		tmpMessageRPC, err := NewRandLB(tmpMessageRPCMap, MessageService, retry, ping, true)
 		if err != nil {
 			log.Error("NewRandLR() error(%v)", err)
 			panic(err)
@@ -232,9 +232,9 @@ func handleMessageNodeEvent(conn *zk.Conn, retry, ping time.Duration, vnode int,
 }
 
 // InitMessage init a rand lb rpc for message module.
-func InitMessage(conn *zk.Conn, fpath string, retry, ping time.Duration, vnode int) {
+func InitMessage(conn *zk.Conn, fpath string, retry, ping time.Duration) {
 	// watch message path
 	ch := make(chan *MessageNodeEvent, 1024)
-	go handleMessageNodeEvent(conn, retry, ping, vnode, ch)
+	go handleMessageNodeEvent(conn, retry, ping, ch)
 	go watchMessageRoot(conn, fpath, ch)
 }

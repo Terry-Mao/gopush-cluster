@@ -26,10 +26,6 @@ import (
 	"sync"
 )
 
-const (
-	ketamaBase = 255
-)
-
 var (
 	ErrChannelNotExist = errors.New("Channle not exist")
 	ErrConnProto       = errors.New("Unknown connection protocol")
@@ -242,7 +238,7 @@ func (l *ChannelList) Migrate(nw map[string]int) (err error) {
 		return
 	}
 	// init ketama
-	ring := ketama.NewRing(ketamaBase)
+	ring := ketama.NewRing(ketama.Base)
 	for node, weight := range nw {
 		ring.AddNode(node, weight)
 	}

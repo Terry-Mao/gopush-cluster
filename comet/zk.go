@@ -65,7 +65,7 @@ func InitZK() (*zk.Conn, error) {
 	}
 	// watch and update
 	//go watchCometRoot(conn, Conf.ZookeeperCometPath, Conf.KetamaBase)
-	rpc.InitMessage(conn, Conf.ZookeeperMessagePath, Conf.RPCRetry, Conf.RPCPing, ketamaBase)
+	rpc.InitMessage(conn, Conf.ZookeeperMessagePath, Conf.RPCRetry, Conf.RPCPing)
 	return conn, nil
 }
 
