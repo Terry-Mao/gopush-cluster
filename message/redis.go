@@ -168,6 +168,7 @@ func (s *RedisStorage) SavePrivates(keys []string, msg json.RawMessage, mid int6
 	for n, k := range nodes {
 		conn := s.getConnByNode(n)
 		if conn == nil {
+			log.Error("cann`t get redis connection by node:%s", n)
 			err = RedisNoConnErr
 			return
 		}

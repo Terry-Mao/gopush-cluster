@@ -119,7 +119,7 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// match nodes
-	nodes := map[*myrpc.CometNodeInfo]*[]string{}
+	nodes := map[*myrpc.CometNodeInfo][]string{}
 	for i := 0; i < len(keys); i++ {
 		node := myrpc.GetComet(keys[i])
 		if node == nil || node.Rpc == nil {
@@ -128,9 +128,9 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 		}
 		keysTmp, ok := nodes[node]
 		if ok {
-			*keysTmp = append(*keysTmp, keys[i])
+			keysTmp = append(keysTmp, keys[i])
 		} else {
-			nodes[node] = &[]string{keys[i]}
+			nodes[node] = []string{keys[i]}
 		}
 	}
 	var fKeys []string
@@ -139,24 +139,18 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 		client := cometInfo.Rpc.Get()
 		if client == nil {
 			log.Error("cannot get comet rpc client")
-			for i := 0; i < len(*ks); i++ {
-				fKeys = append(fKeys, (*ks)[i])
-			}
+			fKeys = append(fKeys, ks...)
 			continue
 		}
-		args := &myrpc.CometPushPrivatesArgs{Msg: json.RawMessage(msg), Expire: uint(expire), Keys: *ks}
+		args := &myrpc.CometPushPrivatesArgs{Msg: json.RawMessage(msg), Expire: uint(expire), Keys: ks}
 		resp := myrpc.CometPushPrivatesResp{}
 		if err := client.Call(myrpc.CometServicePushPrivates, args, &resp); err != nil {
 			log.Error("client.Call(\"%s\", \"%v\", &ret) error(%v)", myrpc.CometServicePushPrivates, args.Keys, err)
-			for i := 0; i < len(*ks); i++ {
-				fKeys = append(fKeys, (*ks)[i])
-			}
+			fKeys = append(fKeys, ks...)
 			continue
 		}
 
-		for i := 0; i < len(resp.FKeys); i++ {
-			fKeys = append(fKeys, resp.FKeys[i])
-		}
+		fKeys = append(fKeys, resp.FKeys...)
 	}
 	res["ret"] = OK
 	if len(fKeys) != 0 {

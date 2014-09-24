@@ -179,15 +179,20 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 			// private message need persistence
 			// if message expired no need persistence, only send online message
 			// rewrite message id
+			resp := &myrpc.MessageSavePrivatesResp{}
 			if args.Expire > 0 {
 				args := &myrpc.MessageSavePrivatesArgs{Keys: m.Keys, Msg: args.Msg, MsgId: timeId, Expire: args.Expire}
-				resp := &myrpc.MessageSavePrivatesResp{}
 				if err := c.Call(myrpc.MessageServiceSavePrivates, args, resp); err != nil {
 					log.Error("%s(\"%v\", \"%v\", &ret) error(%v)", myrpc.MessageServiceSavePrivates, m.Keys, args, err)
 					// static slice is thread-safe
-					fKeysList[i] = resp.FKeys
+					fKeysList[i] = m.Keys
 					return
 				}
+				fKeysList[i] = resp.FKeys
+			}
+			// delete the failed keys
+			for _, fk := range resp.FKeys {
+				delete(m.Chs, fk)
 			}
 			// get all channels from batchChannel chs.
 			for key, ch := range m.Chs {
