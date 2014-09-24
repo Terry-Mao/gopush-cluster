@@ -221,15 +221,15 @@ func notifyMigrate(conn *zk.Conn, migrateLockPath, znode, key string, update boo
 	wg := &sync.WaitGroup{}
 	wg.Add(len(cometNodeInfoMap))
 	for node, nodeInfo := range cometNodeInfoMap {
-		go func(info *CometNodeInfo) {
+		go func(n string, info *CometNodeInfo) {
 			if info.Rpc == nil {
-				log.Error("notify migrate failed, no rpc found, node(%s)", node)
+				log.Error("notify migrate failed, no rpc found, node:%s", n)
 				wg.Done()
 				return
 			}
 			r := info.Rpc.Get()
 			if r == nil {
-				log.Error("notify migrate failed, no rpc found, node(%s)", node)
+				log.Error("notify migrate failed, no rpc found, node:%s", n)
 				wg.Done()
 				return
 			}
@@ -240,9 +240,9 @@ func notifyMigrate(conn *zk.Conn, migrateLockPath, znode, key string, update boo
 				wg.Done()
 				return
 			}
-			log.Debug("notify node(%s) migrate succeed", node)
+			log.Debug("notify node:%s migrate succeed", n)
 			wg.Done()
-		}(nodeInfo)
+		}(node, nodeInfo)
 	}
 	wg.Wait()
 	// update znode info

@@ -189,7 +189,7 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 			}
 			rpcTmp, err := rpc.Dial("tcp", retryAddr)
 			if err != nil {
-				log.Error("rpc.Dial(\"tcp\", %s) error(%s)", retryAddr, err)
+				log.Error("rpc.Dial(\"tcp\", %s) error(%v)", retryAddr, err)
 				continue
 			}
 			log.Info("rpc.Dial(\"tcp\", %s) retry succeed", retryAddr)

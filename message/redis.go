@@ -30,7 +30,8 @@ import (
 )
 
 var (
-	RedisNoConnErr = errors.New("can't get a redis conn")
+	RedisNoConnErr       = errors.New("can't get a redis conn")
+	redisProtocolSpliter = "@"
 )
 
 // RedisMessage struct encoding the composite info.
@@ -53,40 +54,43 @@ type RedisStorage struct {
 
 // NewRedis initialize the redis pool and consistency hash ring.
 func NewRedisStorage() *RedisStorage {
-	var (
-		err error
-		w   int
-		nw  []string
-	)
 	redisPool := map[string]*redis.Pool{}
 	ring := ketama.NewRing(ketamaBase)
 	for n, addr := range Conf.RedisSource {
-		nw = strings.Split(n, ":")
+		nw := strings.Split(n, ":")
 		if len(nw) != 2 {
-			err = errors.New("node config error, it's nodeN:W")
+			err := errors.New("node config error, it's nodeN:W")
 			log.Error("strings.Split(\"%s\", :) failed (%v)", n, err)
 			panic(err)
 		}
-		w, err = strconv.Atoi(nw[1])
+		w, err := strconv.Atoi(nw[1])
 		if err != nil {
 			log.Error("strconv.Atoi(\"%s\") failed (%v)", nw[1], err)
 			panic(err)
 		}
-		tmp := addr
+		// get protocol and addr
+		pw := strings.Split(addr, redisProtocolSpliter)
+		if len(pw) != 2 {
+			log.Error("strings.Split(\"%s\", \"%s\") failed (%v)", addr, redisProtocolSpliter, err)
+			panic(fmt.Sprintf("config redis.source node:\"%s\" format error", addr))
+		}
+		tmpProto := pw[0]
+		tmpAddr := pw[1]
 		// WARN: closures use
 		redisPool[nw[0]] = &redis.Pool{
 			MaxIdle:     Conf.RedisMaxIdle,
 			MaxActive:   Conf.RedisMaxActive,
 			IdleTimeout: Conf.RedisIdleTimeout,
 			Dial: func() (redis.Conn, error) {
-				conn, err := redis.Dial("tcp", tmp)
+				conn, err := redis.Dial(tmpProto, tmpAddr)
 				if err != nil {
-					log.Error("redis.Dial(\"tcp\", \"%s\") error(%v)", tmp, err)
+					log.Error("redis.Dial(\"%s\", \"%s\") error(%v)", tmpProto, tmpAddr, err)
 					return nil, err
 				}
 				return conn, err
 			},
 		}
+		// add node to ketama hash
 		ring.AddNode(nw[0], w)
 	}
 	ring.Bake()

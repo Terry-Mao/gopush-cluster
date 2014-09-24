@@ -114,6 +114,7 @@ func GetOfflineMsg(w http.ResponseWriter, r *http.Request) {
 	args := &myrpc.MessageGetPrivateArgs{MsgId: mid, Key: key}
 	client := myrpc.MessageRPC.Get()
 	if client == nil {
+		log.Error("no message node found")
 		res["ret"] = InternalErr
 		return
 	}

@@ -64,56 +64,6 @@ func InitZK() (*zk.Conn, error) {
 		return conn, err
 	}
 	// watch and update
-	//go watchCometRoot(conn, Conf.ZookeeperCometPath, Conf.KetamaBase)
 	rpc.InitMessage(conn, Conf.ZookeeperMessagePath, Conf.RPCRetry, Conf.RPCPing)
 	return conn, nil
 }
-
-/*
-// watchCometRoot monitoring all Comet nodes
-func watchCometRoot(conn *zk.Conn, fpath string, vnode int) {
-	for {
-		nodes, watch, err := myzk.GetNodesW(conn, fpath)
-		if err != nil {
-			log.Error("myzk.GetNodesW() error(%v)", err)
-			continue
-		}
-		tmp := make(map[string]int)
-		bpath := ""
-		for _, node := range nodes {
-			bpath = path.Join(fpath, node)
-			w, _, err := conn.Get(bpath)
-			if err != nil {
-				log.Error("conn.Get(\"%s\") error(%v)", bpath, err)
-				continue
-			}
-			weight, err := strconv.Atoi(string(w))
-			if err != nil {
-				log.Error("node:\"%s\" data:\"%s\" format error", bpath, string(w))
-				continue
-			}
-			tmp[node] = weight
-		}
-		// handle nodes changed(eg:add or del)
-		// TODO zk.Get get weight
-		count := 0
-		added := false
-		for _, node := range nodes {
-			if _, ok := nodeWeightMap[node]; !ok {
-				added = true
-				break
-			}
-			count++
-		}
-		lenMap := len(nodeWeightMap)
-		nodeWeightMap = tmp
-		log.Info("comet update watch node : %v", tmp)
-		if added || count != lenMap {
-			UserChannel.Migrate()
-		}
-		// blocking wait node changed
-		event := <-watch
-		log.Info("zk path: \"%s\" receive a event %v", fpath, event)
-	}
-}
-*/

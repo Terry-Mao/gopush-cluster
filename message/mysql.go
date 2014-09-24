@@ -38,7 +38,8 @@ const (
 )
 
 var (
-	ErrNoMySQLConn = errors.New("can't get a mysql db")
+	ErrNoMySQLConn     = errors.New("can't get a mysql db")
+	mysqlSourceSpliter = ":"
 )
 
 // MySQL Storage struct
@@ -49,27 +50,21 @@ type MySQLStorage struct {
 
 // NewMySQLStorage initialize mysql pool and consistency hash ring.
 func NewMySQLStorage() *MySQLStorage {
-	var (
-		err error
-		w   int
-		nw  []string
-		db  *sql.DB
-	)
 	dbPool := make(map[string]*sql.DB)
 	ring := ketama.NewRing(ketamaBase)
 	for n, source := range Conf.MySQLSource {
-		nw = strings.Split(n, ":")
+		nw := strings.Split(n, mysqlSourceSpliter)
 		if len(nw) != 2 {
-			err = errors.New("node config error, it's nodeN:W")
+			err := errors.New("node config error, it's nodeN:W")
 			log.Error("strings.Split(\"%s\", :) failed (%v)", n, err)
 			panic(err)
 		}
-		w, err = strconv.Atoi(nw[1])
+		w, err := strconv.Atoi(nw[1])
 		if err != nil {
 			log.Error("strconv.Atoi(\"%s\") failed (%v)", nw[1], err)
 			panic(err)
 		}
-		db, err = sql.Open("mysql", source)
+		db, err := sql.Open("mysql", source)
 		if err != nil {
 			log.Error("sql.Open(\"mysql\", %s) failed (%v)", source, err)
 			panic(err)
