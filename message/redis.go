@@ -166,7 +166,7 @@ func (s *RedisStorage) SavePrivates(keys []string, msg json.RawMessage, mid int6
 	}
 	// batch
 	for n, k := range nodes {
-		conn := s.getConn(n)
+		conn := s.getConnByNode(n)
 		if conn == nil {
 			err = RedisNoConnErr
 			return
@@ -312,11 +312,16 @@ func (s *RedisStorage) getConn(key string) redis.Conn {
 		return nil
 	}
 	node := s.ring.Hash(key)
+	log.Debug("user_key: \"%s\" hit redis node: \"%s\"", key, node)
+	return s.getConnByNode(node)
+}
+
+func (s *RedisStorage) getConnByNode(node string) redis.Conn {
 	p, ok := s.pool[node]
 	if !ok {
-		log.Warn("user_key: \"%s\" hit redis node: \"%s\" not in pool", key, node)
+		log.Warn("no node: \"%s\" in redis pool", node)
 		return nil
 	}
-	log.Debug("user_key: \"%s\" hit redis node: \"%s\"", key, node)
+
 	return p.Get()
 }
