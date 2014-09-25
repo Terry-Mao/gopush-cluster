@@ -42,6 +42,26 @@ type WeightRpc struct {
 	Weight int
 }
 
+// Close close the weightrpc inner *rpc.Client.
+func (w *WeightRpc) Close() error {
+	// w.Client may reuse and reset to nil, so use a local variables to store the pointer.
+	client := w.Client
+	if client != nil {
+		return client.Close()
+	}
+	return nil
+}
+
+// Call call the weightrpc inner *rpc.Client.
+func (w *WeightRpc) Call(serviceMethod string, args interface{}, reply interface{}) error {
+	// w.Client may reuse and reset to nil, so use a local variables to store the pointer.
+	client := w.Client
+	if client != nil {
+		return client.Call(serviceMethod, args, reply)
+	}
+	return nil
+}
+
 type byWeight []*WeightRpc
 
 // Len is part of sort.Interface.
@@ -135,9 +155,9 @@ func (r *RandLB) Destroy() {
 	r.Stop()
 	for _, client := range r.Clients {
 		// rpc may be nil, someone steal and reuse it.
-		if client != nil && client.Client != nil {
+		if client != nil {
 			log.Debug("rpc connection close")
-			if err := client.Client.Close(); err != nil {
+			if err := client.Close(); err != nil {
 				log.Error("client.Close() error(%v)", err)
 			}
 		}
@@ -150,6 +170,9 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 	retryCH := make(chan string, randLBRetryCHLength)
 	r.exitCH = make(chan int, 1)
 	for _, client := range r.Clients {
+		if client == nil {
+			continue
+		}
 		// warn: closures problem
 		go func(client *WeightRpc) {
 			log.Info("\"%s\" rpc ping goroutine start", client.Addr)
@@ -162,9 +185,10 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 				default:
 				}
 				// get client for ping
-				if err := client.Client.Call(method, 0, &ret); err != nil {
+				// if client reuse, client = nil, though call succeed, but will stop by caller ASAP.
+				if err := client.Call(method, 0, &ret); err != nil {
 					// if failed send to chan reconnect, sleep
-					client.Client.Close()
+					client.Close()
 					retryCH <- client.Addr
 					log.Error("client.Call(\"%s\", 0, &ret) error(%v), retry", method, err)
 					time.Sleep(retry)
@@ -196,6 +220,9 @@ func (r *RandLB) ping(service string, retry, ping time.Duration) {
 			// copy-on-write
 			tmpClients := make(map[string]*WeightRpc, len(r.Clients))
 			for addr, client := range r.Clients {
+				if client == nil {
+					continue
+				}
 				tmpClients[addr] = client
 				if client.Addr == retryAddr {
 					client.Client = rpcTmp
