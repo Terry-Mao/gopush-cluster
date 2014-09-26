@@ -149,7 +149,7 @@ func PushMultiPrivate(w http.ResponseWriter, r *http.Request) {
 			fKeys = append(fKeys, ks...)
 			continue
 		}
-
+		log.Debug("fkeys len(%d) addr:%v", len(resp.FKeys), cometInfo.RpcAddr)
 		fKeys = append(fKeys, resp.FKeys...)
 	}
 	res["ret"] = OK

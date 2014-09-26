@@ -170,6 +170,7 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 				// static slice is thread-safe
 				// log all keys
 				fKeysList[i] = m.Keys
+				log.Debug("fkeys len:%d", len(m.Keys))
 				return
 			}
 			b.Lock()
@@ -186,9 +187,11 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 					log.Error("%s(\"%v\", \"%v\", &ret) error(%v)", myrpc.MessageServiceSavePrivates, m.Keys, args, err)
 					// static slice is thread-safe
 					fKeysList[i] = m.Keys
+					log.Debug("fkeys len:%d", len(m.Keys))
 					return
 				}
 				fKeysList[i] = resp.FKeys
+				log.Debug("fkeys len:%d", len(resp.FKeys))
 			}
 			// delete the failed keys
 			for _, fk := range resp.FKeys {
