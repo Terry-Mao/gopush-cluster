@@ -57,6 +57,7 @@ push-message json structure like following:
     "k": "t1,t2,t3"
 }
 </pre>
+
 (head). | Parameter | Type | Description |
 | m | string  | push-message, must be json string |
 | k | string  | subcribe key, comma separated |
@@ -68,7 +69,7 @@ push-message json structure like following:
 <pre>
 {
     "data": {
-        "fk": [ //如果有部分key推送失败,则返回在这里,ret依然为0.fk字段结构为字符串数组。正常情况下不会有fk。
+        "fk": [ //if push part of messages failed, then return into fk. in normal case, no fk.
             "t1",
             "t2"
         ]
