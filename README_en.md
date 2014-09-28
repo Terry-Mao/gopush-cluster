@@ -37,7 +37,7 @@ $ yum -y install java-1.7.0-openjdk$ yum -y install gcc-c++
 ### zookeeper
 1.mkdir
 ```sh
-$ mkdir -p /data/apps$ mkdir -p /data/logs$ mkdir -p /data/programfiles
+$ mkdir -p /data/apps$ mkdir -p /data/logs/gopush-cluster$ mkdir -p /data/programfiles
 ```
 2.download [zookeeper](http://www.apache.org/dyn/closer.cgi/zookeeper/), suggest version: '3.4.5'.
 ```sh
@@ -52,15 +52,15 @@ $ ./zkServer.sh start
 ### redis
 ```sh
 $ cd /data/programfiles
-$ wget https://redis.googlecode.com/files/redis-2.6.4.tar.gz
-$ tar -xvf redis-2.6.4.tar.gz -C ./
-$ cd redis-2.6.4
+$ wget http://download.redis.io/releases/redis-2.8.17.tar.gz
+$ tar -xvf redis-2.8.17.tar.gz -C ./
+$ cd redis-2.8.17
 $ make
 $ make test
 $ make install
 $ mkdir /etc/redis
-$ cp /data/programfiles/redis-2.6.4/redis.conf /etc/redis/
-$ cp /data/programfiles/redis-2.6.4/src/redis-server /etc/init.d/redis-server
+$ cp /data/programfiles/redis-2.8.17/redis.conf /etc/redis/
+$ cp /data/programfiles/redis-2.8.17/src/redis-server /etc/init.d/redis-server
 $ /etc/init.d/redis-server /etc/redis/redis.conf
 ```
 * if following error, see FAQ 2
@@ -78,12 +78,12 @@ $ yum -y install git
 ```
 
 ### golang
-1.download
+1.download(depend on your system, select from [here](http://golang.org/dl/))
 ```sh
 # centos
 $ cd /data/programfiles
-$ wget -c --no-check-certificate https://go.googlecode.com/files/go1.2.linux-amd64.tar.gz
-$ tar -xvf go1.2.linux-amd64.tar.gz -C /usr/local
+$ wget -c --no-check-certificate https://go.googlecode.com/files/go1.3.linux-amd64.tar.gz
+$ tar -xvf go1.3.linux-amd64.tar.gz -C /usr/local
 ```
 2.golang env
 ```sh
@@ -101,9 +101,8 @@ $ ./dependencies.sh
 ```
 *if following error, see FAQ 1
 
-go: missing Mercurial command. See http://golang.org/s/gogetcmd
-
-package code.google.com/p/go.net/websocket: exec: "hg": executable file not found in $PATH
+		go: missing Mercurial command. See http://golang.org/s/gogetcmd
+		package code.google.com/p/go.net/websocket: exec: "hg": executable file not found in $PATH
 
 2.install message,comet,web node
 ```sh
@@ -112,31 +111,37 @@ $ go install
 $ cp message-example.conf $GOPATH/bin/message.conf
 $ cd ../comet/
 $ go install
-$ cp comet-example.conf /data/apps/go/bin/comet.conf
+$ cp comet-example.conf $GOPATH/bin/comet.conf
 $ cd ../web/
 $ go install
-$ cp web-example.conf /data/apps/go/bin/web.conf
+$ cp web-example.conf $GOPATH/bin/web.conf
 ```
 All done!!!
 
 ### start gopush-cluster
 ```sh
 $ cd /$GOPATH/bin
-$ nohup ./message -c message.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthreshold=FATAL &
-$ nohup ./comet -c comet.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthreshold=FATAL &
-$ nohup ./web -c web.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthreshold=FATAL &
+$ nohup $GOPATH/bin/message -c $GOPATH/bin/message.conf &
+$ nohup $GOPATH/bin/comet -c $GOPATH/bin/comet.conf &
+$ nohup $GOPATH/bin/web -c $GOPATH/bin/web.conf &
 ```
 
 ### testing
-1.push private message
+1.push single private message
 ```sh
 $ curl -d "{\"test\":1}" http://localhost:8091/1/admin/push/private?key=Terry-Mao\&expire=600
 ```
+succeed response: `{"ret":0}`<br>
+
+2.push multiple private messages
 ```sh
-$ curl -d "{\"test\":1}" http://localhost:8091/admin/push?key=Terry-Mao\&expire=60\&gid=0 (Compatibility with older versions, recommend use above)
+$ curl -d "{\"m\":\"{\\\"test\\\":1}\",\"k\":\"t1,t2,t3\"}" http://localhost:8091/1/admin/push/mprivate?expire=600
 ```
-succeed response：{"ret":0}
-* note: the message of new push url must be json format, otherwise it will get a error when invoke ‘get offline message’ url.
+succeed response: `{"data":{"fk":["t1","t2"]},"ret":0}`<br>
+* filed `m` is the push-message, `k` is contain all of push-keys that comma separated<br>
+
+		note:1)the message of new push url must be json format string.
+			 2)in the case of push multiple, no `fk` filed, only if respond when part of messages what push failed(`fk` mean failed-keys). it`s a string array structure.
 
 2.get offline message
 
@@ -159,19 +164,6 @@ succeed response:
 }
 ```
 succeed response: (Compatibility with older versions)
-```json
-{
-    "data": {
-        "msgs": [
-            "{\"msg\":{\"test\":1},\"expire\":1391943609703654726,\"mid\":13919435497036558}"
-        ],
-        "pmsgs": [
-            "{\"msg\":{\"test\":1},\"expire\":1391943637016665915,\"mid\":13919435770166656}"
-        ]
-    },
-    "ret": 0
-}
-```
 * node: each of message in new response json is a struct, and the old message is string
 
 3.get node address
@@ -179,9 +171,6 @@ succeed response: (Compatibility with older versions)
 open in browser
 ```scala
 http://localhost:8090/1/server/get?k=Terry-Mao&p=2
-```
-```scala
-http://localhost:8090/server/get?key=Terry-Mao&proto=2 (Compatibility with older versions, recommend use above)
 ```
 succeed response:
 ```json

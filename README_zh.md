@@ -103,9 +103,8 @@ $ ./dependencies.sh
 ```
 * 如果提示如下,说明需要安装谷歌的hg工具（安装mercurial,参考附资料1）
 
-go: missing Mercurial command. See http://golang.org/s/gogetcmd
-
-package code.google.com/p/go.net/websocket: exec: "hg": executable file not found in $PATH
+		go: missing Mercurial command. See http://golang.org/s/gogetcmd
+		package code.google.com/p/go.net/websocket: exec: "hg": executable file not found in $PATH
 
 2.安装message、comet、web模块(配置文件请依据实际机器环境配置)
 ```sh
@@ -129,21 +128,21 @@ $ nohup $GOPATH/bin/web -c $GOPATH/bin/web.conf &
 ```
 
 ### 八、测试
-1.推送私信（例：消息过期时间为expire=600秒）
+1.推送单个私信（例：消息过期时间为expire=600秒）
 ```sh
 $ curl -d "{\"test\":1}" http://localhost:8091/1/admin/push/private?key=Terry-Mao\&expire=600
 ```
-成功返回：{"ret":0}
+成功返回：`{"ret":0}`
 
-2.批量推送
+2.批量推送私信
 ```sh
 $ curl -d "{\"m\":\"{\\\"test\\\":1}\",\"k\":\"t1,t2,t3\"}" http://localhost:8091/1/admin/push/mprivate?expire=600
 ```
-成功返回：{"data":{"fk":["t1","t2"]},"ret":0}<br>
-* 字段m是消息体，k是要批量推送的订阅key，每个key用逗号分割。<br>
+成功返回：`{"data":{"fk":["t1","t2"]},"ret":0}`<br>
+* 字段`m`是消息体，`k`是要批量推送的订阅key，每个key用`,`分割。<br>
 
-		注:	1).新版推送的消息内容必须是json格式，否则获取消息时会报错。<br>
-			2).批量推送正常稳定情况下是没有fk字段的，
+		注:	1)新版推送的消息内容必须是json格式，否则获取消息时会报错.
+			2)批量推送正常情况下是没有`fk`字段的,如果有部分推送失败则返回`fk`，结构为字符串数组.
 
 3.获取离线消息接口
 
