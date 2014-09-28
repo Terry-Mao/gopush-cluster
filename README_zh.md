@@ -19,7 +19,7 @@ gopush-cluster
  * 纯Golang实现
  * 支持消息过期
  * 支持离线消息存储
- * 支持全量推送和单个私信推送
+ * 支持单个以及多个私信推送
  * 支持单个Key多个订阅者（可限制订阅者最大人数）
  * 心跳支持（应用心跳和tcp keepalive）
  * 支持安全验证（未授权用户不能订阅）
@@ -28,7 +28,7 @@ gopush-cluster
  * 可拓扑的架构（支持增加和删除comet节点，web节点，message节点）
  * 利用Zookeeper支持故障转移
 
-## 安装
+## 安装(版本1.0.5)
 ### 一、安装依赖
 ```sh
 $ yum -y install java-1.7.0-openjdk$ yum -y install gcc-c++
@@ -37,16 +37,16 @@ $ yum -y install java-1.7.0-openjdk$ yum -y install gcc-c++
 ### 二、搭建zookeeper
 1.新建目录
 ```sh
-$ mkdir -p /data/apps$ mkdir -p /data/logs$ mkdir -p /data/programfiles
+$ mkdir -p /data/apps$ mkdir -p /data/logs/gopush-cluster$ mkdir -p /data/programfiles
 ```
 
-2.下载[zookeeper](http://www.apache.org/dyn/closer.cgi/zookeeper/)，推荐下载3.4.5版本
+2.下载[zookeeper](http://www.apache.org/dyn/closer.cgi/zookeeper/)，推荐下载3.4.5或更高版本
 ```sh
 $ cd /data/programfiles
 $ wget http://mirror.bit.edu.cn/apache/zookeeper/zookeeper-3.4.5/zookeeper-3.4.5.tar.gz
 $ tar -xvf zookeeper-3.4.5.tar.gz -C ./
 ```
-3.启动zookeeper(zookeeper配置在这里不做详细介绍)
+3.启动zookeeper(zookeeper的集群配置在这里不做详细介绍,如果有多台机器,建议做集群)
 ```sh
 $ cp /data/programfiles/zookeeper-3.4.5/conf/zoo_sample.cfg /data/programfiles/zookeeper-3.4.5/conf/zoo.cfg
 $ cd /data/programfiles/zookeeper-3.4.5/bin
@@ -80,11 +80,11 @@ Make: *** [test] error 2！
 $ yum -y install git
 ```
 ### 五、搭建golang环境
-1.下载源码(根据自己的系统下载对应的安装包)
+1.下载源码(根据自己的系统下载对应的[安装包](http://golang.org/dl/))
 ```sh
 $ cd /data/programfiles
-$ wget -c --no-check-certificate https://go.googlecode.com/files/go1.2.linux-amd64.tar.gz
-$ tar -xvf go1.2.linux-amd64.tar.gz -C /usr/local
+$ wget -c --no-check-certificate https://go.googlecode.com/files/go1.3.linux-amd64.tar.gz
+$ tar -xvf go1.3.linux-amd64.tar.gz -C /usr/local
 ```
 2.配置GO环境变量
 (这里我加在/etc/profile.d/golang.sh)
@@ -107,7 +107,7 @@ go: missing Mercurial command. See http://golang.org/s/gogetcmd
 
 package code.google.com/p/go.net/websocket: exec: "hg": executable file not found in $PATH
 
-2.安装message、comet、web模块
+2.安装message、comet、web模块(配置文件请依据实际机器环境配置)
 ```sh
 $ cd $GOPATH/src/github.com/Terry-Mao/gopush-cluster/message
 $ go install
@@ -133,20 +133,23 @@ $ nohup $GOPATH/bin/web -c $GOPATH/bin/web.conf &
 ```sh
 $ curl -d "{\"test\":1}" http://localhost:8091/1/admin/push/private?key=Terry-Mao\&expire=600
 ```
-```sh
-$ curl -d "{\"test\":1}" http://localhost:8091/admin/push?key=Terry-Mao\&expire=60\&gid=0 (旧版本兼容所留，建议使用上面的接口)
-```
 成功返回：{"ret":0}
-* 注：新版推送的消息内容必须是json格式，否则获取消息时会报错。
 
-2.获取离线消息接口
+2.批量推送
+```sh
+$ curl -d "{\"m\":\"{\\\"test\\\":1}\",\"k\":\"t1,t2,t3\"}" http://localhost:8091/1/admin/push/mprivate?expire=600
+```
+成功返回：{"data":{"fk":["t1","t2"]},"ret":0}<br>
+* 字段m是消息体，k是要批量推送的订阅key，每个key用逗号分割。<br>
+
+注:	1).新版推送的消息内容必须是json格式，否则获取消息时会报错。<br>
+	2).批量推送正常稳定情况下是
+
+3.获取离线消息接口
 
 在浏览器中打开：
 ```scala
 http://localhost:8090/1/msg/get?k=Terry-Mao&m=0
-```
-```scala
-http://localhost:8090/msg/get?key=Terry-Mao&mid=1&pmid=0 (旧版本兼容所留，建议使用上面的接口)
 ```
 成功返回:
 ```json
@@ -159,30 +162,12 @@ http://localhost:8090/msg/get?key=Terry-Mao&mid=1&pmid=0 (旧版本兼容所留�
     "ret":0
 }
 ```
-成功返回：（旧版兼容所留）
-```json
-{
-    "data": {
-        "msgs": [
-            "{\"msg\":{\"test\":1},\"expire\":1391943609703654726,\"mid\":13919435497036558}"
-        ],
-        "pmsgs": [
-            "{\"msg\":{\"test\":1},\"expire\":1391943637016665915,\"mid\":13919435770166656}"
-        ]
-    },
-    "ret": 0
-}
-```
-* 注：新旧两版的不同之处是，新版返回的msgs每一条都是一个结构体，而旧版每条消息是一个字符串,并且去掉expire字段，添加了gid字段
 
-3.获取节点接口
+4.获取节点接口
 
 在浏览器中打开：
 ```scala
 http://localhost:8090/1/server/get?k=Terry-Mao&p=2
-```
-```scala
-http://localhost:8090/server/get?key=Terry-Mao&proto=2 (旧版本兼容所留，建议使用上面的接口)
 ```
 成功返回：
 ```json

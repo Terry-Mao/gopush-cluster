@@ -144,7 +144,6 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 		}
 		bp := UserChannel.Bucket(key)
 		if bucket, ok := bucketMap[bp]; !ok {
-			log.Debug("new bucketMap index:%d", bp)
 			bucketMap[bp] = &batchChannel{
 				Keys: []string{key},
 				Chs:  map[string]Channel{key: ch},
