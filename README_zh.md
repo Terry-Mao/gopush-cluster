@@ -55,15 +55,15 @@ $ ./zkServer.sh start
 ### 三、搭建redis
 ```sh
 $ cd /data/programfiles
-$ wget https://redis.googlecode.com/files/redis-2.6.4.tar.gz
-$ tar -xvf redis-2.6.4.tar.gz -C ./
-$ cd redis-2.6.4
+$ wget http://download.redis.io/releases/redis-2.8.17.tar.gz
+$ tar -xvf redis-2.8.17.tar.gz -C ./
+$ cd redis-2.8.17
 $ make
 $ make test
 $ make install
 $ mkdir /etc/redis
-$ cp /data/programfiles/redis-2.6.4/redis.conf /etc/redis/
-$ cp /data/programfiles/redis-2.6.4/src/redis-server /etc/init.d/redis-server
+$ cp /data/programfiles/redis-2.8.17/redis.conf /etc/redis/
+$ cp /data/programfiles/redis-2.8.17/src/redis-server /etc/init.d/redis-server
 $ /etc/init.d/redis-server /etc/redis/redis.conf
 ```
 * 如果如下报错,则安装tcl8.5(参考附资料2)
@@ -114,22 +114,22 @@ $ go install
 $ cp message-example.conf $GOPATH/bin/message.conf
 $ cd ../comet/
 $ go install
-$ cp comet-example.conf /data/apps/go/bin/comet.conf
+$ cp comet-example.conf $GOPATH/bin/comet.conf
 $ cd ../web/
 $ go install
-$ cp web-example.conf /data/apps/go/bin/web.conf
+$ cp web-example.conf $GOPATH/bin/web.conf
 ```
 到此所有的环境都搭建完成！
 ### 七、启动gopush-cluster
 ```sh
 $ cd /$GOPATH/bin
-$ nohup ./message -c message.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthreshold=FATAL &
-$ nohup ./comet -c comet.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthreshold=FATAL &
-$ nohup ./web -c web.conf -v=1 -log_dir="/data/logs/gopush-cluster/" -stderrthreshold=FATAL &
+$ nohup $GOPATH/bin/message -c $GOPATH/bin/message.conf &
+$ nohup $GOPATH/bin/comet -c $GOPATH/bin/comet.conf &
+$ nohup $GOPATH/bin/web -c $GOPATH/bin/web.conf &
 ```
 
 ### 八、测试
-1.推送私信（消息过期时间为expire=600秒）
+1.推送私信（例：消息过期时间为expire=600秒）
 ```sh
 $ curl -d "{\"test\":1}" http://localhost:8091/1/admin/push/private?key=Terry-Mao\&expire=600
 ```
