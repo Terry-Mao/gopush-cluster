@@ -20,7 +20,7 @@ gopush-cluster
  * pure golang implementation
  * message expired
  * offline message store
- * public message or private message push
+ * private message push
  * multiple subscribers (can restrict max subscribers)
  * heartbeat（service heartbeat or tcp keepalive）
  * auth (if a subscriber not auth then can not connect to comet node)
@@ -109,21 +109,24 @@ $ ./dependencies.sh
 $ cd $GOPATH/src/github.com/Terry-Mao/gopush-cluster/message
 $ go install
 $ cp message-example.conf $GOPATH/bin/message.conf
+$ cp log.xml $GOPATH/bin/message_log.xml
 $ cd ../comet/
 $ go install
 $ cp comet-example.conf $GOPATH/bin/comet.conf
+$ cp log.xml $GOPATH/bin/comet_log.xml
 $ cd ../web/
 $ go install
 $ cp web-example.conf $GOPATH/bin/web.conf
+$ cp log.xml $GOPATH/bin/web_log.xml
 ```
 All done!!!
 
 ### start gopush-cluster
 ```sh
 $ cd /$GOPATH/bin
-$ nohup $GOPATH/bin/message -c $GOPATH/bin/message.conf &
-$ nohup $GOPATH/bin/comet -c $GOPATH/bin/comet.conf &
-$ nohup $GOPATH/bin/web -c $GOPATH/bin/web.conf &
+$ nohup $GOPATH/bin/message -c $GOPATH/bin/message.conf 2>&1 >> /data/logs/gopush-cluster/panic-message.log &
+$ nohup $GOPATH/bin/comet -c $GOPATH/bin/comet.conf 2>&1 >> /data/logs/gopush-cluster/panic-comet.log &
+$ nohup $GOPATH/bin/web -c $GOPATH/bin/web.conf 2>&1 >> /data/logs/gopush-cluster/panic-web.log &
 ```
 
 ### testing
@@ -141,16 +144,14 @@ succeed response: `{"data":{"fk":["t1","t2"]},"ret":0}`<br>
 * filed `m` is the push-message, `k` is contain all of push-keys that comma separated<br>
 
 		note:1)the message of new push url must be json format string.
-			 2)in the case of push multiple, no `fk` filed, only if respond when part of messages what push failed(`fk` mean failed-keys). it`s a string array structure.
+			 2)in the case of push multiple, no `fk` filed, only if respond when part of
+			  messages what push failed(`fk` mean failed-keys). it`s a string array structure.
 
-2.get offline message
+3.get offline message
 
 open in browser
 ```scala
 http://localhost:8090/1/msg/get?k=Terry-Mao&m=0
-```
-```scala
-http://localhost:8090/msg/get?key=Terry-Mao&mid=1&pmid=0 (Compatibility with older versions, recommend use above)
 ```
 succeed response:
 ```json
@@ -163,10 +164,7 @@ succeed response:
     "ret":0
 }
 ```
-succeed response: (Compatibility with older versions)
-* node: each of message in new response json is a struct, and the old message is string
-
-3.get node address
+4.get node address
 
 open in browser
 ```scala

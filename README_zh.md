@@ -111,20 +111,23 @@ $ ./dependencies.sh
 $ cd $GOPATH/src/github.com/Terry-Mao/gopush-cluster/message
 $ go install
 $ cp message-example.conf $GOPATH/bin/message.conf
+$ cp log.xml $GOPATH/bin/message_log.xml
 $ cd ../comet/
 $ go install
 $ cp comet-example.conf $GOPATH/bin/comet.conf
+$ cp log.xml $GOPATH/bin/comet_log.xml
 $ cd ../web/
 $ go install
 $ cp web-example.conf $GOPATH/bin/web.conf
+$ cp log.xml $GOPATH/bin/web_log.xml
 ```
 到此所有的环境都搭建完成！
 ### 七、启动gopush-cluster
 ```sh
 $ cd /$GOPATH/bin
-$ nohup $GOPATH/bin/message -c $GOPATH/bin/message.conf &
-$ nohup $GOPATH/bin/comet -c $GOPATH/bin/comet.conf &
-$ nohup $GOPATH/bin/web -c $GOPATH/bin/web.conf &
+$ nohup $GOPATH/bin/message -c $GOPATH/bin/message.conf 2>&1 >> /data/logs/gopush-cluster/panic-message.log &
+$ nohup $GOPATH/bin/comet -c $GOPATH/bin/comet.conf 2>&1 >> /data/logs/gopush-cluster/panic-comet.log &
+$ nohup $GOPATH/bin/web -c $GOPATH/bin/web.conf 2>&1 >> /data/logs/gopush-cluster/panic-web.log &
 ```
 
 ### 八、测试
@@ -141,8 +144,8 @@ $ curl -d "{\"m\":\"{\\\"test\\\":1}\",\"k\":\"t1,t2,t3\"}" http://localhost:809
 成功返回：`{"data":{"fk":["t1","t2"]},"ret":0}`<br>
 * 字段`m`是消息体，`k`是要批量推送的订阅key，每个key用`,`分割。<br>
 
-		注:	1)新版推送的消息内容必须是json格式，否则获取消息时会报错.
-			2)批量推送正常情况下是没有`fk`字段的,如果有部分推送失败则返回`fk`，结构为字符串数组.
+		注:1)新版推送的消息内容必须是json格式，否则获取消息时会报错.
+		   2)批量推送正常情况下是没有`fk`字段的,如果有部分推送失败则返回`fk`，结构为字符串数组.
 
 3.获取离线消息接口
 

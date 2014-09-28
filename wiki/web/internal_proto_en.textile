@@ -3,8 +3,9 @@ Web internal interface document, used for push or delete messages so on
 
 <h3>Interface Summary</h3>
 (head). | Name | URL | Method |
-| "<a href="#Push Private Message">Push Private Message</a>":AdminPush | /1/admin/push/private     | POST |
-| "<a href="#Clean Message">Clean Message</a>":AdminMsgClean | /1/admin/msg/del | POST |
+| "<a href="#Push Single Private Message">Push Single Private Message</a>":AdminPushPrivate | /1/admin/push/private     | POST |
+| "<a href="#Push Multiple Private Message">Push Multiple Private Message</a>":AdminPushMPrivate | /1/admin/push/mprivate     | POST |
+| "<a href="#Clean Message">Clean Message</a>":AdminMsgDel | /1/admin/msg/del | POST |
 
 <h3>Public ErrorCode</h3>
 
@@ -21,23 +22,57 @@ Web internal interface document, used for push or delete messages so on
 }
 </pre>
 
-<a name="Push Private Message"></a>
+<a name="Push Single Private Message"></a>
 
-<h3>Push Private Message</h3>
+<h3>Push Single Private Message</h3>
  * Request Parameter
 
 (head). | Parameter | Type | Description |
 | key    | string | Subscription key |
 | expire | int64  | Message Expire Time, Unit:second|
 
-Note: Messages stored in body and must be json format, service will wholly intact return to client. Above just as URL Parameter.
+Note: Messages stored in body and must be json format, service will intactly return to client. Above just as URL Parameter.
 
  * ErrorCode
 
 (head). | ErrorCode | Description |
-| 1001 | no node corresponding with subscription key |
+| 1001 | no node |
 <pre>
 {
+    "ret": 0
+}
+</pre>
+
+<a name="Push Multiple Private Message"></a>
+
+<h3>Push Multiple Private Message</h3>
+ * Request Parameter
+
+(head). | Parameter | Type | Description |
+| expire | int64  | Message Expire Time, Unit:second |
+push-message json structure like following:
+<pre>
+{
+    "m": "{\"test\":1}",
+    "k": "t1,t2,t3"
+}
+</pre>
+(head). | Parameter | Type | Description |
+| m | string  | push-message, must be json string |
+| k | string  | subcribe key, comma separated |
+
+ * ErrorCode
+
+(head). | ErrorCode | Description |
+| 1001 | no node |
+<pre>
+{
+    "data": {
+        "fk": [ //如果有部分key推送失败,则返回在这里,ret依然为0.fk字段结构为字符串数组。正常情况下不会有fk。
+            "t1",
+            "t2"
+        ]
+    },
     "ret": 0
 }
 </pre>

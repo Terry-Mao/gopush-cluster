@@ -3,8 +3,9 @@ Web内部接口文档，用于推送、删除消息等
 
 <h3>接口汇总</h3>
 (head). | 接口名 | URL | 访问方式 |
-| "推送私有消息":AdminPush | /1/admin/push/private     | POST |
-| "清理消息":AdminMsgClean | /1/admin/msg/del | POST |
+| "推送单个私信":AdminPushPrivate | /1/admin/push/private     | POST |
+| "推送多个私信":AdminPushMPrivate | /1/admin/push/mprivate     | POST |
+| "清理消息":AdminMsgDel | /1/admin/msg/del | POST |
 
 <h3>公共返回码</h3>
 
@@ -21,7 +22,7 @@ Web内部接口文档，用于推送、删除消息等
 }
 </pre>
 
-<h3>推送私有消息</h3>
+<h3>推送单个私信</h3>
  * 请求参数
 
 (head). | 参数 | 类型 | 描述 |
@@ -32,9 +33,41 @@ Web内部接口文档，用于推送、删除消息等
  * 返回码
 
 (head). | 错误码 | 描述 |
-| 1001 | 没有找到key对应的节点 |
+| 1001 | 没有找到comet节点 |
 <pre>
 {
+    "ret": 0
+}
+</pre>
+
+<h3>推送多个私信</h3>
+ * 请求参数
+
+(head). | 参数 | 类型 | 描述 |
+| expire | int64  | 消息过期时间，单位：秒(s)|
+推送消息json结构如下：
+<pre>
+{
+    "m": "{\"test\":1}",
+    "k": "t1,t2,t3"
+}
+</pre>
+(head). | 参数 | 类型 | 描述 |
+| m | string  | 要推送的消息体,必须为json字符串|
+| k | string  | 要推送的订阅key,用逗号分割|
+
+ * 返回码
+
+(head). | 错误码 | 描述 |
+| 1001 | 没有找到comet节点 |
+<pre>
+{
+    "data": {
+        "fk": [ //如果有部分key推送失败,则返回在这里,ret依然为0.fk字段结构为字符串数组。正常情况下不会有fk。
+            "t1",
+            "t2"
+        ]
+    },
     "ret": 0
 }
 </pre>
@@ -53,5 +86,6 @@ Web内部接口文档，用于推送、删除消息等
 </pre>
 
 
-[AdminPush]#推送私有消息
-[AdminMsgClean]#清理消息
+[AdminPushPrivate]#推送单个私信
+[AdminPushMPrivate]#推送多个私信
+[AdminMsgDel]#清理消息
