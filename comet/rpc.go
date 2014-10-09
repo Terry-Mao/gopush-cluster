@@ -68,7 +68,7 @@ func (c *CometRPC) New(args *myrpc.CometNewArgs, ret *int) error {
 		return myrpc.ErrParam
 	}
 	// create a new channel for the user
-	ch, err := UserChannel.New(args.Key)
+	ch, _, err := UserChannel.New(args.Key)
 	if err != nil {
 		log.Error("UserChannel.New(\"%s\") error(%v)", args.Key, err)
 		return err
@@ -106,7 +106,7 @@ func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error
 		return myrpc.ErrParam
 	}
 	// get a user channel
-	ch, err := UserChannel.New(args.Key)
+	ch, _, err := UserChannel.New(args.Key)
 	if err != nil {
 		log.Error("UserChannel.New(\"%s\") error(%v)", args.Key, err)
 		return err
@@ -135,14 +135,13 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 	bucketMap := make(map[*ChannelBucket]*batchChannel, Conf.ChannelBucket)
 	for _, key := range args.Keys {
 		// get channel
-		ch, err := UserChannel.New(key)
+		ch, bp, err := UserChannel.New(key)
 		if err != nil {
 			log.Error("UserChannel.New(\"%s\") error(%v)", key, err)
 			// log failed keys.
 			rw.FKeys = append(rw.FKeys, key)
 			continue
 		}
-		bp := UserChannel.Bucket(key)
 		if bucket, ok := bucketMap[bp]; !ok {
 			bucketMap[bp] = &batchChannel{
 				Keys: []string{key},
