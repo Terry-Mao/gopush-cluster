@@ -25,10 +25,6 @@ import (
 	"time"
 )
 
-const (
-	httpReadTimeout = 30 //seconds
-)
-
 // StartHTTP start listen http.
 func StartHTTP() {
 	// external
@@ -63,7 +59,8 @@ func StartHTTP() {
 }
 
 func httpListen(mux *http.ServeMux, bind string) {
-	server := &http.Server{Handler: mux, ReadTimeout: httpReadTimeout * time.Second}
+	server := &http.Server{Handler: mux, ReadTimeout: Conf.HttpServerTimeout}
+	server.SetKeepAlivesEnabled(false)
 	l, err := net.Listen("tcp", bind)
 	if err != nil {
 		log.Error("net.Listen(\"tcp\", \"%s\") error(%v)", bind, err)
