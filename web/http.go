@@ -59,7 +59,7 @@ func StartHTTP() {
 }
 
 func httpListen(mux *http.ServeMux, bind string) {
-	server := &http.Server{Handler: mux, ReadTimeout: Conf.HttpServerTimeout}
+	server := &http.Server{Handler: mux, ReadTimeout: Conf.HttpServerTimeout, WriteTimeout: Conf.HttpServerTimeout}
 	server.SetKeepAlivesEnabled(false)
 	l, err := net.Listen("tcp", bind)
 	if err != nil {
