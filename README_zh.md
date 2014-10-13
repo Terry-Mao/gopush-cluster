@@ -57,7 +57,7 @@ $ ./zkServer.sh start
 $ cd /data/programfiles
 $ wget http://download.redis.io/releases/redis-2.8.17.tar.gz
 $ tar -xvf redis-2.8.17.tar.gz -C ./
-$ cd redis-2.8.17
+$ cd redis-2.8.17/src
 $ make
 $ make test
 $ make install
