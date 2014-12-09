@@ -48,9 +48,9 @@ var (
 
 // CometNodeData stored in zookeeper
 type CometNodeInfo struct {
-	RpcAddr []string `json:"ws"`
+	RpcAddr []string `json:"rpc"`
 	TcpAddr []string `json:"tcp"`
-	WsAddr  []string `json:"rpc"`
+	WsAddr  []string `json:"ws"`
 	Weight  int      `json:"weight"`
 	Rpc     *RandLB  `json:"-"`
 }
