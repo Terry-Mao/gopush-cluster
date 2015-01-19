@@ -161,7 +161,7 @@ func (s *RedisStorage) SavePrivates(keys []string, msg json.RawMessage, mid int6
 	rm := &RedisPrivateMessage{Msg: msg, Expire: int64(expire) + time.Now().Unix()}
 	m, err := json.Marshal(rm)
 	if err != nil {
-		log.Error("json.Marshal() key:\"%s\" error(%v)", "", err)
+		log.Error("json.Marshal() key:\"%s\" error(%v)", keys, err)
 		return
 	}
 	// batch

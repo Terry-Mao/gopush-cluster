@@ -87,7 +87,7 @@ $ tar -xvf go1.3.linux-amd64.tar.gz -C /usr/local
 ```
 2.golang env
 ```sh
-$ vim /etc/profile.d/golang.sh
+$ vi /etc/profile.d/golang.sh
 # append
 export GOROOT=/usr/local/go
 export PATH=$PATH:$GOROOT/bin
@@ -128,6 +128,8 @@ $ nohup $GOPATH/bin/message -c $GOPATH/bin/message.conf 2>&1 >> /data/logs/gopus
 $ nohup $GOPATH/bin/comet -c $GOPATH/bin/comet.conf 2>&1 >> /data/logs/gopush-cluster/panic-comet.log &
 $ nohup $GOPATH/bin/web -c $GOPATH/bin/web.conf 2>&1 >> /data/logs/gopush-cluster/panic-web.log &
 ```
+
+If start failed, please check the log from the path configured in log.xml or /data/logs/gopush-cluster/panic-xxx.log
 
 ### testing
 1.push single private message

@@ -89,7 +89,7 @@ $ tar -xvf go1.3.linux-amd64.tar.gz -C /usr/local
 2.配置GO环境变量
 (这里我加在/etc/profile.d/golang.sh)
 ```sh
-$ vim /etc/profile.d/golang.sh
+$ vi /etc/profile.d/golang.sh
 # 将以下环境变量添加到profile最后面
 export GOROOT=/usr/local/go
 export PATH=$PATH:$GOROOT/bin
@@ -129,6 +129,8 @@ $ nohup $GOPATH/bin/message -c $GOPATH/bin/message.conf 2>&1 >> /data/logs/gopus
 $ nohup $GOPATH/bin/comet -c $GOPATH/bin/comet.conf 2>&1 >> /data/logs/gopush-cluster/panic-comet.log &
 $ nohup $GOPATH/bin/web -c $GOPATH/bin/web.conf 2>&1 >> /data/logs/gopush-cluster/panic-web.log &
 ```
+
+如果启动失败，可通过log.xml里找到日志路径或者/data/logs/gopush-cluster/下的panic-xxx.log，通过日志来排查问题.
 
 ### 八、测试
 1.推送单个私信（例：消息过期时间为expire=600秒）
