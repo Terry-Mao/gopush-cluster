@@ -19,4 +19,13 @@ _cgo_export.*
 
 _testmain.go
 
-*.exe
+*.exe 
+
+.bundle
+.DS_Store
+*.swp
+*.swo
+*.swn
+*.swm
+.rvmrc
+
