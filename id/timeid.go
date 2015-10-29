@@ -49,6 +49,10 @@ func (t *TimeID) ID() int64 {
 */
 
 // Get get a time id.
-func Get() int64 {
-	return time.Now().UnixNano() / 100
+func Get(long_timestamp bool) int64 {
+	if long_timestamp  {
+		return time.Now().UnixNano() / 100
+	} else {
+		return time.Now().Unix() 
+	}
 }

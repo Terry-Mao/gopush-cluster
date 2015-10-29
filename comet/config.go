@@ -43,7 +43,11 @@ type Config struct {
 	WebsocketBind []string `goconf:"base:websocket.bind:,"`
 	RPCBind       []string `goconf:"base:rpc.bind:,"`
 	PprofBind     []string `goconf:"base:pprof.bind:,"`
-	StatBind      []string `goconf:"base:stat.bind:,"`
+	StatBind      []string `goconf:"base:stat.bind:,"` 
+
+	//mid 
+	MidIsUseLongTimestamp  bool     `goconf:"message:mid_use_long_timestamp"`  
+
 	// zookeeper
 	ZookeeperAddr        []string      `goconf:"zookeeper:addr:,"`
 	ZookeeperTimeout     time.Duration `goconf:"zookeeper:timeout:time"`
@@ -65,7 +69,8 @@ type Config struct {
 	ChannelBucket           int           `goconf:"channel:bucket"`
 	Auth                    bool          `goconf:"channel:auth"`
 	TokenExpire             time.Duration `goconf:"-"`
-	MsgBufNum               int           `goconf:"channel:msgbuf.num"`
+	MsgBufNum               int           `goconf:"channel:msgbuf.num"` 
+
 }
 
 // InitConfig get a new Config struct.
@@ -82,6 +87,8 @@ func InitConfig() error {
 		RPCBind:       []string{"localhost:6970"},
 		PprofBind:     []string{"localhost:6971"},
 		StatBind:      []string{"localhost:6972"},
+
+		MidIsUseLongTimestamp: true, 
 		// zookeeper
 		ZookeeperAddr:        []string{"localhost:2181"},
 		ZookeeperTimeout:     30 * time.Second,

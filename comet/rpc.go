@@ -174,7 +174,9 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 			}
 			b.Lock()
 			defer b.Unlock()
-			timeId := id.Get()
+
+			timeId := id.Get(Conf.MidIsUseLongTimestamp)
+
 			msg := &myrpc.Message{Msg: args.Msg, MsgId: timeId}
 			// private message need persistence
 			// if message expired no need persistence, only send online message
