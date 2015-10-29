@@ -23,8 +23,8 @@ package main
 import (
 	log "code.google.com/p/log4go"
 	"encoding/json"
-	"github.com/Terry-Mao/gopush-cluster/rpc"
-	myzk "github.com/Terry-Mao/gopush-cluster/zk"
+	"gopush-cluster/rpc"
+	myzk "gopush-cluster/zk"
 	"github.com/samuel/go-zookeeper/zk"
 )
 

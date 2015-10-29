@@ -20,7 +20,7 @@ import (
 	log "code.google.com/p/log4go"
 	"encoding/json"
 	"errors"
-	"github.com/Terry-Mao/gopush-cluster/rpc"
+	"gopush-cluster/rpc"
 )
 
 const (

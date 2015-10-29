@@ -18,7 +18,7 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
+	myrpc "gopush-cluster/rpc"
 	"net"
 	"net/rpc"
 )

@@ -18,8 +18,8 @@ package main
 
 import (
 	log "code.google.com/p/log4go"
-	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
-	myzk "github.com/Terry-Mao/gopush-cluster/zk"
+	myrpc "gopush-cluster/rpc"
+	myzk "gopush-cluster/zk"
 	"github.com/samuel/go-zookeeper/zk"
 )
 
