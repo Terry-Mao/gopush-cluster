@@ -82,9 +82,11 @@ func retWrite(w http.ResponseWriter, r *http.Request, res map[string]interface{}
 	dataStr := ""
 	if callback == "" {
 		// Normal json
+		w.Header().Set("Content-Type", "application/json;charset=utf-8")
 		dataStr = string(data)
 	} else {
 		// Jsonp
+		w.Header().Set("Content-Type", "application/javascript;charset=utf-8")
 		dataStr = fmt.Sprintf("%s(%s)", callback, string(data))
 	}
 	if n, err := w.Write([]byte(dataStr)); err != nil {
@@ -102,6 +104,7 @@ func retPWrite(w http.ResponseWriter, r *http.Request, res map[string]interface{
 		log.Error("json.Marshal(\"%v\") error(%v)", res, err)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	dataStr := string(data)
 	if n, err := w.Write([]byte(dataStr)); err != nil {
 		log.Error("w.Write(\"%s\") error(%v)", dataStr, err)
