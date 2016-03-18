@@ -17,16 +17,18 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Terry-Mao/gopush-cluster/ketama"
-	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
-	"github.com/garyburd/redigo/redis"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	log "code.google.com/p/log4go"
+	"github.com/Terry-Mao/gopush-cluster/ketama"
+	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
+	"github.com/garyburd/redigo/redis"
 )
 
 var (
@@ -56,6 +58,7 @@ type RedisStorage struct {
 func NewRedisStorage() *RedisStorage {
 	redisPool := map[string]*redis.Pool{}
 	ring := ketama.NewRing(ketamaBase)
+	reg := regexp.MustCompile("(.+)@(.+)#(.+)|(.+)@(.+)")
 	for n, addr := range Conf.RedisSource {
 		nw := strings.Split(n, ":")
 		if len(nw) != 2 {
@@ -69,13 +72,13 @@ func NewRedisStorage() *RedisStorage {
 			panic(err)
 		}
 		// get protocol and addr
-		pw := strings.Split(addr, redisProtocolSpliter)
-		if len(pw) != 2 {
-			log.Error("strings.Split(\"%s\", \"%s\") failed (%v)", addr, redisProtocolSpliter, err)
+		pw := reg.FindStringSubmatch(addr)
+		if len(pw) < 3 {
+			log.Error("strings.regexp(\"%s\", \"%s\") failed (%v)", addr, pw)
 			panic(fmt.Sprintf("config redis.source node:\"%s\" format error", addr))
 		}
-		tmpProto := pw[0]
-		tmpAddr := pw[1]
+		tmpProto := pw[1]
+		tmpAddr := pw[2]
 		// WARN: closures use
 		redisPool[nw[0]] = &redis.Pool{
 			MaxIdle:     Conf.RedisMaxIdle,
@@ -86,6 +89,9 @@ func NewRedisStorage() *RedisStorage {
 				if err != nil {
 					log.Error("redis.Dial(\"%s\", \"%s\") error(%v)", tmpProto, tmpAddr, err)
 					return nil, err
+				}
+				if len(pw) > 3 {
+					conn.Do("AUTH",pw[3])
 				}
 				return conn, err
 			},
@@ -161,13 +167,14 @@ func (s *RedisStorage) SavePrivates(keys []string, msg json.RawMessage, mid int6
 	rm := &RedisPrivateMessage{Msg: msg, Expire: int64(expire) + time.Now().Unix()}
 	m, err := json.Marshal(rm)
 	if err != nil {
-		log.Error("json.Marshal() key:\"%s\" error(%v)", "", err)
+		log.Error("json.Marshal() key:\"%s\" error(%v)", keys, err)
 		return
 	}
 	// batch
 	for n, k := range nodes {
-		conn := s.getConn(n)
+		conn := s.getConnByNode(n)
 		if conn == nil {
+			log.Error("cann`t get redis connection by node:%s", n)
 			err = RedisNoConnErr
 			return
 		}
@@ -312,11 +319,16 @@ func (s *RedisStorage) getConn(key string) redis.Conn {
 		return nil
 	}
 	node := s.ring.Hash(key)
+	log.Debug("user_key: \"%s\" hit redis node: \"%s\"", key, node)
+	return s.getConnByNode(node)
+}
+
+func (s *RedisStorage) getConnByNode(node string) redis.Conn {
 	p, ok := s.pool[node]
 	if !ok {
-		log.Warn("user_key: \"%s\" hit redis node: \"%s\" not in pool", key, node)
+		log.Warn("no node: \"%s\" in redis pool", node)
 		return nil
 	}
-	log.Debug("user_key: \"%s\" hit redis node: \"%s\"", key, node)
+
 	return p.Get()
 }

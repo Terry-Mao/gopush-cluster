@@ -195,7 +195,7 @@ func handleMessageNodeEvent(conn *zk.Conn, retry, ping time.Duration, ch chan *M
 		// copy map from src
 		tmpMessageRPCMap := make(map[string]*WeightRpc, len(MessageRPC.Clients))
 		for k, v := range MessageRPC.Clients {
-			tmpMessageRPCMap[k] = v
+			tmpMessageRPCMap[k] = &WeightRpc{Client: v.Client, Addr: v.Addr, Weight: v.Weight}
 			// reuse rpc connection
 			v.Client = nil
 		}

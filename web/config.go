@@ -36,6 +36,7 @@ func init() {
 type Config struct {
 	HttpBind             []string      `goconf:"base:http.bind:,"`
 	AdminBind            []string      `goconf:"base:admin.bind:,"`
+	HttpServerTimeout    time.Duration `goconf:"base:http.servertimeout:time"`
 	MaxProc              int           `goconf:"base:maxproc"`
 	PprofBind            []string      `goconf:"base:pprof.bind:,"`
 	User                 string        `goconf:"base:user"`
@@ -61,6 +62,7 @@ func InitConfig() error {
 	Conf = &Config{
 		HttpBind:             []string{"localhost:80"},
 		AdminBind:            []string{"localhost:81"},
+		HttpServerTimeout:    10 * time.Second,
 		MaxProc:              runtime.NumCPU(),
 		PprofBind:            []string{"localhost:8190"},
 		User:                 "nobody nobody",

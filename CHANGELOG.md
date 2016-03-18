@@ -10,16 +10,19 @@ Bugfixes:
 
  - 
 
-## Version 1.0.5 (2014-06-04)
+## Version 1.0.5 (2014-09-29)
 
 Changes:
  - add new ketama consistency hash with weight setting (modify comet, message).
- - update document
+ - add mutiple-push API: /1/admin/push/mprivate.
+ - using weight random arithmetic instead the message node seleted
+ - update document.
 
 Bugfixes:
 
  - Fixed mysql fetch data bugs.
  - Fixed old version protocol compatibility.
+ - Fixed rpc connection flash off when node changed
 
 ## Version 1.0.4 (2014-05-28)
 

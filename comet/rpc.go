@@ -68,7 +68,7 @@ func (c *CometRPC) New(args *myrpc.CometNewArgs, ret *int) error {
 		return myrpc.ErrParam
 	}
 	// create a new channel for the user
-	ch, err := UserChannel.New(args.Key)
+	ch, _, err := UserChannel.New(args.Key)
 	if err != nil {
 		log.Error("UserChannel.New(\"%s\") error(%v)", args.Key, err)
 		return err
@@ -106,7 +106,7 @@ func (c *CometRPC) PushPrivate(args *myrpc.CometPushPrivateArgs, ret *int) error
 		return myrpc.ErrParam
 	}
 	// get a user channel
-	ch, err := UserChannel.New(args.Key)
+	ch, _, err := UserChannel.New(args.Key)
 	if err != nil {
 		log.Error("UserChannel.New(\"%s\") error(%v)", args.Key, err)
 		return err
@@ -135,14 +135,13 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 	bucketMap := make(map[*ChannelBucket]*batchChannel, Conf.ChannelBucket)
 	for _, key := range args.Keys {
 		// get channel
-		ch, err := UserChannel.New(key)
+		ch, bp, err := UserChannel.New(key)
 		if err != nil {
 			log.Error("UserChannel.New(\"%s\") error(%v)", key, err)
 			// log failed keys.
 			rw.FKeys = append(rw.FKeys, key)
 			continue
 		}
-		bp := UserChannel.Bucket(key)
 		if bucket, ok := bucketMap[bp]; !ok {
 			bucketMap[bp] = &batchChannel{
 				Keys: []string{key},
@@ -170,6 +169,7 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 				// static slice is thread-safe
 				// log all keys
 				fKeysList[i] = m.Keys
+				log.Debug("fkeys len:%d", len(m.Keys))
 				return
 			}
 			b.Lock()
@@ -179,15 +179,22 @@ func (c *CometRPC) PushPrivates(args *myrpc.CometPushPrivatesArgs, rw *myrpc.Com
 			// private message need persistence
 			// if message expired no need persistence, only send online message
 			// rewrite message id
+			resp := &myrpc.MessageSavePrivatesResp{}
 			if args.Expire > 0 {
 				args := &myrpc.MessageSavePrivatesArgs{Keys: m.Keys, Msg: args.Msg, MsgId: timeId, Expire: args.Expire}
-				resp := &myrpc.MessageSavePrivatesResp{}
 				if err := c.Call(myrpc.MessageServiceSavePrivates, args, resp); err != nil {
 					log.Error("%s(\"%v\", \"%v\", &ret) error(%v)", myrpc.MessageServiceSavePrivates, m.Keys, args, err)
 					// static slice is thread-safe
-					fKeysList[i] = resp.FKeys
+					fKeysList[i] = m.Keys
+					log.Debug("fkeys len:%d", len(m.Keys))
 					return
 				}
+				fKeysList[i] = resp.FKeys
+				log.Debug("fkeys len:%d", len(resp.FKeys))
+			}
+			// delete the failed keys
+			for _, fk := range resp.FKeys {
+				delete(m.Chs, fk)
 			}
 			// get all channels from batchChannel chs.
 			for key, ch := range m.Chs {

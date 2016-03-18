@@ -126,10 +126,10 @@ func (l *ChannelList) validate(key string) error {
 }
 
 // New create a user channle.
-func (l *ChannelList) New(key string) (Channel, error) {
+func (l *ChannelList) New(key string) (Channel, *ChannelBucket, error) {
 	// validate
 	if err := l.validate(key); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// get a channel bucket
 	b := l.Bucket(key)
@@ -138,14 +138,14 @@ func (l *ChannelList) New(key string) (Channel, error) {
 		b.Unlock()
 		ChStat.IncrAccess()
 		log.Info("user_key:\"%s\" refresh channel bucket expire time", key)
-		return c, nil
+		return c, b, nil
 	} else {
 		c = NewSeqChannel()
 		b.Data[key] = c
 		b.Unlock()
 		ChStat.IncrCreate()
 		log.Info("user_key:\"%s\" create a new channel", key)
-		return c, nil
+		return c, b, nil
 	}
 }
 
