@@ -17,7 +17,7 @@
 package rpc
 
 import (
-	log "code.google.com/p/log4go"
+	log "github.com/alecthomas/log4go"
 	"encoding/json"
 	"errors"
 	"github.com/Terry-Mao/gopush-cluster/ketama"
