@@ -18,8 +18,8 @@ package main
 
 import (
 	// TODO change the 3rd websocket lib
-	"code.google.com/p/go.net/websocket"
-	log "code.google.com/p/log4go"
+	"github.com/golang/net/websocket"
+	log "github.com/alecthomas/log4go"
 	"net"
 	"net/http"
 	"strconv"

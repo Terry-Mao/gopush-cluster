@@ -17,7 +17,7 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
+	log "github.com/alecthomas/log4go"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
 	"net/http"
 	"strconv"

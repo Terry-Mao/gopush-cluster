@@ -17,7 +17,7 @@
 package main
 
 import (
-	log "code.google.com/p/log4go"
+	log "github.com/alecthomas/log4go"
 	"errors"
 	"flag"
 	"github.com/Terry-Mao/goconf"

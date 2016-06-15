@@ -17,7 +17,7 @@
 package rpc
 
 import (
-	log "code.google.com/p/log4go"
+	log "github.com/alecthomas/log4go"
 	"encoding/json"
 	myzk "github.com/Terry-Mao/gopush-cluster/zk"
 	"github.com/samuel/go-zookeeper/zk"
