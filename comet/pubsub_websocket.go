@@ -17,13 +17,13 @@
 package main
 
 import (
-	// TODO change the 3rd websocket lib
-	"github.com/golang/net/websocket"
-	log "github.com/alecthomas/log4go"
 	"net"
 	"net/http"
 	"strconv"
 	"time"
+
+	log "github.com/alecthomas/log4go"
+	"golang.org/x/net/websocket"
 )
 
 type KeepAliveListener struct {
