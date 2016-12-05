@@ -25,9 +25,9 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/alecthomas/log4go"
 	"github.com/Terry-Mao/gopush-cluster/ketama"
 	myrpc "github.com/Terry-Mao/gopush-cluster/rpc"
+	log "github.com/alecthomas/log4go"
 	"github.com/garyburd/redigo/redis"
 )
 
@@ -73,12 +73,23 @@ func NewRedisStorage() *RedisStorage {
 		}
 		// get protocol and addr
 		pw := reg.FindStringSubmatch(addr)
-		if len(pw) < 3 {
+		if len(pw) < 6 {
 			log.Error("strings.regexp(\"%s\", \"%s\") failed (%v)", addr, pw)
 			panic(fmt.Sprintf("config redis.source node:\"%s\" format error", addr))
 		}
-		tmpProto := pw[1]
-		tmpAddr := pw[2]
+		tmpProto := ""
+		tmpAddr := ""
+		if pw[1] != "" {
+			tmpProto = pw[1]
+		} else {
+			tmpProto = pw[4]
+		}
+		if pw[2] != "" {
+			tmpAddr = pw[2]
+		} else {
+			tmpAddr = pw[5]
+		}
+
 		// WARN: closures use
 		redisPool[nw[0]] = &redis.Pool{
 			MaxIdle:     Conf.RedisMaxIdle,
@@ -90,8 +101,8 @@ func NewRedisStorage() *RedisStorage {
 					log.Error("redis.Dial(\"%s\", \"%s\") error(%v)", tmpProto, tmpAddr, err)
 					return nil, err
 				}
-				if len(pw) > 3 {
-					conn.Do("AUTH",pw[3])
+				if pw[3] != "" {
+					conn.Do("AUTH", pw[3])
 				}
 				return conn, err
 			},
