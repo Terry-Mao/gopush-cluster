@@ -185,7 +185,7 @@ http://localhost:8090/1/server/get?k=Terry-Mao&p=2
 ### 九、附资料
 1.下载安装[hg](code.google.com/p/go.net/websocket)
 ```sh
-$ wget http://mercurial.selenic.com/release/mercurial-1.4.1.tar.gz 
+$ wget http://mercurial.selenic.com/release/mercurial-1.4.1.tar.gz
 $ tar -xvf mercurial-1.4.1.tar.gz
 $ cd mercurial-1.4.1
 $ make
@@ -210,6 +210,65 @@ $ ./configure
 $ make
 $ make install
 ```
+
+## docker 部署
+
+### 准备
+1. 配置本地 go 环境, 假设  GOPATH=~/go-workspace
+2. 安装 Docker (安装最新版的docker， docker-compose), mac 下可以直接安装最新稳定版的 docker-for-mac.
+3. 下载源码并安装依赖(./dependencies.sh)
+4. 修改源码(这里用docker-compose 一键部署)
+
+```sh
+$ cd ~/go-workspace/src/github.com/Terry-Mao/gopush-cluster
+step1. 修改 comet/zk.go, 从52行开始注释三行，添加三行
+
+52	// nodeInfo.RpcAddr = Conf.RPCBind
+53	// nodeInfo.TcpAddr = Conf.TCPBind
+54	// nodeInfo.WsAddr = Conf.WebsocketBind
+++  nodeInfo.RpcAddr = []string{"comet:6970", "comet:7070"}
+++  nodeInfo.TcpAddr = []string{"comet:6969", "comet:7069"}
+++	nodeInfo.WsAddr = []string{"comet:6968", "comet:7068"}
+
+
+step2. 修改 message/zk.go, 从43行开始注释一行行，添加行
+
+43// nodeInfo.Rpc = Conf.RPCBind
+++	nodeInfo.Rpc = []string{"message:8070", "message:8270"}
+
+```
+
+5. 开始部署
+
+```sh
+$ docker pull robertzhouxh/gobuild-alpine-3.5
+$ docker pull robertzhouxh/redis3.2-alpine
+$ docker pull wurstmeister/zookeeper
+
+#################### 在 robertzhouxh/gobuild-alpine-3.5 (go 版本为1.7.5) 容器内编译 comet， web， message 可执行文件 #######################
+$ docker run -it --rm -v ~/go-workspace:/go robertzhouxh/gobuild-alpine-3.5 bash
+$ cd /go/src/github.com/Terry-Mao/gopush-cluster
+$ ./spawn-docker-images.sh
+$ exit
+
+#################### 在宿主机内 #######################
+cd ~/go-workspace/src/github.com/Terry-Mao/gopush-cluster
+docker-compose build
+docker-compose up 或者 docker-compose up -d
+```
+
+部署完毕！
+
+test:
+```sh
+$ curl -d "{\"test\":1}" http://localhost:8091/1/admin/push/private?key=Terry-Mao\&expire=600
+{"ret":0}
+```
+
+### 说明
+1. 镜像全部基于 alpine3.5 制作， 保证镜像最小化。
+2. 要修改两个源码文件的绑定地址， 来适配 docker-compose 集群内部通信。
+3. 尽量使用docker， docker-compose 最新版。
 
 ## 配置
 ### web节点的配置文件示例：
