@@ -1,0 +1,98 @@
+version: '3'
+services:
+  comet:
+    build:
+      context: ./comet
+      dockerfile: Dockerfile
+    image: comet
+    container_name: comet
+    restart: always
+    links:
+      - redis
+      - zookeeper
+    expose:
+      - "6968"
+      - "7068"
+      - "6969"
+      - "7069"
+      - "6970"
+      - "7070"
+      - "6071"
+      - "6072"
+    ports:
+      - "6968:6968"
+      - "7068:7068"
+      - "6969:6969"
+      - "7069:7069"
+      - "6970:6970"
+      - "7070:7070"
+      - "6071:6971"
+      - "6072:6972"
+    depends_on:
+      - redis
+      - zookeeper
+
+  web:
+    build: ./web
+    image: web
+    container_name: web
+    restart: always
+    links:
+      - redis
+      - zookeeper
+    ports:
+      - "8090:8090"
+      - "8091:8091"
+    depends_on:
+      - redis
+      - zookeeper
+
+  message:
+    build:
+      context: ./message
+      dockerfile: Dockerfile
+    image: message
+    container_name: message
+    restart: always
+    links:
+      - redis
+      - zookeeper
+    expose:
+      - "8070"
+      - "8270"
+      - "8170"
+    ports:
+      - "8070:8070"
+      - "8270:8270"
+      - "8170:8170"
+    depends_on:
+      - redis
+      - zookeeper
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    expose:
+      - "2181"
+    ports:
+      - "2181:2181"
+
+  redis:
+    image: robertzhouxh/redis3.2-alpine
+    restart: always
+    expose:
+      - "6379"
+    ports:
+      - "6379:6379"
+
+volumes:
+  data-volume:
+
+networks:
+  default:
+    driver: bridge
+
+#networks:
+#  front:
+#    driver: overlay
+#  back:
+#    driver: overlay
