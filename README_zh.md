@@ -183,7 +183,7 @@ http://localhost:8090/1/server/get?k=Terry-Mao&p=2
 }
 ```
 ### 九、附资料
-1.下载安装[hg](code.google.com/p/go.net/websocket)
+1.下载安装[hg](http://code.google.com/p/go.net/websocket)
 ```sh
 $ wget http://mercurial.selenic.com/release/mercurial-1.4.1.tar.gz
 $ tar -xvf mercurial-1.4.1.tar.gz
